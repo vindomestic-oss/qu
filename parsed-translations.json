@@ -1,0 +1,2345 @@
+{
+ "BG": {
+  "code": "BG",
+  "tf": [
+   "През втория ден беше създадена сушата.",
+   "Двата града, които израилтяните построиха за фараона, бяха Питом и Раамсес.",
+   "Предметът от Мишкана, който свещениците носеха при преминаването на Йордан към земята Ханаан, беше жертвеникът.",
+   "Пророк Шмуел беше съдия.",
+   "Давид се криеше от Шаул сред филистимците."
+  ],
+  "mc": [
+   {
+    "question": "Какъв беше източникът на водите по време на Потопа?",
+    "options": [
+     "Цунами",
+     "Дъжд",
+     "Подземни води",
+     "Дъжд и подземни води"
+    ]
+   },
+   {
+    "question": "Кое от следните НЕ е вярно относно град Содом?",
+    "options": [
+     "Беше разположен в долината на Йордан",
+     "Авраам преговаря с Б-г, за да може градът да бъде спасен",
+     "Царят на града изнесе хляб и вино и благослови Авраам в знак на благодарност",
+     "Нравите на жителите му бяха зли"
+    ]
+   },
+   {
+    "question": "Кой от следните сънища сънува Йосеф?",
+    "options": [
+     "Стълбата",
+     "Сноповете зърно на полето",
+     "Гроздето, изстисквано в чашата",
+     "Тлъстите и мършавите крави"
+    ]
+   },
+   {
+    "question": "Кого от следните синове Яаков критикува в благословията си?",
+    "options": [
+     "Реувен",
+     "Исахар",
+     "Дан",
+     "Бенямин"
+    ]
+   },
+   {
+    "question": "В коя от следните истории НЕ се събуват обувки?",
+    "options": [
+     "Моше и горящият храст",
+     "Йехошуа и началникът на войнството Г-сподне",
+     "Йехуда и Тамар",
+     "Боаз и Рут"
+    ]
+   },
+   {
+    "question": "Как е описан народът на Израел преди даряването на Тората и Десетте заповеди?",
+    "options": [
+     "Като народ, който се надига като лъв",
+     "Царство от свещеници и свят народ",
+     "Многоброен и мощен народ",
+     "Твърдоглав (коравовратен) народ"
+    ]
+   },
+   {
+    "question": "Какъв беше вкусът на манната?",
+    "options": [
+     "Хляб и месо",
+     "Седемте вида плодове",
+     "Краставици и дини",
+     "Питки с мед"
+    ]
+   },
+   {
+    "question": "След влизането в земята в дните на Йехошуа се случиха няколко събития. Кое от следните НЕ се случи веднага, а едва след началото на битките?",
+    "options": [
+     "Церемонията на благословията и проклятието",
+     "Народът премина обрязване",
+     "Народът празнува Песах",
+     "Поставянето на дванадесетте възпоменателни камъка от Йордан"
+    ]
+   },
+   {
+    "question": "Кои бяха царете на еморейците?",
+    "options": [
+     "Царете на Хацор и Шимрон",
+     "Царете на Йерихон и Ай",
+     "Царете на Йерусалим и Хеврон",
+     "Царете на филистимците"
+    ]
+   },
+   {
+    "question": "Какво е вярно относно стратегията на Ехуд бен Гера?",
+    "options": [
+     "Той използва двуостър меч",
+     "Той използва лявата си ръка за нанасяне на удара",
+     "Той заставя царя на Моав да остане насаме с него",
+     "Всичко изброено по-горе"
+    ]
+   },
+   {
+    "question": "В притчата на Йотам, към кое дърво се обръщат дърветата с молба да царува над тях?",
+    "options": [
+     "Лоза",
+     "Нар",
+     "Финикова палма",
+     "Кедър"
+    ]
+   },
+   {
+    "question": "Народът поиска от Шмуел цар и посочи различни причини. Коя от следните причини споменаха?",
+    "options": [
+     "Че народът е загубил войната срещу филистимците",
+     "Че свещеникът Ели е умрял",
+     "Че синовете на Шмуел са недостойни",
+     "Че Шаул е много подходящ за цар"
+    ]
+   },
+   {
+    "question": "Кое от следните НЕ е описание на качествата на Давид?",
+    "options": [
+     "Изкусен музикант",
+     "Мъдър по сърце",
+     "Могъщ воин",
+     "Г-спод е с него"
+    ]
+   },
+   {
+    "question": "Какво беше пророчеството на Йона за град Ниневия?",
+    "options": [
+     "Жителите на града ще бъдат изгонени, ако не се покаят",
+     "Жителите на града са много зли пред Б-г",
+     "След четиридесет дни градът ще бъде разрушен",
+     "Градът ще бъде завладян от Асирия, ако няма покаяние"
+    ]
+   },
+   {
+    "question": "Кой каза на кого: „Твоят народ ще бъде мой народ, и твоят Б-г – мой Б-г“?",
+    "options": [
+     "Агар на Сара",
+     "Рут на Наоми",
+     "Яел на Двора",
+     "Шифра на Мирям"
+    ]
+   }
+  ],
+  "open": [
+   "Каква беше професията на Каин?",
+   "Кое беше първото дете, което Авраам обряза?",
+   "⁠Каква работа заръча Йосеф на братята си да кажат на фараона, че вършат?",
+   "Коя напаст (казн) се случи непосредствено преди напастта на първородните?",
+   "На кого беше казано: „Бъди силен и смел“?",
+   "Как се наричаше народът, който измами Йехошуа?",
+   "Кой каза: „Нека душата ми умре с филистимците“?",
+   "Кой каза на кого: „Нима съм куче, та идваш срещу мен с тояги“?",
+   "Кой каза на кого: „Ти ще бъдеш цар над Израел, а аз ще бъда втори след теб“?",
+   "Защо Наоми и Елимелех напуснаха Витлеем (Бейт Лехем)?"
+  ],
+  "pictureBlocks": [
+   {
+    "caption": "Авраам пристига в Земята на Израел следвайки заповедта „Лех Леха“.",
+    "q1": "Кой започна пътуването от Ур Касдим към земята Ханаан?",
+    "q2": "Кои бяха хората, споменати поименно, които се присъединиха към Авраам в пътуването?"
+   },
+   {
+    "caption": "Филистимците спореха с Ицхак за кладенците с вода.",
+    "q1": "Чии кладенци запушиха филистимците отначало?",
+    "q2": "След успеха на Ицхак някой поиска да сключи съюз с него. Кой беше той?"
+   },
+   {
+    "caption": "Преди Яаков да премине потока, за да срещне Есав, той се бори с един мъж.",
+    "q1": "Какво име получи Яаков от мъжа в резултат на борбата?",
+    "q2": "Какво име даде Яаков на мястото, където се бори с мъжа?"
+   },
+   {
+    "caption": "Амалек беше първият народ, нападнал народа на Израел в пустинята след чудото с разсичането на Червено море.",
+    "q1": "В битката с Амалек в пустинята Моше се молеше за успеха на народа. Кой всъщност ръководеше битката срещу Амалек?",
+    "q2": "Шаул получи заповед от Шмуел да унищожи Амалек, но не завърши задачата. Как се казваше царят на Амалек, когото Шаул остави жив?"
+   },
+   {
+    "caption": "Моше не се удостои да влезе в Земята на Израел, а само да я погледне от планината Нево. Преди смъртта си той подготви народа на Израел за влизане в земята.",
+    "q1": "Моше заповяда на народа на Израел да се събира в шабатната година на празника Сукот. Какво трябва да прави народът на това събитие?",
+    "q2": "Ахарон, братът на Моше, също не се удостои да влезе в земята. Къде беше погребан той?"
+   },
+   {
+    "caption": "Когато дойде времето за разделяне на наследствата, Калев бен Йефуне поиска от Йехошуа изпълнението на обещанието, което Моше беше дал на Калев.",
+    "q1": "Кой град поиска Калев като свое наследство?",
+    "q2": "В началото на периода на Съдиите Калев обеща дъщеря си Ахса на този, който завладее Кирят Сефер. Кой успя да завладее града?"
+   },
+   {
+    "caption": "Две жени бяха въвлечени в различни роли във войната срещу Явин, цар на Ханаан, и Сисера, неговия пълководец.",
+    "q1": "Как се казваха тези две жени?",
+    "q2": "Какво даде едната от тях на Сисера да пие, за да заспи?"
+   },
+   {
+    "caption": "Преди битката с филистимците имаше сериозен недостиг на оръжие, главно защото нямаше занаятчии.",
+    "q1": "Кои бяха двамата души в лагера на Израел, които единствени имаха оръжие?",
+    "q2": "Какво забрани Шаул на народа да яде до края на битката с филистимците?"
+   },
+   {
+    "caption": "Царуването на Шаул приключва с ожесточената битка на планината Гилбоа, в която Шаул и синовете му бяха убити.",
+    "q1": "Преди битката Шаул отиде при врачката в Ейн Дор. С кого искаше да общува чрез нея?",
+    "q2": "Как се казват тримата сина на Шаул, които загинаха на планината Гилбоа?"
+   },
+   {
+    "caption": "Естер покани Ахашверош и Аман на пир, за да разкаже на Ахашверош за заговора на Аман.",
+    "q1": "В нощта преди втория пир цар Ахашверош пожела да награди Мордехай. Каква беше причината за тази награда?",
+    "q2": "Кой каза на кого: „Нима ще насилиш и царицата пред мен в къщата?!“"
+   }
+  ],
+  "remainingLines": 0,
+  "totalLines": 129
+ },
+ "CS": {
+  "code": "CS",
+  "tf": [
+   "Druhého dne byla stvořena souš (suchá země).",
+   "Dvě města, která Izraelité postavili pro faraona, byla Pitom a Rameses (Raamses).",
+   "Předmět z Miškanu (Svatostánku), který kněží nesli při přechodu Jordánu do země Kanaan, byl oltář.",
+   "Prorok Šmuel byl soudcem.",
+   "David se skrýval před Šaulem mezi Pelištejci (Filistíny)."
+  ],
+  "mc": [
+   {
+    "question": "Jaký byl zdroj vod při Potopě?",
+    "options": [
+     "Tsunami",
+     "Déšť",
+     "Podzemní vody",
+     "Déšť a podzemní vody"
+    ]
+   },
+   {
+    "question": "Co z následujícího NENÍ správně ohledně města Sodoma?",
+    "options": [
+     "Nacházelo se v jordánské nížině",
+     "Avraham vyjednával s Bohem, aby město mohlo být zachráněno",
+     "Král města vynesl chléb a víno a na znamení díků požehnal Avrahamovi",
+     "Morálka jeho obyvatel byla zlá"
+    ]
+   },
+   {
+    "question": "Který z následujících snů se zdál Josefovi (Yosef)?",
+    "options": [
+     "Žebřík",
+     "Snopy obilí na poli",
+     "Hrozny vymačkávané do poháru",
+     "Tučné a hubené krávy"
+    ]
+   },
+   {
+    "question": "Kterého z následujících synů kritizoval Jaakov ve svém požehnání?",
+    "options": [
+     "Reuven",
+     "Jissachar",
+     "Dan",
+     "Binjamin"
+    ]
+   },
+   {
+    "question": "Ve kterém z následujících příběhů NEBYLA zuta obuv?",
+    "options": [
+     "Moše a hořící keř",
+     "Jehošua a velitel Hospodinova zástupu",
+     "Jehuda a Tamar",
+     "Boaz a Rut"
+    ]
+   },
+   {
+    "question": "Jak je popisován lid Izraele před darováním Tóry a Desatera přikázání?",
+    "options": [
+     "Jako lid, který povstane jako lev",
+     "Království kněží a svatý národ",
+     "Četný a mocný lid",
+     "Lid tvrdé šíje"
+    ]
+   },
+   {
+    "question": "Jakou chuť měla mana?",
+    "options": [
+     "Chléb a maso",
+     "Sedm druhů plodů",
+     "Okurky a melouny",
+     "Medové oplatky (placky s medem)"
+    ]
+   },
+   {
+    "question": "Po vstupu do země za dnů Jehošuy se odehrálo několik událostí. Která z následujících se NEstala hned, ale až po zahájení bojů?",
+    "options": [
+     "Obřad požehnání a prokletí",
+     "Lid podstoupil obřízku",
+     "Lid oslavil Pesach",
+     "Vztyčení dvanácti pamětních kamenů z Jordánu"
+    ]
+   },
+   {
+    "question": "Kdo z následujících byli králové Emorejců?",
+    "options": [
+     "Králové Chatzoru a Šimronu",
+     "Králové Jericha a Aje (Ai)",
+     "Králové Jeruzaléma a Chebronu",
+     "Králové Pelištejců"
+    ]
+   },
+   {
+    "question": "Co je správně ohledně strategie Ehuda ben Gery?",
+    "options": [
+     "Použil dvousečný meč",
+     "K bodnutí použil levou ruku",
+     "Docílil toho, že s ním král Moábu zůstal o samotě",
+     "Vše výše uvedené"
+    ]
+   },
+   {
+    "question": "V Jótamově bajce, na který strom se stromy obracejí s prosbou, aby nad nimi kraloval?",
+    "options": [
+     "Vinná réva",
+     "Granátovník",
+     "Datlová palma",
+     "Cedr"
+    ]
+   },
+   {
+    "question": "Lid žádal Šmuela o krále a uvedl různé důvody. Který z následujících důvodů zmínili?",
+    "options": [
+     "Že lid prohrál válku proti Pelištejcům",
+     "Že kněz Élí zemřel",
+     "Že synové Šmuela nebyli hodni",
+     "Že Šaul byl velmi vhodný pro kralování"
+    ]
+   },
+   {
+    "question": "Co z následujícího NENÍ popisem Davidových vlastností?",
+    "options": [
+     "Zručný hudebník",
+     "Moudrého srdce",
+     "Udatný válečník",
+     "HaŠem (Hospodin) je s ním"
+    ]
+   },
+   {
+    "question": "Jaké bylo Jonášovo proroctví pro město Ninive?",
+    "options": [
+     "Obyvatelé města budou vyhnáni, pokud nebudou činit pokání",
+     "Obyvatelé města jsou před Bohem velmi zlí",
+     "Za čtyřicet dní bude město vyvráceno (zničeno)",
+     "Město bude dobyto Asýrií, pokud nedojde k pokání"
+    ]
+   },
+   {
+    "question": "Kdo řekl komu: „Tvůj lid bude mým lidem a tvůj Bůh mým Bohem“?",
+    "options": [
+     "Hagar Sáře",
+     "Rut Noemi",
+     "Jael Dvoře",
+     "Šifra Mirjam"
+    ]
+   }
+  ],
+  "open": [
+   "Jaké bylo povolání Kajina?",
+   "Kdo byl prvním dítětem, které Avraham obřezal?",
+   "Jakou práci kázal Josef bratrům uvést, že dělají, až budou mluvit s faraonem?",
+   "Jaká rána bezprostředně předcházela ráně pobití prvorozených?",
+   "Komu bylo řečeno: „Buď silný a odvážný“?",
+   "Jak se jmenoval národ, který oklamal Jehošuu?",
+   "Kdo řekl: „Ať zemře má duše s Pelištejci“?",
+   "Kdo řekl komu: „Copak jsem pes, že na mě jdeš s holemi“?",
+   "Kdo řekl komu: „Ty budeš králem nad Izraelem a já budu druhým po tobě“?",
+   "Proč Noemi a Elimelech opustili Betlém (Beit Lechem)?"
+  ],
+  "pictureBlocks": [
+   {
+    "caption": "Avraham přichází do Země izraelské na základě příkazu „Lech Lecha“.",
+    "q1": "Kdo zahájil cestu z Ur Kasdim do země Kanaan?",
+    "q2": "Kdo byli jmenovitě zmínění lidé, kteří se k Avrahamovi na cestě připojili?"
+   },
+   {
+    "caption": "Pelištejci se přeli s Jicchakem o studny s vodou.",
+    "q1": "Čí studny Pelištejci zpočátku zasypali?",
+    "q2": "Po Jicchakově úspěchu ho někdo požádal o uzavření smlouvy. Kdo to byl?"
+   },
+   {
+    "caption": "Než Jaakov překročil potok, aby se setkal s Esavem, zápasil s mužem.",
+    "q1": "Jaké jméno dostal Jaakov od onoho muže jako výsledek zápasu?",
+    "q2": "Jaké jméno dal Jaakov místu, kde s mužem zápasil?"
+   },
+   {
+    "caption": "Amalek byl prvním národem, který zaútočil na lid Izraele na poušti po zázraku rozdělení Rákosového (Rudého) moře.",
+    "q1": "V bitvě s Amalekem na poušti se Moše modlil za úspěch lidu. Kdo ve skutečnosti vedl boj proti Amalekovi?",
+    "q2": "Šaul dostal od Šmuela příkaz zničit Amaleka, ale úkol nedokončil. Jak se jmenoval král Amaleka, kterého Šaul nechal naživu?"
+   },
+   {
+    "caption": "Mošemu nebylo dopřáno vstoupit do Země izraelské, ale pouze na ni pohledět z hory Nevo. Před svou smrtí připravil lid Izraele na vstup do země.",
+    "q1": "Moše přikázal lidu Izraele shromáždit se v sobotním roce o svátku Sukot. Co musí lid na této události dělat?",
+    "q2": "Aharon, bratr Mošeho, také nebyl hoden vstoupit do země. Kde byl pohřben?"
+   },
+   {
+    "caption": "Když nadešel čas rozdělování dědictví, Kalev ben Jefune žádal od Jehošuy splnění slibu, který Moše Kalevovi dal.",
+    "q1": "Které město žádal Kalev jako své dědictví?",
+    "q2": "Na začátku období Soudců slíbil Kalev svou dceru Achsu tomu, kdo dobude Kirjat Sefer. Komu se podařilo město dobýt?"
+   },
+   {
+    "caption": "Do války proti Jávinovi, králi Kanaanu, a Siserovi, jeho vojevůdci, byly zapojeny dvě ženy v různých rolích.",
+    "q1": "Jak se tyto dvě ženy jmenovaly?",
+    "q2": "Co dala jedna z nich Siserovi napít, aby usnul?"
+   },
+   {
+    "caption": "Před bitvou s Pelištejci byl vážný nedostatek zbraní, hlavně proto, že chyběli řemeslníci (kováři).",
+    "q1": "Kdo byli dva lidé v izraelském táboře, kteří jako jediní měli zbraně?",
+    "q2": "Co Šaul zakázal lidu jíst až do skončení bitvy s Pelištejci?"
+   },
+   {
+    "caption": "Šaulovo kralování končí nelítostnou bitvou na hoře Gilboa, ve které byli Šaul a jeho synové zabiti.",
+    "q1": "Před bitvou šel Šaul k vyvolávačce duchů v En Doru. S kým se chtěl jejím prostřednictvím spojit?",
+    "q2": "Jak se jmenují tři Šaulovi synové, kteří zemřeli na hoře Gilboa?"
+   },
+   {
+    "caption": "Otázka: Ester pozvala Ahašveroše a Hamana na hostinu, aby Ahašverošovi řekla o Hamanově spiknutí.",
+    "q1": "V noci před druhou hostinou chtěl král Ahašveroš odměnit Mordechaje. Jaký byl důvod této odměny?",
+    "q2": "Kdo řekl komu: „Chceš snad dokonce znásilnit královnu v mé přítomnosti v domě?!“"
+   }
+  ],
+  "remainingLines": 0,
+  "totalLines": 129
+ },
+ "DE": {
+  "code": "DE",
+  "tf": [
+   "Am zweiten Tag wurde das trockene Land erschaffen.",
+   "Die zwei Städte, die die Israeliten für den Pharao bauten, waren Pitom und Raamses.",
+   "Ein zum Mischkan gehörender Kultgegenstand, den die Priester trugen, als sie den Jordan ins Land Kanaan überquerten, war der Altar.",
+   "Der Prophet Schmuel war ein Richter.",
+   "David versteckte sich vor Schaul bei den Philistern."
+  ],
+  "mc": [
+   {
+    "question": "Woher stammten die Wasser der Sintflut?",
+    "options": [
+     "Tsunami",
+     "Regen",
+     "Unterirdisches Wasser",
+     "Regen und unterirdisches Wasser"
+    ]
+   },
+   {
+    "question": "Was trifft auf die Stadt Sodom NICHT zu?",
+    "options": [
+     "Sie befand sich in der Jordanebene",
+     "Avraham verhandelte mit G-tt, damit die Stadt gerettet werden könnte",
+     "Der König der Stadt brachte Brot und Wein heraus und segnete Avraham zum Dank",
+     "Die Moral ihrer Bewohner war böse"
+    ]
+   },
+   {
+    "question": "Welchen der folgenden Träume träumte Josef?",
+    "options": [
+     "Die Leiter",
+     "Die Getreidegarben auf dem Feld",
+     "Die Trauben, die in den Becher gepresst werden",
+     "Die fetten und die mageren Kühe"
+    ]
+   },
+   {
+    "question": "Welchen der folgenden Söhne kritisierte Jaakov in seinem Segen?",
+    "options": [
+     "Reuven",
+     "Jissachar",
+     "Dan",
+     "Benjamin"
+    ]
+   },
+   {
+    "question": "In welcher der folgenden Geschichten wurde KEIN Schuh ausgezogen?",
+    "options": [
+     "Mosche und der brennende Dornbusch",
+     "Jehoschua und der Hauptmann des Heeres des HERRN",
+     "Jehuda und Tamar",
+     "Boaz und Ruth"
+    ]
+   },
+   {
+    "question": "Wie wird das Volk Israel vor der Übergabe der Tora und der Zehn Gebote beschrieben?",
+    "options": [
+     "Als ein Volk, das sich erhebt wie ein Löwe",
+     "Ein Königreich von Priestern und ein heiliges Volk",
+     "Ein zahlreiches und mächtiges Volk",
+     "Ein hartnäckiges Volk"
+    ]
+   },
+   {
+    "question": "Wie war der Geschmack des Manna?",
+    "options": [
+     "Brot und Fleisch",
+     "Die sieben Arten (Früchte)",
+     "Gurken und Wassermelonen",
+     "Fladen mit Honig"
+    ]
+   },
+   {
+    "question": "Nach dem Einzug in das Land in den Tagen von Jehoschua fanden mehrere Ereignisse statt. Welches der folgenden geschah NICHT sofort, sondern erst nach Beginn der Kämpfe?",
+    "options": [
+     "Die Zeremonie des Segens und des Fluchs",
+     "Das Volk wurde beschnitten",
+     "Das Volk feierte Pessach",
+     "Das Aufstellen der zwölf Gedenksteine aus dem Jordan"
+    ]
+   },
+   {
+    "question": "Welche der folgenden waren Könige der Amoriter?",
+    "options": [
+     "Die Könige von Chatzor und Schimron",
+     "Die Könige von Jericho und Ai",
+     "Die Könige von Jeruschalajim und Chevron",
+     "Die Könige der Philister"
+    ]
+   },
+   {
+    "question": "Was ist korrekt bezüglich der Strategie von Ehud ben Gera?",
+    "options": [
+     "Er benutzte ein Schwert mit zwei Schneiden",
+     "Er benutzte seine linke Hand zum Zustechen",
+     "Er sorgte dafür, dass der König von Moav mit ihm allein blieb",
+     "Alles oben Genannte"
+    ]
+   },
+   {
+    "question": "Zu welchem Baum wenden sich die Bäume im Gleichnis von Jotam, um ihn zu bitten, über sie zu herrschen?",
+    "options": [
+     "Weinstock",
+     "Granatapfelbaum",
+     "Dattelpalme",
+     "Zeder"
+    ]
+   },
+   {
+    "question": "Das Volk bat Schmuel um einen König und nannte verschiedene Gründe. Welchen der folgenden Gründe erwähnten sie?",
+    "options": [
+     "Dass das Volk den Krieg gegen die Philister verloren hatte",
+     "Dass der Priester Eli gestorben war",
+     "Dass die Söhne von Schmuel unwürdig waren",
+     "Dass Schaul sehr geeignet für das Königtum war"
+    ]
+   },
+   {
+    "question": "Welche der folgenden ist KEINE Beschreibung der Eigenschaften Davids?",
+    "options": [
+     "Geschickter Musiker",
+     "Weisen Herzens",
+     "Mächtiger Krieger",
+     "HaSchem ist mit ihm"
+    ]
+   },
+   {
+    "question": "Was war Jonas Prophezeiung für die Stadt Ninive?",
+    "options": [
+     "Die Bewohner der Stadt werden verbannt, wenn sie nicht bereuen",
+     "Die Bewohner der Stadt sind sehr böse vor G-tt",
+     "In vierzig Tagen wird die Stadt zerstört werden",
+     "Die Stadt wird von Assyrien erobert werden, wenn es keine Reue gibt"
+    ]
+   },
+   {
+    "question": "Wer sagte zu wem: „Dein Volk soll mein Volk sein und dein G-tt mein G-tt“?",
+    "options": [
+     "Hagar zu Sarah",
+     "Ruth zu Naomi",
+     "Jael zu Debora",
+     "Schifra zu Mirjam"
+    ]
+   }
+  ],
+  "open": [
+   "Was war Kayins Beruf?",
+   "Wer war das erste Kind, das Avraham beschnitt?",
+   "Welchen Beruf sollten Josefs Brüder laut seiner Anweisung angeben, wenn sie mit dem Pharao sprachen?",
+   "Welche Plage geschah direkt vor der Plage der Erstgeborenen?",
+   "Zu wem wurde gesagt: „Sei stark und mutig“?",
+   "Wie hieß das Volk, das Jehoschua täuschte?",
+   "Wer sagte: „Meine Seele sterbe mit den Philistern“?",
+   "Wer sagte zu wem: „Bin ich denn ein Hund, dass du mit Stöcken zu mir kommst“?",
+   "Wer sagte zu wem: „Du wirst König über Israel sein und ich werde der Zweite nach dir sein“?",
+   "Warum verließen Naomi und Elimelech Bethlehem?"
+  ],
+  "pictureBlocks": [
+   {
+    "caption": "Avraham kommt im Land Israel an, dem Befehl „Lech Lecha“ folgend.",
+    "q1": "Wer begann die Reise von Ur Kasdim in Richtung des Landes Kanaan?",
+    "q2": "Wer waren die namentlich erwähnten Personen, die sich Avraham auf der Reise anschlossen?"
+   },
+   {
+    "caption": "Die Philister stritten mit Jitzchak um die Wasserbrunnen.",
+    "q1": "Wessen Brunnen verstopften die Philister zuerst?",
+    "q2": "Nach Jitzchaks Erfolg bat jemand darum, einen Bund mit ihm zu schließen. Wer war es?"
+   },
+   {
+    "caption": "Bevor Jaakov den Fluss überquerte, um Esav zu treffen, rang er mit einem Mann.",
+    "q1": "Welchen Namen erhielt Jaakov von dem Mann als Ergebnis des Kampfes?",
+    "q2": "Welchen Namen gab Jaakov dem Ort, an dem er mit dem Mann rang?"
+   },
+   {
+    "caption": "Die Amalekiter waren das erste Volk, das das Volk Israel in der Wüste nach dem Wunder der Spaltung des Roten Meeres angriff.",
+    "q1": "In der Schlacht mit Amalek in der Wüste betete Mosche für den Erfolg des Volkes. Wer leitete tatsächlich den Kampf gegen Amalek?",
+    "q2": "Schaul erhielt von Schmuel den Befehl, Amalek zu vernichten, aber er vollendete die Aufgabe nicht. Wie hieß der König von Amalek, den Schaul am Leben ließ?"
+   },
+   {
+    "caption": "Mosche war es nicht vergönnt, das Land Israel zu betreten, sondern nur vom Berg Nevo darauf zu blicken. Vor seinem Tod bereitete er das Volk Israel auf den Einzug in das Land vor.",
+    "q1": "Mosche befahl dem Volk Israel, sich im Sabbatjahr am Sukkot-Fest zu versammeln. Was muss das Volk bei diesem Ereignis tun?",
+    "q2": "Aharon, Mosches Bruder, war es ebenfalls nicht vergönnt, das Land zu betreten. Wo wurde er begraben?"
+   },
+   {
+    "caption": "Als die Zeit für die Aufteilung des Erbes kam, forderte Kalev ben Jefune von Jehoschua die Erfüllung des Versprechens, das Mosche Kalev gegeben hatte.",
+    "q1": "Welche Stadt forderte Kalev als sein Erbe?",
+    "q2": "Zu Beginn der Richterzeit versprach Kalev seine Tochter Achsa demjenigen, der Kirjat Sefer erobern würde. Wer schaffte es, die Stadt zu erobern?"
+   },
+   {
+    "caption": "Zwei Frauen waren in unterschiedlichen Rollen in den Krieg gegen Javin, den König von Kanaan, und Sisera, seinen Feldherrn, verwickelt.",
+    "q1": "Wie hießen die beiden Frauen?",
+    "q2": "Was gab eine von ihnen Sisera zu trinken, damit er einschlief?"
+   },
+   {
+    "caption": "Vor der Schlacht mit den Philistern herrschte ein schwerer Mangel an Waffen, hauptsächlich weil es keine Handwerker gab.",
+    "q1": "Wer waren die zwei Personen im Lager Israels, die als einzige Waffen hatten?",
+    "q2": "Was verbot Schaul dem Volk zu essen bis zum Ende der Schlacht mit den Philistern?"
+   },
+   {
+    "caption": "Schauls Königsherrschaft endet mit der heftigen Schlacht auf dem Berg Gilboa, in der Schaul und seine Söhne getötet wurden.",
+    "q1": "Vor der Schlacht ging Schaul zum Medium in dem Ort Ein Dor. Mit wem wollte er durch sie kommunizieren?",
+    "q2": "Wie lauten die Namen der drei Söhne von Schaul, die auf dem Berg Gilboa starben?"
+   },
+   {
+    "caption": "Esther lud Achaschwerosch und Haman zu einem Bankett ein, um Achaschwerosch von Hamans Verschwörung zu erzählen.",
+    "q1": "In der Nacht vor dem zweiten Bankett wollte König Achaschwerosch Mordechai belohnen. Was war der Grund für diese Belohnung?",
+    "q2": "Wer sagte zu wem: „Willst du sogar der Königin Gewalt antun, während ich im Hause bin?!“"
+   }
+  ],
+  "remainingLines": 0,
+  "totalLines": 129
+ },
+ "ES": {
+  "code": "ES",
+  "tf": [
+   "En el segundo día se creó la tierra seca.",
+   "Las dos ciudades que los Hijos de Israel construyeron para el Faraón fueron Pitom y Raamsés.",
+   "El objeto del Mishkán que los sacerdotes cargaban al cruzar el Jordán hacia la tierra de Canaán era el altar.",
+   "El profeta Shmuel fue juez.",
+   "David se escondió de Shaúl entre los filisteos."
+  ],
+  "mc": [
+   {
+    "question": "¿Cuál fue la fuente de las aguas durante el Diluvio?",
+    "options": [
+     "Tsunami",
+     "Lluvia",
+     "Aguas subterráneas",
+     "Lluvia y aguas subterráneas"
+    ]
+   },
+   {
+    "question": "¿Cuál de las siguientes afirmaciones NO es correcta con respecto a la ciudad de Sodoma?",
+    "options": [
+     "Estaba ubicada en la llanura del Jordán",
+     "Avraham negoció con D-os para que la ciudad pudiera salvarse",
+     "El rey de la ciudad sacó pan y vino y bendijo a Avraham en señal de agradecimiento",
+     "La moral de sus habitantes era malvada"
+    ]
+   },
+   {
+    "question": "¿Cuál de los siguientes sueños soñó Yosef?",
+    "options": [
+     "La escalera",
+     "Las gavillas de grano en el campo",
+     "Las uvas siendo exprimidas en la copa",
+     "Las vacas gordas y flacas"
+    ]
+   },
+   {
+    "question": "¿A cuál de los siguientes hijos criticó Yaakov en su bendición?",
+    "options": [
+     "Reuven",
+     "Yissajar",
+     "Dan",
+     "Binyamin"
+    ]
+   },
+   {
+    "question": "¿En cuál de las siguientes historias NO se quitó ningún calzado?",
+    "options": [
+     "Moshé y la zarza ardiente",
+     "Yehoshúa y el jefe del ejército de D-os",
+     "Yehuda y Tamar",
+     "Boaz y Ruth"
+    ]
+   },
+   {
+    "question": "¿Cómo se describe al pueblo de Israel antes de la entrega de la Torá y los Diez Mandamientos?",
+    "options": [
+     "Como un pueblo que se levanta como un león",
+     "Un reino de sacerdotes y una nación santa",
+     "Un pueblo numeroso y poderoso",
+     "Un pueblo de dura cerviz"
+    ]
+   },
+   {
+    "question": "¿Cuál era el sabor del maná?",
+    "options": [
+     "Pan y carne",
+     "Las siete especies",
+     "Pepinos y sandías",
+     "Obleas con miel"
+    ]
+   },
+   {
+    "question": "Después de entrar en la tierra en los días de Yehoshúa, tuvieron lugar varios eventos. ¿Cuál de los siguientes NO ocurrió inmediatamente, sino solo después de que comenzaron las batallas?",
+    "options": [
+     "La ceremonia de la bendición y la maldición",
+     "El pueblo pasó por la circuncisión",
+     "El pueblo celebró Pésaj",
+     "La colocación de las doce piedras conmemorativas del Jordán"
+    ]
+   },
+   {
+    "question": "¿Quiénes de los siguientes fueron reyes de los emorreos?",
+    "options": [
+     "Los reyes de Jatzor y Shimrón",
+     "Los reyes de Jericó y Ai",
+     "Los reyes de Jerusalén y Hebrón",
+     "Los reyes de los filisteos"
+    ]
+   },
+   {
+    "question": "¿Qué es correcto con respecto a la estrategia de Ehud ben Gera?",
+    "options": [
+     "Usó una espada de doble filo",
+     "Usó su mano izquierda para el apuñalamiento",
+     "Logró que el rey de Moav se quedara a solas con él",
+     "Todo lo anterior"
+    ]
+   },
+   {
+    "question": "En la parábola de Yotam, ¿a qué árbol se dirigen los árboles para pedirle que reine sobre ellos?",
+    "options": [
+     "Vid",
+     "Granada",
+     "Palmera datilera",
+     "Cedro"
+    ]
+   },
+   {
+    "question": "El pueblo pidió a Shmuel un rey y dio varias razones. ¿Cuál de las siguientes razones mencionaron?",
+    "options": [
+     "Que el pueblo perdió la guerra contra los filisteos",
+     "Que el sacerdote Elí murió",
+     "Que los hijos de Shmuel no eran dignos",
+     "Que Shaúl era muy apto para la realeza"
+    ]
+   },
+   {
+    "question": "¿Cuál de las siguientes NO es una descripción de las cualidades de David?",
+    "options": [
+     "Músico hábil",
+     "Sabio de corazón",
+     "Guerrero valiente",
+     "HaShem está con él"
+    ]
+   },
+   {
+    "question": "¿Cuál fue la profecía de Yoná para la ciudad de Nínive?",
+    "options": [
+     "Los habitantes de la ciudad serán exiliados si no se arrepienten",
+     "Los habitantes de la ciudad son muy malvados ante D-os",
+     "En cuarenta días la ciudad será destruida",
+     "La ciudad será conquistada por Asiria si no hay arrepentimiento"
+    ]
+   },
+   {
+    "question": "¿Quién dijo a quién: \"Tu pueblo será mi pueblo, y tu D-os mi D-os\"?",
+    "options": [
+     "Hagar a Sarah",
+     "Ruth a Naomi",
+     "Yael a Devorah",
+     "Shifra a Miriam"
+    ]
+   }
+  ],
+  "open": [
+   "¿Cuál era la profesión de Caín (Kayin)?",
+   "¿Quién fue el primer hijo que circuncidó Avraham?",
+   "¿Qué trabajo les dijo Yosef a sus hermanos que dijeran que hacían cuando hablaran con el Faraón?",
+   "¿Qué plaga ocurrió directamente antes de la plaga de los primogénitos?",
+   "¿A quién se le dijo: \"Sé fuerte y valiente\"?",
+   "¿Cómo se llamaba el pueblo que engañó a Yehoshúa?",
+   "¿Quién dijo: \"Muera mi alma con los filisteos\"?",
+   "¿Quién dijo a quién: \"¿Acaso soy un perro para que vengas a mí con palos?\"?",
+   "¿Quién dijo a quién: \"Tú serás rey sobre Israel y yo seré segundo después de ti\"?",
+   "¿Por qué Naomi y Elimélej abandonaron Belén (Beit Lejem)?"
+  ],
+  "pictureBlocks": [
+   {
+    "caption": "Avraham llega a la Tierra de Israel siguiendo el mandato \"Lej Lejá\".",
+    "q1": "¿Quién comenzó el viaje desde Ur Kasdim hacia la tierra de Canaán?",
+    "q2": "¿Quiénes fueron las personas, mencionadas por nombre, que se unieron a Avraham en el viaje?"
+   },
+   {
+    "caption": "Los filisteos discutieron con Yitzjak por los pozos de agua.",
+    "q1": "¿De quién eran los pozos que los filisteos taparon al principio?",
+    "q2": "Tras el éxito de Yitzjak, alguien pidió hacer un pacto con él. ¿Quién fue?"
+   },
+   {
+    "caption": "Antes de que Yaakov cruzara el arroyo para encontrarse con Esav, luchó con un hombre.",
+    "q1": "¿Qué nombre recibió Yaakov del hombre como resultado de la lucha?",
+    "q2": "¿Qué nombre le dio Yaakov al lugar donde luchó con el hombre?"
+   },
+   {
+    "caption": "Amalec fue la primera nación en atacar al pueblo de Israel en el desierto después del milagro de la división del Mar Rojo.",
+    "q1": "En la batalla contra Amalec en el desierto, Moshé oró por el éxito del pueblo. ¿Quién dirigió realmente la lucha contra Amalec?",
+    "q2": "Shaúl recibió la orden de Shmuel de destruir a Amalec, pero no completó la tarea. ¿Cómo se llamaba el rey de Amalec a quien Shaúl dejó con vida?"
+   },
+   {
+    "caption": "Moshé no mereció entrar en la Tierra de Israel, sino solo mirarla desde el Monte Nevo. Antes de su muerte, preparó al pueblo de Israel para entrar en la tierra.",
+    "q1": "Moshé ordenó al pueblo de Israel reunirse en el año sabático durante la festividad de Sucot. ¿Qué debe hacer el pueblo en este evento?",
+    "q2": "Aharón, el hermano de Moshé, tampoco mereció entrar en la tierra. ¿Dónde fue enterrado?"
+   },
+   {
+    "caption": "Cuando llegó el momento de dividir las herencias, Calev ben Yefuné exigió a Yehoshúa el cumplimiento de la promesa que Moshé le había dado a Calev.",
+    "q1": "¿Qué ciudad reclamó Calev como su heredad?",
+    "q2": "Al comienzo del período de los Jueces, Calev prometió a su hija Ajsá a quien conquistara Kiryat Sefer. ¿Quién logró conquistar la ciudad?"
+   },
+   {
+    "caption": "Dos mujeres estuvieron involucradas en diferentes roles en la guerra contra Yavín, rey de Canaán y Sísara, su general.",
+    "q1": "¿Cuáles eran los nombres de las dos mujeres?",
+    "q2": "¿Qué le dio una de ellas a beber a Sísara para que se durmiera?"
+   },
+   {
+    "caption": "Antes de la batalla con los filisteos, había una grave escasez de armas, principalmente porque no había herreros.",
+    "q1": "¿Quiénes eran las dos personas en el campamento israelita que eran las únicas con armas?",
+    "q2": "¿Qué prohibió Shaúl al pueblo comer hasta el final de la batalla con los filisteos?"
+   },
+   {
+    "caption": "El reinado de Shaúl termina con la feroz batalla en el Monte Guilboa en la que Shaúl y sus hijos murieron.",
+    "q1": "Antes de la batalla, Shaúl fue a la médium en Ein Dor. ¿Con quién quería comunicarse a través de ella?",
+    "q2": "¿Cuáles son los nombres de los tres hijos de Shaúl que murieron en el Monte Guilboa?"
+   },
+   {
+    "caption": "Ester invitó a Ajashverosh y a Hamán a un banquete para contarle a Ajashverosh sobre la conspiración de Hamán.",
+    "q1": "La noche anterior al segundo banquete, el rey Ajashverosh deseó recompensar a Mordejai. ¿Cuál fue el motivo de esta recompensa?",
+    "q2": "¿Quién dijo a quién: \"¡¿Incluso violarás a la reina conmigo en la casa?!\"?"
+   }
+  ],
+  "remainingLines": 0,
+  "totalLines": 129
+ },
+ "FI": {
+  "code": "FI",
+  "tf": [
+   "Toisena päivänä luotiin kuiva maa.",
+   "Kaksi kaupunkia, jotka israelilaiset rakensivat faraolle, olivat Pitom ja Raamses.",
+   "Mishkanin (Pyhäkön) esine, jota papit kantoivat ylittäessään Jordanin Kanaanin maahan, oli alttari.",
+   "Profeetta Shmuel oli tuomari.",
+   "David piileskeli Shaulia filistealaisten joukossa."
+  ],
+  "mc": [
+   {
+    "question": "Mikä oli veden lähde vedenpaisumuksen aikana?",
+    "options": [
+     "Tsunami",
+     "Sade",
+     "Maanalaiset vedet",
+     "Sade ja maanalaiset vedet"
+    ]
+   },
+   {
+    "question": "Mikä seuraavista EI ole totta Sodoman kaupungista?",
+    "options": [
+     "Se sijaitsi Jordanin tasangolla",
+     "Avraham neuvotteli Jumalan kanssa, jotta kaupunki voitaisiin pelastaa",
+     "Kaupungin kuningas toi leipää ja viiniä ja siunasi Avrahamia kiitokseksi",
+     "Sen asukkaiden moraali oli paha"
+    ]
+   },
+   {
+    "question": "Minkä seuraavista unista Yosef näki?",
+    "options": [
+     "Tikapuut",
+     "Viljalyhteet pellolla",
+     "Rypäleet, joita puristetaan maljaan",
+     "Lihavat ja laihat lehmät"
+    ]
+   },
+   {
+    "question": "Ketä seuraavista pojista Yaakov kritisoi siunauksessaan?",
+    "options": [
+     "Reuven",
+     "Yissakhar",
+     "Dan",
+     "Binyamin"
+    ]
+   },
+   {
+    "question": "Missä seuraavista tarinoista EI riisuttu kenkää?",
+    "options": [
+     "Moshe ja palava pensas",
+     "Yehoshua ja Herran sotajoukon päämies",
+     "Yehuda ja Tamar",
+     "Boaz ja Ruut"
+    ]
+   },
+   {
+    "question": "Miten Israelin kansaa kuvataan ennen Tooran ja Kymmenen käskyn antamista?",
+    "options": [
+     "Kansana, joka nousee kuin leijona",
+     "Pappien valtakunta ja pyhä kansa",
+     "Lukumääräisesti suuri ja mahtava kansa",
+     "Niskurikansa"
+    ]
+   },
+   {
+    "question": "Miltä manna maistui?",
+    "options": [
+     "Leivältä ja lihalta",
+     "Seitsemältä hedelmälajilta",
+     "Kurkuilta ja vesimeloneilta",
+     "Hunajaisilta ohukaisilta"
+    ]
+   },
+   {
+    "question": "Maahan saapumisen jälkeen Yehoshuan aikana tapahtui useita asioita. Mikä seuraavista EI tapahtunut heti, vaan vasta taistelujen alettua?",
+    "options": [
+     "Siunauksen ja kirouksen seremonia",
+     "Kansa ympärileikattiin",
+     "Kansa vietti Pesahia",
+     "Kahdentoista muistokiven pystyttäminen Jordanista"
+    ]
+   },
+   {
+    "question": "Ketkä seuraavista olivat emorilaisten kuninkaita?",
+    "options": [
+     "Hatzorin ja Shimronin kuninkaat",
+     "Jerikon ja Ain kuninkaat",
+     "Jerusalemin ja Hebronin kuninkaat",
+     "Filistealaisten kuninkaat"
+    ]
+   },
+   {
+    "question": "Mikä on totta Ehud ben Geran strategiasta?",
+    "options": [
+     "Hän käytti kaksiteräistä miekkaa",
+     "Hän käytti vasenta kättään iskuun",
+     "Hän sai Moavin kuninkaan jäämään kahden kesken hänen kanssaan",
+     "Kaikki yllä mainitut"
+    ]
+   },
+   {
+    "question": "Yotamin vertauksessa, minkä puun puoleen puut kääntyvät pyytääkseen sitä hallitsemaan heitä?",
+    "options": [
+     "Viiniköynnös",
+     "Granaattiomenapuu",
+     "Taatelipalmu",
+     "Setri"
+    ]
+   },
+   {
+    "question": "Kansa pyysi Shmuelilta kuningasta ja antoi useita syitä. Minkä seuraavista syistä he mainitsivat?",
+    "options": [
+     "Että kansa hävisi sodan filistealaisia vastaan",
+     "Että pappi Eeli oli kuollut",
+     "Että Shmuelin pojat eivät olleet kelvollisia",
+     "Että Shaul sopi hyvin kuninkaaksi"
+    ]
+   },
+   {
+    "question": "Mikä seuraavista EI ole kuvaus Davidin ominaisuuksista?",
+    "options": [
+     "Taitava muusikko",
+     "Viisas sydämeltään",
+     "Mahtava soturi",
+     "HaShem (Herra) on hänen kanssaan"
+    ]
+   },
+   {
+    "question": "Mikä oli Yonan profetia Niniven kaupungille?",
+    "options": [
+     "Kaupungin asukkaat karkotetaan, jos he eivät kadu",
+     "Kaupungin asukkaat ovat hyvin pahoja Jumalan edessä",
+     "Neljänkymmenen päivän kuluttua kaupunki hävitetään",
+     "Assyria valloittaa kaupungin, jos katumusta ei tapahdu"
+    ]
+   },
+   {
+    "question": "Kuka sanoi kenelle: \"Sinun kansasi on minun kansani ja sinun Jumalasi on minun Jumalani\"?",
+    "options": [
+     "Hagar Saaralle",
+     "Ruut Naomille",
+     "Yael Dvoralle",
+     "Shifra Mirjamille"
+    ]
+   }
+  ],
+  "open": [
+   "Mikä oli Kayinin ammatti?",
+   "Kuka oli ensimmäinen lapsi, jonka Avraham ympärileikkasi?",
+   "Mitä työtä Yosef käski veljiensä sanoa tekevänsä, kun he puhuvat faraolle?",
+   "Mikä vitsaus tapahtui välittömästi ennen esikoisten surmaamista?",
+   "Kenelle sanottiin: \"Ole luja ja rohkea\"?",
+   "Mikä oli sen kansan nimi, joka petti Yehoshuan?",
+   "Kuka sanoi: \"Kuolkoon minun sieluni filistealaisten kanssa\"?",
+   "Kuka sanoi kenelle: \"Olenko minä koira, kun tulet minua vastaan keppien kanssa\"?",
+   "Kuka sanoi kenelle: \"Sinusta tulee Israelin kuningas ja minä olen toinen sinun jälkeesi\"?",
+   "Miksi Naomi ja Elimelech lähtivät Betlehemistä?"
+  ],
+  "pictureBlocks": [
+   {
+    "caption": "Avraham saapuu Israelin maahan noudattaen käskyä \"Lech Lecha\".",
+    "q1": "Kuka aloitti matkan Ur Kasdimista kohti Kanaanin maata?",
+    "q2": "Ketkä olivat ne nimeltä mainitut henkilöt, jotka liittyivät Avrahamin seuraan matkalla?"
+   },
+   {
+    "caption": "Filistealaiset riitelivät Yitzhakin kanssa vesikaivoista.",
+    "q1": "Kenen kaivot filistealaiset tukkivat aluksi?",
+    "q2": "Yitzhakin menestyksen jälkeen joku pyysi saada solmia liiton hänen kanssaan. Kuka se oli?"
+   },
+   {
+    "caption": "Ennen kuin Yaakov ylitti puron kohdatakseen Esavin, hän painii miehen kanssa.",
+    "q1": "Minkä nimen Yaakov sai mieheltä kamppailun seurauksena?",
+    "q2": "Minkä nimen Yaakov antoi paikalle, jossa hän painii miehen kanssa?"
+   },
+   {
+    "caption": "Amalek oli ensimmäinen kansa, joka hyökkäsi Israelin kansan kimppuun erämaassa Kaislameren (Punaisenmeren) jakaantumisen ihmeen jälkeen.",
+    "q1": "Taistelussa Amalekia vastaan autiomaassa Moshe rukoili kansan menestyksen puolesta. Kuka todellisuudessa johti taistelua Amalekia vastaan?",
+    "q2": "Shaul sai Shmuelilta käskyn tuhota Amalek, mutta hän ei suorittanut tehtävää loppuun. Mikä oli Amalekin kuninkaan nimi, jonka Shaul jätti eloon?"
+   },
+   {
+    "caption": "Moshe ei saanut astua Israelin maahan, vaan ainoastaan katsoa sitä Nevo-vuorelta. Ennen kuolemaansa hän valmisti Israelin kansaa maahan astumista varten.",
+    "q1": "Moshe käski Israelin kansaa kokoontumaan sapattivuonna Sukkot-juhlan aikana. Mitä kansan täytyy tehdä tässä tapahtumassa?",
+    "q2": "Aharon, Moshen veli, ei myöskään saanut astua maahan. Minne hänet haudattiin?"
+   },
+   {
+    "caption": "Kun tuli aika jakaa perintöosat, Kalev ben Yefune vaati Yehoshualta sen lupauksen täyttämistä, jonka Moshe oli antanut Kaleville.",
+    "q1": "Minkä kaupungin Kalev vaati perintöosakseen?",
+    "q2": "Tuomarien ajan alussa Kalev lupasi tyttärensä Achsan sille, joka valloittaa Kirjat Seferin. Kuka onnistui valloittamaan kaupungin?"
+   },
+   {
+    "caption": "Kaksi naista oli osallisena eri rooleissa sodassa Javinia, Kanaanin kuningasta, ja Siseraa, hänen sotapäällikköään vastaan.",
+    "q1": "Mitkä olivat näiden kahden naisen nimet?",
+    "q2": "Mitä toinen heistä antoi Siseralle juotavaksi, jotta tämä nukahtaisi?"
+   },
+   {
+    "caption": "Ennen taistelua filistealaisia vastaan aseista oli kova pula, pääasiassa siksi, että käsityöläisiä (seppiä) ei ollut.",
+    "q1": "Ketkä olivat ne kaksi henkilöä Israelin leirissä, joilla ainoina oli aseet?",
+    "q2": "Mitä Shaul kielsi kansaa syömästä ennen kuin taistelu filistealaisia vastaan oli päättynyt?"
+   },
+   {
+    "caption": "Shaulin kuninkuus päättyy kiivaaseen taisteluun Gilboa-vuorella, jossa Shaul ja hänen poikansa saivat surmansa.",
+    "q1": "Ennen taistelua Shaul meni meedion luo Ein Doriin. Kenen kanssa hän halusi kommunikoida tämän kautta?",
+    "q2": "Mitkä ovat Shaulin kolmen pojan nimet, jotka kuolivat Gilboa-vuorella?"
+   },
+   {
+    "caption": "Ester kutsui Achashveroshin ja Hamanin pitoihin kertoakseen Achashveroshille Hamanin juonesta.",
+    "q1": "Toisia pitoja edeltävänä yönä kuningas Achashverosh halusi palkita Mordechain. Mikä oli syy tähän palkintoon?",
+    "q2": "Kuka sanoi kenelle: \"Aiotko vielä raiskata kuningattaren minun seurassani talossa?!\""
+   }
+  ],
+  "remainingLines": 0,
+  "totalLines": 129
+ },
+ "HU": {
+  "code": "HU",
+  "tf": [
+   "A második napon teremtetett a szárazföld.",
+   "A két város, amelyet Izrael fiai a fáraónak építettek, Pitom és Ramszesz (Raamszesz) volt.",
+   "A Miskán (Szentély) tárgya, amelyet a papok vittek, amikor átkeltek a Jordánon Kánaán földjére, az oltár volt.",
+   "Smuél (Sámuel) próféta bíró volt.",
+   "Dávid a filiszteusoknál rejtőzött el Saul elől."
+  ],
+  "mc": [
+   {
+    "question": "Mi volt a vizek forrása az Özönvíz idején?",
+    "options": [
+     "Cunami",
+     "Eső",
+     "Földalatti vizek",
+     "Eső és földalatti vizek"
+    ]
+   },
+   {
+    "question": "Az alábbiak közül melyik NEM igaz Szodoma városára vonatkozóan?",
+    "options": [
+     "A Jordán síkságán helyezkedett el",
+     "Ábrahám tárgyalt Istennel, hogy a város megmenekülhessen",
+     "A város királya kenyeret és bort hozott ki, és hálából megáldotta Ábrahámot",
+     "Lakóinak erkölcse gonosz volt"
+    ]
+   },
+   {
+    "question": "Az alábbi álmok közül melyiket álmodta József (Joszef)?",
+    "options": [
+     "A létra",
+     "A gabonakévék a mezőn",
+     "A kehelybe préselt szőlő",
+     "A kövér és a sovány tehenek"
+    ]
+   },
+   {
+    "question": "Az alábbi fiúk közül kit kritizált Jákob az áldásában?",
+    "options": [
+     "Reuven",
+     "Jisszachár",
+     "Dán",
+     "Benjámin"
+    ]
+   },
+   {
+    "question": "Az alábbi történetek közül melyikben NEM vették le a sarut (cipőt)?",
+    "options": [
+     "Mózes és az égő csipkebokor",
+     "Jehosua és az Úr seregének vezére",
+     "Jehuda és Támár",
+     "Boáz és Ruth"
+    ]
+   },
+   {
+    "question": "Hogyan írják le Izrael népét a Tóra és a Tízparancsolat átadása előtt?",
+    "options": [
+     "Mint egy nép, amely felkel, mint az oroszlán",
+     "Papok királysága és szent nemzet",
+     "Számos és hatalmas nép",
+     "Kemény nyakú nép"
+    ]
+   },
+   {
+    "question": "Milyen íze volt a mannának?",
+    "options": [
+     "Kenyér és hús",
+     "A hét gyümölcsfajta",
+     "Uborka és görögdinnye",
+     "Mézes lepény"
+    ]
+   },
+   {
+    "question": "A földre való belépés után Jehosua idejében több esemény történt. Az alábbiak közül melyik NEM történt meg azonnal, hanem csak a harcok kezdete után?",
+    "options": [
+     "Az áldás és az átok szertartása",
+     "A nép körülmetélkedett",
+     "A nép megünnepelte a Pészachot",
+     "A tizenkét emlékkő felállítása a Jordánból"
+    ]
+   },
+   {
+    "question": "Kik voltak az alábbiak közül az emoreusok királyai?",
+    "options": [
+     "Hácor és Simron királyai",
+     "Jerikó és Áj királyai",
+     "Jeruzsálem és Hebron királyai",
+     "A filiszteusok királyai"
+    ]
+   },
+   {
+    "question": "Mi igaz Ehud ben Géra stratégiájára vonatkozóan?",
+    "options": [
+     "Kétélű kardot használt",
+     "A bal kezét használta a szúráshoz",
+     "Elérte, hogy Moáb királya kettesben maradjon vele",
+     "A fentiek mindegyike"
+    ]
+   },
+   {
+    "question": "Jótám példázatában melyik fához fordulnak a fák, hogy uralkodjon felettük?",
+    "options": [
+     "Szőlőtőke",
+     "Gránátalma",
+     "Datolyapálma",
+     "Cédrus"
+    ]
+   },
+   {
+    "question": "A nép királyt kért Smuéltől, és különböző okokat sorolt fel. Az alábbiak közül melyik okot említették?",
+    "options": [
+     "Hogy a nép elvesztette a háborút a filiszteusok ellen",
+     "Hogy Éli főpap meghalt",
+     "Hogy Smuél fiai méltatlanok voltak",
+     "Hogy Saul nagyon alkalmas volt a királyságra"
+    ]
+   },
+   {
+    "question": "Az alábbiak közül melyik NEM jellemző Dávid tulajdonságaira?",
+    "options": [
+     "Ügyes zenész",
+     "Bölcs szívű",
+     "Hatalmas harcos",
+     "Hásém (az Úr) vele van"
+    ]
+   },
+   {
+    "question": "Mi volt Jónás próféciája Ninive városának?",
+    "options": [
+     "A város lakóit száműzik, ha nem térnek meg",
+     "A város lakói nagyon gonoszak Isten előtt",
+     "Negyven nap múlva a város elpusztul (felfordul)",
+     "A várost Asszíria fogja meghódítani, ha nincs bűnbánat"
+    ]
+   },
+   {
+    "question": "Ki mondta kinek: „Néped az én népem, és Istened az én Istenem”?",
+    "options": [
+     "Hágár Sárának",
+     "Ruth Naominak",
+     "Jáel Dvorának (Debórának)",
+     "Sifra Mirjámnak"
+    ]
+   }
+  ],
+  "open": [
+   "Mi volt Káin foglalkozása?",
+   "Ki volt az első gyermek, akit Ábrahám körülmetélt?",
+   "Milyen munkát mondatott József a testvéreivel, hogy végeznek, amikor a fáraóval beszélnek?",
+   "Melyik csapás történt közvetlenül az elsőszülöttek halála előtt?",
+   "Kinek mondták: „Légy erős és bátor”?",
+   "Hogy hívták a népet, amelyik megtévesztette Jehosuát?",
+   "Ki mondta: „Haljon meg lelkem a filiszteusokkal”?",
+   "Ki mondta kinek: „Hát kutya vagyok én, hogy botokkal jössz ellenem”?",
+   "Ki mondta kinek: „Te leszel Izrael királya, és én leszek a második utánad”?",
+   "Miért hagyta el Naomi és Elimelech Betlehemet (Bét Lechemet)?"
+  ],
+  "pictureBlocks": [
+   {
+    "caption": "Ábrahám megérkezik Izrael földjére a „Lech Lecha” parancsot követve.",
+    "q1": "Ki kezdte meg az utazást Ur Kaszdimból Kánaán földje felé?",
+    "q2": "Kik voltak azok a név szerint említett személyek, akik csatlakoztak Ábrahámhoz az úton?"
+   },
+   {
+    "caption": "A filiszteusok vitatkoztak Jichákkal a vizeskutak miatt.",
+    "q1": "Kinek a kútjait tömték be a filiszteusok először?",
+    "q2": "Jichák sikere után valaki szövetséget akart kötni vele. Ki volt az?"
+   },
+   {
+    "caption": "Mielőtt Jákob átkelt a patakon, hogy találkozzon Ézsauval, küzdött egy férfival.",
+    "q1": "Milyen nevet kapott Jákob a férfitól a küzdelem eredményeként?",
+    "q2": "Milyen nevet adott Jákob annak a helynek, ahol küzdött a férfival?"
+   },
+   {
+    "caption": "Amálek volt az első nép, amely megtámadta Izrael népét a sivatagban a Vörös-tenger kettéválása után.",
+    "q1": "A sivatagi Amálek elleni csatában Mózes imádkozott a nép sikeréért. Ki vezette valójában a harcot Amálek ellen?",
+    "q2": "Saul parancsot kapott Smuéltől Amálek elpusztítására, de nem fejezte be a feladatot. Hogy hívták Amálek királyát, akit Saul életben hagyott?"
+   },
+   {
+    "caption": "Mózes nem érdemelte ki, hogy belépjen Izrael földjére, csak azt, hogy a Nébó-hegyről rátekintsen. Halála előtt felkészítette Izrael népét a földre való belépésre.",
+    "q1": "Mózes megparancsolta Izrael népének, hogy a szombatévben gyűljenek össze Szukkót ünnepén. Mit kell tennie a népnek ezen az eseményen?",
+    "q2": "Áron (Áháron), Mózes testvére sem érdemelte ki, hogy belépjen a földre. Hol temették el?"
+   },
+   {
+    "caption": "Amikor eljött az örökségek felosztásának ideje, Káleb ben Jefune követelte Jehosuától annak az ígéretnek a teljesítését, amelyet Mózes adott Kálebnak.",
+    "q1": "Melyik várost követelte Káleb örökségül?",
+    "q2": "A Bírák korának elején Káleb a lányát, Achszát ígérte annak, aki elfoglalja Kirját Széfert. Kinek sikerült elfoglalnia a várost?"
+   },
+   {
+    "caption": "Két nő különböző szerepet játszott a Jávin, Kánaán királya és Sziszera, a hadvezére elleni háborúban.",
+    "q1": "Mi volt a két nő neve?",
+    "q2": "Mit adott az egyikük Sziszerának inni, hogy elaludjon?"
+   },
+   {
+    "caption": "A filiszteusokkal való csata előtt súlyos fegyverhiány volt, főleg azért, mert nem voltak kézművesek (kovácsok).",
+    "q1": "Ki volt az a két személy Izrael táborában, akiknek egyedül volt fegyverük?",
+    "q2": "Mit tiltott meg Saul a népnek enni a filiszteusokkal való csata végéig?"
+   },
+   {
+    "caption": "Saul királysága a Gilboa-hegyi heves csatával ér véget, amelyben Saul és fiai életüket vesztették.",
+    "q1": "A csata előtt Saul elment a halottlátóhoz Én-Dórba. Kivel akart kommunikálni általa?",
+    "q2": "Mi a neve Saul három fiának, akik meghaltak a Gilboa-hegyen?"
+   },
+   {
+    "caption": "Eszter lakomára hívta Ahasvérust és Hámánt, hogy elmondja Ahasvérusnak Hámán összeesküvését.",
+    "q1": "A második lakoma előtti éjszakán Ahasvérus király meg akarta jutalmazni Mordechájt. Mi volt az oka ennek a jutalomnak?",
+    "q2": "Ki mondta kinek: „Még a királynőt is meg akarod erőszakolni nálam a házban?!”"
+   }
+  ],
+  "remainingLines": 0,
+  "totalLines": 129
+ },
+ "IT": {
+  "code": "IT",
+  "tf": [
+   "Nel secondo giorno fu creata la terra ferma.",
+   "Le due città che gli Israeliti costruirono per il Faraone furono Pitom e Raamses.",
+   "L'oggetto del Mishkan che i sacerdoti portavano attraversando il Giordano verso la terra di Canaan era l'altare.",
+   "Il profeta Shmuel era un giudice.",
+   "David si nascose da Shaul tra i Filistei."
+  ],
+  "mc": [
+   {
+    "question": "Qual era la sorgente delle acque durante il Diluvio?",
+    "options": [
+     "Tsunami",
+     "Pioggia",
+     "Acque sotterranee",
+     "Pioggia e acque sotterranee"
+    ]
+   },
+   {
+    "question": "Quale delle seguenti affermazioni NON è corretta riguardo alla città di Sodoma?",
+    "options": [
+     "Era situata nella pianura del Giordano",
+     "Avraham negoziò con D-o affinché la città potesse essere salvata",
+     "Il re della città portò fuori pane e vino e benedisse Avraham in segno di ringraziamento",
+     "La morale dei suoi abitanti era malvagia."
+    ]
+   },
+   {
+    "question": "Quale dei seguenti sogni fece Yosef?",
+    "options": [
+     "Una scala",
+     "I covoni di grano nel campo",
+     "L'uva spremuta nella coppa",
+     "Le mucche grasse e magre"
+    ]
+   },
+   {
+    "question": "Chi tra i seguenti figli criticò Yaakov nella sua benedizione?",
+    "options": [
+     "Reuven",
+     "Yissakhar",
+     "Dan",
+     "Binyamin"
+    ]
+   },
+   {
+    "question": "In quale delle seguenti storie NON è stata rimossa alcuna scarpa?",
+    "options": [
+     "Moshé e il roveto ardente",
+     "Yehoshua e il capo dell'esercito del Signore",
+     "Yehuda e Tamar",
+     "Boaz e Ruth"
+    ]
+   },
+   {
+    "question": "Come viene descritto il popolo d'Israele prima del dono della Torah e dei Dieci Comandamenti?",
+    "options": [
+     "Come un popolo che si alza come un leone",
+     "Un regno di sacerdoti e una nazione santa",
+     "Un popolo numeroso e potente",
+     "Un popolo dalla dura cervice"
+    ]
+   },
+   {
+    "question": "Qual era il gusto della manna?",
+    "options": [
+     "Pane e carne",
+     "Le sette specie di prodotti",
+     "Cetrioli e angurie",
+     "Schiacciate col miele"
+    ]
+   },
+   {
+    "question": "Dopo l'ingresso nella terra ai tempi di Yehoshua, ebbero luogo diversi eventi. Quale dei seguenti NON accadde immediatamente, ma solo dopo l'inizio delle battaglie?",
+    "options": [
+     "La cerimonia della benedizione e della maledizione",
+     "La circoncisione del popolo",
+     "La celebrazione della Pesach",
+     "La posa delle dodici pietre commemorative dal Giordano"
+    ]
+   },
+   {
+    "question": "Tra i seguenti quali erano re degli Emorrei?",
+    "options": [
+     "I re di Chatzor e Shimron",
+     "I re di Yericho e Ai",
+     "I re di Yerushalayim e Chevron",
+     "I re dei Filistei"
+    ]
+   },
+   {
+    "question": "Quale di queste risposte è corretta riguardo alla strategia di Ehud ben Gera?",
+    "options": [
+     "Usò una spada a doppio taglio",
+     "Usò la mano sinistra per colpire",
+     "Fece in modo che il re di Moav rimanesse solo con lui",
+     "Tutte e tre le risposte sono corrette"
+    ]
+   },
+   {
+    "question": "Nella parabola di Yotam, a quale albero si rivolgono gli alberi per chiedergli di regnare su di loro?",
+    "options": [
+     "Vite",
+     "Melograno",
+     "Palma da dattero",
+     "Cedro"
+    ]
+   },
+   {
+    "question": "Il popolo chiese a Shmuel un re e fornendo varie ragioni. Quali di queste menzionarono?",
+    "options": [
+     "Che il popolo aveva perso la guerra contro i Filistei",
+     "Che il sacerdote Eli era morto",
+     "Che i figli di Shmuel non erano degni",
+     "Che Shaul era molto adatto per la regalità"
+    ]
+   },
+   {
+    "question": "Quale di queste NON è una descrizione delle qualità di David?",
+    "options": [
+     "Abile musicista",
+     "Saggio di cuore",
+     "Guerriero valoroso",
+     "HaShem è con lui"
+    ]
+   },
+   {
+    "question": "Qual era la profezia di Yonah per la città di Ninive?",
+    "options": [
+     "Gli abitanti della città saranno esiliati se non si pentiranno",
+     "Gli abitanti della città sono molto malvagi davanti a D-o",
+     "Tra quaranta giorni la città sarà distrutta",
+     "La città sarà conquistata dall'Assiria se non ci sarà pentimento"
+    ]
+   },
+   {
+    "question": "Chi disse a chi: \"Il tuo popolo sarà il mio popolo, e il tuo D-o il mio D-o\"?",
+    "options": [
+     "Hagar a Sarah",
+     "Ruth a Naomi",
+     "Yael a Devorah",
+     "Shifrah a Miriam"
+    ]
+   }
+  ],
+  "open": [
+   "Qual era la professione di Kayin?",
+   "Chi fu il primo bambino circonciso da Avraham?",
+   "Quale professione Yosef ordinò ai suoi fratelli di dichiarare quando avrebbero parlato con il Faraone?",
+   "Quale piaga avvenne direttamente prima della piaga dei primogeniti?",
+   "A chi fu detto: \"Sii forte e coraggioso\"?",
+   "Qual era il nome del popolo che ingannò Yehoshua?",
+   "Chi disse: \"Muoia la mia anima con i Filistei\"?",
+   "Chi disse a chi: \"Sono forse un cane che vieni da me con dei bastoni\"?",
+   "Chi disse a chi: \"Tu sarai re su Israele e io sarò secondo a te\"?",
+   "Perché Naomi ed Elimelech lasciarono Betlemme?"
+  ],
+  "pictureBlocks": [
+   {
+    "caption": "Avraham arriva nella Terra d'Israele seguendo il comando \"Lech Lecha\".",
+    "q1": "Chi iniziò il viaggio da Ur Kasdim verso la terra di Canaan?",
+    "q2": "Chi erano le persone, menzionate per nome, che si unirono ad Avraham nel viaggio?"
+   },
+   {
+    "caption": "I Filistei litigarono con Yitzhak per i pozzi d'acqua.",
+    "q1": "Di chi erano i pozzi che i Filistei riempirono di terra otturarono all'inizio?",
+    "q2": "In seguito al successo di Yitzhak, qualcuno chiese di fare un'alleanza con lui. Chi era?"
+   },
+   {
+    "caption": "Prima che Yaakov attraversasse il torrente per incontrare Esav, lottò con un uomo.",
+    "q1": "Quale nome ricevette Yaakov dall'essere umano dopo che aveva lottato con lui?",
+    "q2": "Quale nome diede Yaakov al luogo in cui lottò con essere umano?"
+   },
+   {
+    "caption": "Amalek fu la prima nazione ad attaccare il popolo d'Israele nel deserto dopo il miracolo della divisione del Mar Rosso.",
+    "q1": "Nella battaglia nel deserto contro Amalek nel deserto, Moshé pregò per il successo del popolo. Chi guidò effettivamente il combattimento contro Amalek?",
+    "q2": "Shaul ricevette l'ordine da Shmuel di distruggere Amalek, ma non completò il compito. Qual era il nome del re di Amalek che Shaul lasciò in vita?"
+   },
+   {
+    "caption": "Moshé non meritò di entrare nella Terra d'Israele ma solo di guardarla dal Monte Nevo. Prima della sua morte, preparò il popolo d'Israele per l'ingresso nella terra.",
+    "q1": "Moshé ordinò al popolo d'Israele di riunirsi nell'anno sabbatico durante la festa di Sukkot. Cosa deve fare il popolo in questo evento?",
+    "q2": "Anche Aharon, fratello di Moshé, non meritò di entrare nella terra. Dove fu sepolto?"
+   },
+   {
+    "caption": "Quando arrivò il momento di dividere le eredità, Kalev ben Yefuneh chiese a Yehoshua l'adempimento della promessa che Moshé aveva fatto a Kalev.",
+    "q1": "Quale città richiese Kalev come sua eredità?",
+    "q2": "All'inizio del periodo dei Giudici, Kalev promise sua figlia Achsah a chiunque avesse conquistato Kiryat Sefer. Chi riuscì a conquistare la città?"
+   },
+   {
+    "caption": "Due donne furono coinvolte in ruoli diversi nella guerra contro Yavin, re di Canaan e Sisera, il suo generale.",
+    "q1": "Quali erano i nomi delle due donne?",
+    "q2": "Cosa diede da bere una di loro a Sisera per farlo addormentare?"
+   },
+   {
+    "caption": "Prima della battaglia contro i Filistei, c'era una grave carenza di armi, principalmente perché non c'erano fabbri.",
+    "q1": "Chi erano le due persone nell'accampamento israelita che erano le uniche ad avere armi?",
+    "q2": "Cosa vietò Shaul al popolo di mangiare fino alla fine della battaglia contro i Filistei?"
+   },
+   {
+    "caption": "Il regno di Shaul finisce con la feroce battaglia sul Monte Ghilboa in cui Shaul e i suoi figli furono uccisi.",
+    "q1": "Prima della battaglia, Shaul andò dalla medium a Ein Dor. Con chi voleva comunicare attraverso di lei?",
+    "q2": "Quali sono i nomi dei tre figli di Shaul che morirono sul Monte Ghilboa?"
+   },
+   {
+    "caption": "Ester invitò Achashverosh e Haman a un banchetto per raccontare ad Achashverosh del complotto di Haman.",
+    "q1": "La notte prima del secondo banchetto, il re Achashverosh volle ricompensare Mordechai. Qual era il motivo di questa ricompensa?",
+    "q2": "Chi disse a chi: \"Vuoi forse violentare la regina con me in casa?!\""
+   }
+  ],
+  "remainingLines": 0,
+  "totalLines": 129
+ },
+ "LT": {
+  "code": "LT",
+  "tf": [
+   "Antrąją dieną buvo sukurta sausuma.",
+   "Du miestai, kuriuos izraelitai pastatė faraonui, buvo Pitomas ir Ramsis (Raamses).",
+   "Miškano (Padangtės) objektas, kurį kunigai nešė eidami per Jordaną į Kanaano žemę, buvo aukuras.",
+   "Pranašas Šmuelis buvo teisėjas.",
+   "Dovydas slėpėsi nuo Šaulo pas filistiečius."
+  ],
+  "mc": [
+   {
+    "question": "Koks buvo vandenų šaltinis Tvano metu?",
+    "options": [
+     "Cunamis",
+     "Lietus",
+     "Požeminiai vandenys",
+     "Lietus ir požeminiai vandenys"
+    ]
+   },
+   {
+    "question": "Kuris iš šių teiginių APIE Sodomos miestą NĖRA teisingas?",
+    "options": [
+     "Jis buvo įsikūręs Jordano lygumoje",
+     "Avrahamas derėjosi su Dievu, kad miestas būtų išgelbėtas",
+     "Miesto karalius išnešė duonos bei vyno ir atsidėkodamas palaimino Avrahamą",
+     "Jo gyventojai buvo nedorovingi."
+    ]
+   },
+   {
+    "question": "Kurį iš šių sapnų sapnavo Josefas?",
+    "options": [
+     "Kopėčias",
+     "Javų pėdus lauke",
+     "Vynuoges, spaudžiamas į taurę",
+     "Storas ir liesas karves"
+    ]
+   },
+   {
+    "question": "Kurį iš šių sūnų Jakovas kritikavo savo palaiminime?",
+    "options": [
+     "Reuveną",
+     "Isacharą",
+     "Daną",
+     "Benjaminą"
+    ]
+   },
+   {
+    "question": "Kurioje iš šių istorijų NEBUVO nusiautas batas (apavas)?",
+    "options": [
+     "Mošė ir degantis krūmas",
+     "Jehošua ir Viešpaties kariaunos vadas",
+     "Jehuda ir Tamar",
+     "Boazas ir Rūta"
+    ]
+   },
+   {
+    "question": "Kaip apibūdinama Izraelio tauta prieš gaunant Torą ir Dešimt įsakymų?",
+    "options": [
+     "Kaip tauta, pakylanti tarsi liūtas",
+     "Kunigų karalystė ir šventa tauta",
+     "Gausi ir galinga tauta",
+     "Kietasprandė tauta"
+    ]
+   },
+   {
+    "question": "Koks buvo manos skonis?",
+    "options": [
+     "Duonos ir mėsos",
+     "Septynių rūšių vaisių",
+     "Agurkų ir arbūzų",
+     "Papločių su medumi"
+    ]
+   },
+   {
+    "question": "Įžengus į žemę Jehošua laikais įvyko keli įvykiai. Kuris iš šių įvykių nutiko NE iš karto, o tik prasidėjus kovoms?",
+    "options": [
+     "Palaiminimo ir prakeiksmo ceremonija",
+     "Tauta buvo apipjaustyta",
+     "Tauta šventė Pesachą",
+     "Dvylikos atminimo akmenų iš Jordano pastatymas"
+    ]
+   },
+   {
+    "question": "Kurie iš šių buvo emoriečių karaliai?",
+    "options": [
+     "Hacoro ir Šimrono karaliai",
+     "Jericho ir Ajo (Ai) karaliai",
+     "Jeruzalės ir Hebrono karaliai",
+     "Filistiečių karaliai"
+    ]
+   },
+   {
+    "question": "Kas yra teisinga apie Ehudo ben Geros strategiją?",
+    "options": [
+     "Jis naudojo dviašmenį kalaviją",
+     "Smūgiui jis naudojo kairę ranką",
+     "Jis pasiekė, kad Moabo karalius liktų su juo vienas",
+     "Visa tai, kas paminėta aukščiau"
+    ]
+   },
+   {
+    "question": "Jotamo palyginime, į kurį medį kreipiasi medžiai, prašydami karaliauti jiems?",
+    "options": [
+     "Vynmedį",
+     "Granatmedį",
+     "Finikų palmę",
+     "Kedrą"
+    ]
+   },
+   {
+    "question": "Tauta prašė Šmuelio karaliaus ir nurodė įvairias priežastis. Kurią iš šių priežasčių jie paminėjo?",
+    "options": [
+     "Kad tauta pralaimėjo karą prieš filistiečius",
+     "Kad kunigas Elis mirė",
+     "Kad Šmuelio sūnūs buvo neverti",
+     "Kad Šaulas labai tiko karaliavimui"
+    ]
+   },
+   {
+    "question": "Kuris iš šių apibūdinimų NĖRA Dovydo savybė?",
+    "options": [
+     "Įgudęs muzikantas",
+     "Išmintingos širdies",
+     "Galingas karžygys",
+     "HaŠem (Viešpats) yra su juo"
+    ]
+   },
+   {
+    "question": "Kokia buvo Jonos pranašystė Ninevės miestui?",
+    "options": [
+     "Miesto gyventojai bus ištremti, jei neatgailaus",
+     "Miesto gyventojai yra labai blogi Dievo akyse",
+     "Po keturiasdešimties dienų miestas bus sugriautas",
+     "Miestą užkariaus Asirija, jei nebus atgailos"
+    ]
+   },
+   {
+    "question": "Kas kam pasakė: „Tavo tauta bus mano tauta, ir tavo Dievas – mano Dievas“?",
+    "options": [
+     "Hagara Sarai",
+     "Rūta Naomi",
+     "Jaelė Dvorai",
+     "Šifra Mirjamai"
+    ]
+   }
+  ],
+  "open": [
+   "Kokia buvo Kaino profesija?",
+   "Kas buvo pirmasis vaikas, kurį apipjaustė Avrahamas?",
+   "Kokį darbą Josefas liepė savo broliams sakyti, kad jie dirba, kai kalbėsis su faraonu?",
+   "Kokia bausmė (neganda) įvyko tiesiogiai prieš pirmagimių mirtį?",
+   "Kam buvo pasakyta: „Būk stiprus ir drąsus“?",
+   "Kaip vadinosi tauta, kuri apgavo Jehošua?",
+   "Kas pasakė: „Temiršta mano siela kartu su filistiečiais“?",
+   "Kas kam pasakė: „Argi aš šuo, kad eini prieš mane su lazdomis“?",
+   "Kas kam pasakė: „Tu būsi karalius virš Izraelio, o aš būsiu antras po tavęs“?",
+   "Kodėl Naomi ir Elimelechas paliko Betliejų (Beit Lechemą)?"
+  ],
+  "pictureBlocks": [
+   {
+    "caption": "Avrahamas atvyksta į Izraelio žemę vykdydamas paliepimą „Lech Lecha“.",
+    "q1": "Kas pradėjo kelionę iš Ur Kasdimo į Kanaano žemę?",
+    "q2": "Kas buvo tie vardais paminėti žmonės, kurie prisijungė prie Avrahamo kelionėje?"
+   },
+   {
+    "caption": "Filistiečiai ginčijosi su Icchaku dėl vandens šulinių.",
+    "q1": "Kieno šulinius filistiečiai iš pradžių užvertė?",
+    "q2": "Po Icchako sėkmės kažkas paprašė sudaryti su juo sąjungą. Kas tai buvo?"
+   },
+   {
+    "caption": "Prieš Jakovui pereinant upelį susitikti su Esavu, jis kovojo su vyru.",
+    "q1": "Kokį vardą Jakovas gavo iš to vyro po kovos?",
+    "q2": "Kokį vardą Jakovas davė vietai, kurioje kovojo su vyru?"
+   },
+   {
+    "caption": "Amalekas buvo pirmoji tauta, užpuolusi Izraelio tautą dykumoje po Raudonosios jūros perskyrimo stebuklo.",
+    "q1": "Mūšyje su Amaleku dykumoje Mošė meldėsi už tautos sėkmę. Kas iš tikrųjų vadovavo kovai prieš Amaleką?",
+    "q2": "Šaulas gavo iš Šmuelio įsakymą sunaikinti Amaleką, bet jis nebaigė užduoties. Kaip vadinosi Amaleko karalius, kurį Šaulas paliko gyvą?"
+   },
+   {
+    "caption": "Mošei nebuvo lemta įžengti į Izraelio žemę, o tik pažvelgti į ją nuo Nevo kalno. Prieš savo mirtį jis paruošė Izraelio tautą įžengimui į žemę.",
+    "q1": "Mošė įsakė Izraelio tautai susirinkti sabatinius metus per Sukkot šventę. Ką tauta turi daryti šiame renginyje?",
+    "q2": "Aaronas (Aharonas), Mošės brolis, taip pat nenusipelnė įžengti į žemę. Kur jis buvo palaidotas?"
+   },
+   {
+    "caption": "Atėjus laikui dalyti paveldą, Kalevas ben Jefunė pareikalavo iš Jehošua įvykdyti pažadą, kurį Mošė buvo davęs Kalevui.",
+    "q1": "Kurio miesto pareikalavo Kalevas kaip savo paveldo?",
+    "q2": "Teisėjų laikotarpio pradžioje Kalevas pažadėjo savo dukterį Achsą tam, kas užkariaus Kirjat Seferą. Kas sėkmingai užkariavo miestą?"
+   },
+   {
+    "caption": "Dvi moterys atliko skirtingus vaidmenis kare prieš Javiną, Kanaano karalių, ir Siserą, jo karvedį.",
+    "q1": "Kokie buvo tų dviejų moterų vardai?",
+    "q2": "Ką viena iš jų davė Siserai atsigerti, kad jis užmigtų?"
+   },
+   {
+    "caption": "Prieš mūšį su filistiečiais labai trūko ginklų, daugiausia dėl to, kad nebuvo amatininkų (kalvių).",
+    "q1": "Kas buvo tie du žmonės Izraelio stovykloje, kurie vieninteliai turėjo ginklų?",
+    "q2": "Ką Šaulas uždraudė tautai valgyti iki mūšio su filistiečiais pabaigos?"
+   },
+   {
+    "caption": "Šaulo karaliavimas baigiasi nuožmiu mūšiu ant Gilboa kalno, kuriame žuvo Šaulas ir jo sūnūs.",
+    "q1": "Prieš mūšį Šaulas nuėjo pas žiniuonę Ein Dore. Su kuo jis norėjo susisiekti per ją?",
+    "q2": "Kokie yra trijų Šaulo sūnų, žuvusių ant Gilboa kalno, vardai?"
+   },
+   {
+    "caption": "Estera pakvietė Achašverošą ir Hamaną į puotą, kad papasakotų Achašverošui apie Hamano sąmokslą.",
+    "q1": "Naktį prieš antrąją puotą karalius Achašverošas norėjo apdovanoti Mordechajų. Kokia buvo šio apdovanojimo priežastis?",
+    "q2": "Kas kam pasakė: „Ar tu net nori išprievartauti karalienę mano akivaizdoje namuose?!“"
+   }
+  ],
+  "remainingLines": 0,
+  "totalLines": 129
+ },
+ "LV": {
+  "code": "LV",
+  "tf": [
+   "Otrajā dienā tika radīta sauszeme.",
+   "Divas pilsētas, kuras izraēlieši uzbūvēja faraonam, bija Pitoma un Rāmse.",
+   "Miškana (Svētnīcas) priekšmets, kuru priesteri nesa, šķērsojot Jordānu uz Hānaānas zemi, bija altāris.",
+   "Pravietis Šmuels bija tiesnesis.",
+   "Dāvids slēpās no Šaula pie filistiešiem."
+  ],
+  "mc": [
+   {
+    "question": "Kāds bija ūdens avots Plūdu laikā?",
+    "options": [
+     "Cunami",
+     "Lietus",
+     "Pazemes ūdeņi",
+     "Lietus un pazemes ūdeņi"
+    ]
+   },
+   {
+    "question": "Kas no sekojošā NAV pareizi attiecībā uz pilsētu Sodoma?",
+    "options": [
+     "Tā atradās Jordānas ielejā",
+     "Avrahams sarunājās ar Dievu, lai pilsēta varētu tikt izglābta",
+     "Pilsētas ķēniņš iznesa maizi un vīnu un svētīja Avrahamu pateicībā",
+     "Tās iedzīvotāju morāle bija ļauna"
+    ]
+   },
+   {
+    "question": "Kuru no šiem sapņiem redzēja Josefs?",
+    "options": [
+     "Kāpnes",
+     "Labības kūļus laukā",
+     "Vīnogas, kas tiek izspiestas kausā",
+     "Treknās un kārnās govis"
+    ]
+   },
+   {
+    "question": "Kuru no šiem dēliem Jākovs kritizēja savā svētībā?",
+    "options": [
+     "Reuvenu",
+     "Isašaru",
+     "Danu",
+     "Benjaminu"
+    ]
+   },
+   {
+    "question": "Kurā no šiem stāstiem NETIKA novilkti apavi?",
+    "options": [
+     "Mozus un degošais krūms",
+     "Jehošua un Kunga karaspēka vadonis",
+     "Jehuda un Tamāra",
+     "Boass un Rute"
+    ]
+   },
+   {
+    "question": "Kā tiek aprakstīta Izraēla tauta pirms Toras un Desmit baušļu došanas?",
+    "options": [
+     "Kā tauta, kas ceļas kā lauva",
+     "Priesteru valstība un svēta tauta",
+     "Daudzskaitlīga un varena tauta",
+     "Stūrgalvīga tauta"
+    ]
+   },
+   {
+    "question": "Kāda bija mannas garša?",
+    "options": [
+     "Maize un gaļa",
+     "Septiņi augļu veidi",
+     "Gurķi un arbūzi",
+     "Plāceņi ar medu"
+    ]
+   },
+   {
+    "question": "Pēc ieiešanas zemē Jehošuas dienās notika vairāki notikumi. Kurš no sekojošajiem NEnotika uzreiz, bet tikai pēc kauju sākuma?",
+    "options": [
+     "Svētības un lāsta ceremonija",
+     "Tauta izgāja apgraizīšanu",
+     "Tauta svinēja Pashu (Pesah)",
+     "Divpadsmit piemiņas akmeņu uzstādīšana no Jordānas"
+    ]
+   },
+   {
+    "question": "Kuri no šiem bija emoriešu ķēniņi?",
+    "options": [
+     "Hacoras un Šimronas ķēniņi",
+     "Jērikas un Ajas ķēniņi",
+     "Jeruzalemes un Hebronas ķēniņi",
+     "Filistiešu ķēniņi"
+    ]
+   },
+   {
+    "question": "Kas ir pareizi attiecībā uz Ehuda ben Geras stratēģiju?",
+    "options": [
+     "Viņš izmantoja abpusgriezīgu zobenu",
+     "Viņš izmantoja kreiso roku dūrienam",
+     "Viņš panāca, ka Moāba ķēniņš palika ar viņu divatā",
+     "Viss iepriekš minētais"
+    ]
+   },
+   {
+    "question": "Jotama līdzībā, pie kura koka vēršas koki ar lūgumu valdīt pār tiem?",
+    "options": [
+     "Vīnakoka",
+     "Granātābola",
+     "Dateļpalmas",
+     "Ciedra"
+    ]
+   },
+   {
+    "question": "Tauta lūdza Šmuelam ķēniņu un minēja dažādus iemeslus. Kuru no šiem iemesliem viņi minēja?",
+    "options": [
+     "Ka tauta zaudēja karu pret filistiešiem",
+     "Ka priesteris Eli nomira",
+     "Ka Šmuela dēli nebija cienīgi",
+     "Ka Šauls bija ļoti piemērots ķēniņa varai"
+    ]
+   },
+   {
+    "question": "Kas no sekojošā NAV Dāvida īpašību apraksts?",
+    "options": [
+     "Prasmīgs muzikants",
+     "Gudrs sirdī",
+     "Varens karotājs",
+     "HaŠem (Tas Kungs) ir ar viņu"
+    ]
+   },
+   {
+    "question": "Kāds bija Jonas pareģojums Ninives pilsētai?",
+    "options": [
+     "Pilsētas iedzīvotāji tiks izsūtīti, ja viņi nenožēlos grēkus",
+     "Pilsētas iedzīvotāji ir ļoti ļauni Dieva priekšā",
+     "Pēc četrdesmit dienām pilsēta tiks sagrauta",
+     "Pilsētu iekaros Asīrija, ja nebūs nožēlas"
+    ]
+   },
+   {
+    "question": "Kurš kuram teica: \"Tava tauta būs mana tauta, un tavs Dievs – mans Dievs\"?",
+    "options": [
+     "Hagara Sārai",
+     "Rute Naomi",
+     "Jaela Deborai (Dvorai)",
+     "Šifra Mirjamai"
+    ]
+   }
+  ],
+  "open": [
+   "Kāda bija Kaina profesija?",
+   "Kurš bija pirmais bērns, kuru apgraizīja Avrahams?",
+   "Kādu darbu Josefs lika saviem brāļiem minēt, ka viņi dara, kad viņi runās ar faraonu?",
+   "Kura mocība (sods) notika tieši pirms pirmdzimto nāves?",
+   "Kam tika teikts: \"Esi stiprs un drosmīgs\"?",
+   "Kā sauca tautu, kas apmānīja Jehošuu?",
+   "Kurš teica: \"Lai mirst mana dvēsele kopā ar filistiešiem\"?",
+   "Kurš kuram teica: \"Vai tad es esmu suns, ka tu nāc pie manis ar kokiem\"?",
+   "Kurš kuram teica: \"Tu būsi ķēniņš pār Izraēlu, un es būšu otrais pēc tevis\"?",
+   "Kāpēc Naomi un Elimelehs pameta Betlēmi (Beit-Lehemu)?"
+  ],
+  "pictureBlocks": [
+   {
+    "caption": "Ilustrācija: Avrahama ceļojums uz Izraēla zemi. Jautājums: Avrahams ierodas Izraēla zemē, sekojot pavēlei \"Leh Leha\".",
+    "q1": "Kurš sāka ceļojumu no Ūr-Kasdimas uz Hānaānas zemi?",
+    "q2": "Kuri bija tie cilvēki, minēti vārdā, kas pievienojās Avrahamam ceļojumā?"
+   },
+   {
+    "caption": "Ilustrācija: Gani pie akas / strīds starp Jitzhaku un filistiešiem par ūdens aku. Jautājums: Filistieši strīdējās ar Jitzhaku par ūdens akām.",
+    "q1": "Kura akas filistieši aizbēra sākumā?",
+    "q2": "Pēc Jitzhaka panākumiem kāds lūdza noslēgt ar viņu savienību. Kurš tas bija?"
+   },
+   {
+    "caption": "Ilustrācija: Jākovs cīnās ar eņģeli. Jautājums: Pirms Jākovs šķērsoja strautu, lai satiktu Esavu, viņš cīnījās ar vīru.",
+    "q1": "Kādu vārdu Jākovs saņēma no vīra cīņas rezultātā?",
+    "q2": "Kādu vārdu Jākovs deva vietai, kur viņš cīnījās ar vīru?"
+   },
+   {
+    "caption": "Ilustrācija: Amaleks uzbrūk Izraēla tautas arjergardam (aizmugurei) tuksnesī. Jautājums: Amaleks bija pirmā tauta, kas uzbruka Izraēla tautai tuksnesī pēc Sarkanās jūras sašķelšanas brīnuma.",
+    "q1": "Kaujā ar Amaleku tuksnesī Moše lūdza par tautas panākumiem. Kurš patiesībā vadīja cīņu pret Amaleku?",
+    "q2": "Šauls saņēma no Šmuela pavēli iznīcināt Amaleku, bet viņš nepabeidza uzdevumu. Kā sauca Amaleka ķēniņu, kuru Šauls atstāja dzīvu?"
+   },
+   {
+    "caption": "Ilustrācija: Moše skatās no Nevo kalna uz Apsolīto zemi. Jautājums: Moše nebija cienīgs ieiet Izraēla zemē, bet tikai paskatīties uz to no Nevo kalna. Pirms savas nāves viņš sagatavoja Izraēla tautu ieiešanai zemē.",
+    "q1": "Moše pavēlēja Izraēla tautai pulcēties sabata gadā Sukkot svētkos. Kas tautai jādara šajā pasākumā?",
+    "q2": "Aharons, Mošes brālis, arī nebija cienīgs ieiet zemē. Kur viņš tika apglabāts?"
+   },
+   {
+    "caption": "Ilustrācija: Kalevs ben Jefune iekaro Hebronu (vai: vientuļš karotājs nocietinātas pilsētas priekšā). Jautājums: Kad pienāca laiks sadalīt mantojumu, Kalevs ben Jefune pieprasīja no Jehošuas solījuma izpildi, ko Moše bija devis Kalevam.",
+    "q1": "Kuru pilsētu Kalevs pieprasīja kā savu mantojumu?",
+    "q2": "Tiesnešu perioda sākumā Kalevs apsolīja savu meitu Ahsu tam, kurš iekaros Kirjat-Seferu. Kurš guva panākumus pilsētas iekarot?"
+   },
+   {
+    "caption": "Ilustrācija: Kišonas upe aizskalo Siseras armijas ratus. Jautājums: Divas sievietes bija iesaistītas dažādās lomās karā pret Javinu, Hānaānas ķēniņu, un Siseru, viņa karavadoni.",
+    "q1": "Kā sauca šīs divas sievietes?",
+    "q2": "Ko viena no viņām deva Siseram dzert, lai viņš aizmigtu?"
+   },
+   {
+    "caption": "Ilustrācija: Jonatans un viņa ieroču nesējs iezogas filistiešu nometnē. Jautājums: Pirms kaujas ar filistiešiem bija akūts ieroču trūkums, galvenokārt tāpēc, ka nebija amatnieku.",
+    "q1": "Kuri bija divi cilvēki Izraēla nometnē, kuriem vienīgajiem bija ieroči?",
+    "q2": "Ko Šauls aizliedza tautai ēst līdz kaujas beigām ar filistiešiem?"
+   },
+   {
+    "caption": "Ilustrācija: Šaula kauja pret filistiešiem uz Gilboas kalna. Jautājums: Šaula valdīšana beidzas ar sīvu kauju uz Gilboas kalna, kurā tika nogalināti Šauls un viņa dēli.",
+    "q1": "Pirms kaujas Šauls devās pie zīlnieces Ein-Dorā. Ar ko viņš gribēja sazināties caur viņu?",
+    "q2": "Kā sauc trīs Šaula dēlus, kuri gāja bojā uz Gilboas kalna?"
+   },
+   {
+    "caption": "Ilustrācija: Ķēniņienes Esteres dzīres ar Ahašverošu un Hamanu. Jautājums: Estere uzaicināja Ahašverošu un Hamanu uz dzīrēm, lai pastāstītu Ahašverošam par Hamana sazvērestību.",
+    "q1": "Naktī pirms otrajām dzīrēm ķēniņš Ahašverošs vēlējās apbalvot Mordehaju. Kāds bija iemesls šai balvai?",
+    "q2": "Kurš kuram teica: \"Vai tu pat gribi izvarot ķēniņieni manā klātbūtnē mājā?!\""
+   }
+  ],
+  "remainingLines": 0,
+  "totalLines": 129
+ },
+ "RU": {
+  "code": "RU",
+  "tf": [
+   "Во второй день была создана суша.",
+   "Два города, которые построили израильтяне для фараона, были Питом и Раамсес.",
+   "Предметом Мишкана, который священники несли при переходе через Иордан в землю Ханаан, был жертвенник.",
+   "Пророк Шмуэль был судьёй.",
+   "Давид скрывался от Шауля среди филистимлян."
+  ],
+  "mc": [
+   {
+    "question": "Откуда взялась вода для Всемирного потопа?",
+    "options": [
+     "Цунами",
+     "Дождь",
+     "Подземные воды",
+     "Дождь и подземные воды"
+    ]
+   },
+   {
+    "question": "Что из следующего НЕ является верным относительно города Содом?",
+    "options": [
+     "Он был расположен в долине Иордана",
+     "Авраам вёл переговоры с Б-гом, чтобы город мог быть спасён",
+     "Царь города вынес хлеб и вино и благословил Авраама в знак благодарности",
+     "Нравы его жителей были злыми"
+    ]
+   },
+   {
+    "question": "Какой из следующих снов приснился Йосефу?",
+    "options": [
+     "Лестница",
+     "Снопы пшеницы в поле",
+     "Виноград, выжимаемый в чашу",
+     "Тучные и тощие коровы"
+    ]
+   },
+   {
+    "question": "Кого из следующих сыновей Яаков критиковал в своём благословении?",
+    "options": [
+     "Реувен",
+     "Иссахар",
+     "Дан",
+     "Биньямин"
+    ]
+   },
+   {
+    "question": "В какой из следующих историй НЕ снималась обувь?",
+    "options": [
+     "Моше и горящий куст",
+     "Йеhошуа и военачальник воинства Всевышнего",
+     "Йеhуда и Тамар",
+     "Боаз и Рут"
+    ]
+   },
+   {
+    "question": "Как описывается народ Израиля перед дарованием Торы и Десяти заповедей?",
+    "options": [
+     "Как народ, поднимающийся подобно льву",
+     "Царство священников и святой народ",
+     "Многочисленный и могучий народ",
+     "Жестоковыйный народ (Народ с «жёсткой шеей» (упрямый, непокорный))"
+    ]
+   },
+   {
+    "question": "Каков был вкус манны?",
+    "options": [
+     "Хлеб и мясо",
+     "Семь видов плодов",
+     "Огурцы и арбузы",
+     "Лепёшки с мёдом"
+    ]
+   },
+   {
+    "question": "После вхождения в землю во времена Йеhошуа произошло несколько событий. Что из следующего произошло НЕ сразу, а только после начала сражений?",
+    "options": [
+     "Церемония благословения и проклятия",
+     "Народ прошёл обрезание",
+     "Народ отпраздновал Песах",
+     "Установление двенадцати памятных камней из Иордана"
+    ]
+   },
+   {
+    "question": "Какие из перечисленных царей названы царями эморитов?",
+    "options": [
+     "Цари Хацора и Шимрона",
+     "Цари Йерихо и Ай",
+     "Цари Иерусалима и Хеврона",
+     "Цари филистимлян"
+    ]
+   },
+   {
+    "question": "Что верно относительно стратегии Эhуда бен Геры?",
+    "options": [
+     "Он использовал обоюдоострый меч",
+     "Он использовал левую руку для нанесения удара",
+     "Он добился того, чтобы царь Моава остался с ним наедине",
+     "Всё вышеперечисленное"
+    ]
+   },
+   {
+    "question": "В притче Йотама, к какому дереву обратились деревья с просьбой царствовать над ними?",
+    "options": [
+     "Виноградная лоза",
+     "Гранат",
+     "Финиковая пальма",
+     "Кедр"
+    ]
+   },
+   {
+    "question": "Народ попросил у Шмуэля царя и привёл различные причины. Какую из следующих причин они упомянули?",
+    "options": [
+     "Что народ проиграл войну против филистимлян",
+     "Что священник Эли умер",
+     "Что сыновья Шмуэля были недостойны",
+     "Что Шауль был очень подходящим для царствования"
+    ]
+   },
+   {
+    "question": "Что из следующего НЕ является описанием качеств Давида?",
+    "options": [
+     "Искусный музыкант",
+     "Мудрый сердцем",
+     "Могучий воин",
+     "Г-сподь с ним"
+    ]
+   },
+   {
+    "question": "Каково было пророчество Йоны городу Ниневии?",
+    "options": [
+     "Жители города будут изгнаны, если не раскаются",
+     "Злодеяния жителей города дошли до Б-га",
+     "Через сорок дней город будет разрушен",
+     "Город будет завоёван Ассирией, если не будет раскаяния"
+    ]
+   },
+   {
+    "question": "Кто сказал кому: «Твой народ будет моим народом, и твой Б-г моим Б-гом»?",
+    "options": [
+     "Агарь Саре",
+     "Рут Наоми",
+     "Яэль Дворе",
+     "Шифра Мирьям"
+    ]
+   }
+  ],
+  "open": [
+   "Какова была профессия Каина?",
+   "Кто был первым ребёнком, которого обрезал Авраам?",
+   "Какую профессию Йосеф велел своим братьям указать при разговоре с фараоном?",
+   "Какая казнь произошла непосредственно перед казнью первенцев?",
+   "Кому было сказано: «Будь силён и мужествен»?",
+   "Как назывался народ, который обманул Йеhошуа?",
+   "Кто сказал: «Да умрёт душа моя с филистимлянами»?",
+   "Кто сказал кому: «Разве я собака, что ты идёшь на меня с палками»?",
+   "Кто сказал кому: «Ты будешь царём над Израилем, а я буду вторым после тебя»?",
+   "Почему Наоми и Элимелех покинули Бейт-Лехем (Вифлеем)?"
+  ],
+  "pictureBlocks": [
+   {
+    "caption": "Авраам прибывает в Землю Израиля по повелению «Лех Леха».",
+    "q1": "Кто начал путешествие из Ур Касдим к земле Ханаан?",
+    "q2": "Кто были люди, упомянутые по именам, которые присоединились к Аврааму в путешествии?"
+   },
+   {
+    "caption": "Филистимляне спорили с Ицхаком из-за колодцев с водой.",
+    "q1": "Чьи колодцы филистимляне засыпали сначала?",
+    "q2": "После успеха Ицхака кто-то попросил заключить с ним союз. Кто это был?"
+   },
+   {
+    "caption": "Перед тем как Яаков перешёл поток Ябок навстречу Эсаву, он боролся с кем-то.",
+    "q1": "Какое имя получил Яаков от этого человека в результате борьбы?",
+    "q2": "Какое имя дал Яаков месту, где он боролся с этим человеком?"
+   },
+   {
+    "caption": "Амалек был первым народом, напавшим на народ Израиля в пустыне после чуда рассечения Красного моря.",
+    "q1": "В битве с Амалеком в пустыне Моше молился за успех народа. Кто на самом деле руководил сражением против Амалека?",
+    "q2": "Шауль получил от Шмуэля повеление уничтожить Амалека, но он не завершил задачу. Как звали царя Амалека, которого Шауль оставил в живых?"
+   },
+   {
+    "caption": "Моше не удостоился войти в Землю Израиля, а только посмотреть на неё с горы Нево. Перед своей смертью он подготовил народ Израиля к вхождению в землю.",
+    "q1": "Моше повелел народу Израиля собираться в субботний год на праздник Суккот. Что должен делать народ на этом мероприятии?",
+    "q2": "Аhарон, брат Моше, также не удостоился войти в землю. Где он был похоронен?"
+   },
+   {
+    "caption": "Когда пришло время раздела наследий, Калев бен Йефуне потребовал от Йеhошуа исполнения обещания, которое Моше дал Калеву.",
+    "q1": "Какой город потребовал Калев в качестве своего наследия?",
+    "q2": "В начале периода Судей Калев обещал свою дочь Ахсу тому, кто завоюет Кирьят-Сефер. Кто преуспел в завоевании города?"
+   },
+   {
+    "caption": "Две женщины были вовлечены в разные роли в войне против Явина, царя Ханаана, и Сисры, его полководца.",
+    "q1": "Как звали этих двух женщин?",
+    "q2": "Что одна из них дала Сисре выпить, чтобы он заснул?"
+   },
+   {
+    "caption": "Перед битвой с филистимлянами была острая нехватка оружия, главным образом потому, что не было ремесленников.",
+    "q1": "Кто были два человека в лагере Израиля, у которых у единственных было оружие?",
+    "q2": "Что Шауль запретил народу есть до окончания битвы с филистимлянами?"
+   },
+   {
+    "caption": "Царствование Шауля заканчивается ожесточённой битвой на горе Гильбоа, в которой были убиты Шауль и его сыновья.",
+    "q1": "Перед битвой Шауль пошёл к женщине, вызывавшей духов в Эйн-Доре. С кем он хотел связаться через неё?",
+    "q2": "Как звали трёх сыновей Шауля, которые погибли на горе Гильбоа?"
+   },
+   {
+    "caption": "Эстер пригласила Ахашвероша и Амана на пир, чтобы рассказать Ахашверошу о заговоре Амана.",
+    "q1": "В ночь перед вторым пиром царь Ахашверош решил оказать Мордехаю почёт. По какой причине он это сделал?",
+    "q2": "Кто и кому сказал: «Неужели ты и царицу хочешь оскорбить в доме моём?»"
+   }
+  ],
+  "remainingLines": 0,
+  "totalLines": 130
+ },
+ "UK": {
+  "code": "UK",
+  "tf": [
+   "На другий день було створено сушу.",
+   "Два міста, які збудували ізраїльтяни для фараона, були Пітом і Раамсес.",
+   "Предметом Мішкану, який священики несли під час переходу через Йордан у землю Ханаан, був жертовник.",
+   "Пророк Шмуель був суддею.",
+   "Давид переховувався від Шауля серед філістимлян."
+  ],
+  "mc": [
+   {
+    "question": "Звідки прийшла вода під час Потопу?",
+    "options": [
+     "Цунамі",
+     "Дощ",
+     "Підземні води",
+     "Дощ і підземні води"
+    ]
+   },
+   {
+    "question": "Що з наведеного НЕ є вірним щодо міста Содом?",
+    "options": [
+     "Воно було розташоване в долині Йордану",
+     "Авраам вів переговори з Б-гом, щоб місто могло бути врятоване",
+     "Цар міста виніс хліб і вино та благословив Авраама на знак подяки",
+     "Норови його мешканців були лихими"
+    ]
+   },
+   {
+    "question": "Який із наступних снів наснився Йосефу?",
+    "options": [
+     "Драбина",
+     "Снопи зерна в полі",
+     "Виноград, що вичавлюють у чашу",
+     "Гладкі та худі корови"
+    ]
+   },
+   {
+    "question": "Кого з наступних синів Яаков критикував у своєму благословенні?",
+    "options": [
+     "Реувен",
+     "Іссахар",
+     "Дан",
+     "Біньямін"
+    ]
+   },
+   {
+    "question": "У якій із наступних історій НЕ знімали взуття?",
+    "options": [
+     "Моше та палаючий кущ",
+     "Єгошуа та воєначальник воїнства Г-споднього",
+     "Єгуда і Тамар",
+     "Боаз і Рут"
+    ]
+   },
+   {
+    "question": "Як описується народ Ізраїлю перед даруванням Тори та Десяти заповідей?",
+    "options": [
+     "Як народ, що підіймається подібно до лева",
+     "Царство священиків і святий народ",
+     "Численний і могутній народ",
+     "Жорстокошиїй народ"
+    ]
+   },
+   {
+    "question": "Яким був смак манни?",
+    "options": [
+     "Хліб і м'ясо",
+     "Сім видів плодів",
+     "Огірки та кавуни",
+     "Коржі з медом"
+    ]
+   },
+   {
+    "question": "Після входження в землю за часів Єгошуа відбулося кілька подій. Що з наведеного сталося НЕ відразу, а лише після початку битв?",
+    "options": [
+     "Церемонія благословення та прокляття",
+     "Народ пройшов обрізання",
+     "Народ відсвяткував Песах",
+     "Встановлення дванадцяти пам'ятних каменів з Йордану"
+    ]
+   },
+   {
+    "question": "Хто з перелічених були царями емореїв?",
+    "options": [
+     "Царі Хацора та Шімрона",
+     "Царі Єрихона та Ай",
+     "Царі Єрусалима та Хеврона",
+     "Царі філістимлян"
+    ]
+   },
+   {
+    "question": "Що є вірним щодо стратегії Егуда бен Гери?",
+    "options": [
+     "Він використовував двосічний меч",
+     "Він використовував ліву руку для удару",
+     "Він домігся того, щоб цар Моава залишився з ним наодинці",
+     "Усе перераховане вище"
+    ]
+   },
+   {
+    "question": "У притчі Йотама, до якого дерева звернулися дерева з проханням царювати над ними?",
+    "options": [
+     "Виноградна лоза",
+     "Гранат",
+     "Фінікова пальма",
+     "Кедр"
+    ]
+   },
+   {
+    "question": "Народ попросив у Шмуеля царя і навів різні причини. Яку з наступних причин вони згадали?",
+    "options": [
+     "Що народ програв війну проти філістимлян",
+     "Що священик Елі помер",
+     "Що сини Шмуеля були негідними",
+     "Що Шауль дуже підходив для царювання"
+    ]
+   },
+   {
+    "question": "Що з наведеного НЕ є описом якостей Давида?",
+    "options": [
+     "Вправний музикант",
+     "Мудрий серцем",
+     "Могутній воїн",
+     "Г-сподь із ним"
+    ]
+   },
+   {
+    "question": "Яким було пророцтво Йони місту Ніневія?",
+    "options": [
+     "Жителі міста будуть вигнані, якщо не розкаються",
+     "Жителі міста дуже злі перед Б-гом",
+     "Через сорок днів місто буде зруйноване",
+     "Місто буде завойоване Ассирією, якщо не буде каяття"
+    ]
+   },
+   {
+    "question": "Хто сказав кому: «Твій народ буде моїм народом, і твій Б-г моїм Б-гом»?",
+    "options": [
+     "Аґар Сарі",
+     "Рут Наомі",
+     "Яель Дворі",
+     "Шифра Мір'ям"
+    ]
+   }
+  ],
+  "open": [
+   "Яка була професія Каїна?",
+   "Хто був першою дитиною, яку обрізав Авраам?",
+   "Яку роботу Йосеф велів своїм братам сказати, що вони виконують, коли розмовлятимуть із фараоном?",
+   "Яка кара сталася безпосередньо перед карою первістків?",
+   "Кому було сказано: «Будь сильним і мужнім»?",
+   "Як називався народ, який обдурив Єгошуа?",
+   "Хто сказав: «Нехай помре душа моя з філістимлянами»?",
+   "Хто сказав кому: «Хіба я собака, що ти йдеш на мене з палицями»?",
+   "Хто сказав кому: «Ти будеш царем над Ізраїлем, а я буду другим після тебе»?",
+   "Чому Наомі та Елімелех покинули Вифлеєм (Бейт-Лехем)?"
+  ],
+  "pictureBlocks": [
+   {
+    "caption": "Авраам прибуває до Землі Ізраїлю за велінням «Лех Леха».",
+    "q1": "Хто почав подорож з Ур-Касдіма до землі Ханаан?",
+    "q2": "Хто були люди, згадані поіменно, які приєдналися до Авраама в подорожі?"
+   },
+   {
+    "caption": "Філістимляни сперечалися з Іцхаком через колодязі з водою.",
+    "q1": "Чиї колодязі філістимляни засипали спочатку?",
+    "q2": "Після успіху Іцхака хтось попросив укласти з ним союз. Хто це був?"
+   },
+   {
+    "caption": "Перш ніж Яаков перейшов потік, щоб зустріти Есава, він боровся з чоловіком.",
+    "q1": "Яке ім'я отримав Яаков від цього чоловіка в результаті боротьби?",
+    "q2": "Яке ім'я дав Яаков місцю, де він боровся з цим чоловіком?"
+   },
+   {
+    "caption": "Амалек був першим народом, що напав на народ Ізраїлю в пустелі після дива розсічення Червоного моря.",
+    "q1": "У битві з Амалеком у пустелі Моше молився за успіх народу. Хто насправді керував битвою проти Амалека?",
+    "q2": "Шауль отримав від Шмуеля веління знищити Амалека, але він не завершив завдання. Як звали царя Амалека, якого Шауль залишив живим?"
+   },
+   {
+    "caption": "Моше не удостоївся увійти в Землю Ізраїлю, а лише подивитися на неї з гори Нево. Перед своєю смертю він підготував народ Ізраїлю до входження в землю.",
+    "q1": "Моше наказав народу Ізраїлю збиратися в суботній рік на свято Суккот. Що повинен робити народ на цьому заході?",
+    "q2": "Агарон, брат Моше, також не удостоївся увійти в землю. Де він був похований?"
+   },
+   {
+    "caption": "Коли настав час розподілу спадщини, Калев бен Єфуне зажадав від Єгошуа виконання обіцянки, яку Моше дав Калеву.",
+    "q1": "Яке місто зажадав Калев як свою спадщину?",
+    "q2": "На початку періоду Суддів Калев пообіцяв свою дочку Ахсу тому, хто завоює Кір'ят-Сефер. Хто досяг успіху в завоюванні міста?"
+   },
+   {
+    "caption": "Дві жінки були залучені в різні ролі у війні проти Явіна, царя Ханаану, і Сісри, його полководця.",
+    "q1": "Як звали цих двох жінок?",
+    "q2": "Що одна з них дала Сісрі випити, щоб він заснув?"
+   },
+   {
+    "caption": "Перед битвою з філістимлянами була гостра нестача зброї, головним чином тому, що не було ремісників.",
+    "q1": "Хто були двоє людей у таборі Ізраїлю, у яких єдиних була зброя?",
+    "q2": "Що Шауль заборонив народу їсти до закінчення битви з філістимлянами?"
+   },
+   {
+    "caption": "Царювання Шауля закінчується запеклою битвою на горі Гільбоа, в якій були вбиті Шауль і його сини.",
+    "q1": "Перед битвою Шауль пішов до чарівниці в Ейн-Дорі. З ким він хотів зв'язатися через неї?",
+    "q2": "Як звати трьох синів Шауля, які загинули на горі Гільбоа?"
+   },
+   {
+    "caption": "Естер запросила Ахашвероша і Амана на бенкет, щоб розповісти Ахашверошу про змову Амана.",
+    "q1": "У ніч перед другим бенкетом цар Ахашверош побажав нагородити Мордехая. Яка була причина цієї нагороди?",
+    "q2": "Хто сказав кому: «Ти навіть будеш ґвалтувати царицю зі мною в домі?!»"
+   }
+  ],
+  "remainingLines": 0,
+  "totalLines": 129
+ }
+}

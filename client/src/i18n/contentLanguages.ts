@@ -1,5 +1,5 @@
 /** Non-base languages that quiz content (title/description/question/choice text) can be translated into. */
-export const CONTENT_LANGS = ['de', 'ru', 'fr', 'pl', 'lt', 'he'] as const;
+export const CONTENT_LANGS = ['de', 'ru', 'fr', 'pl', 'lt', 'he', 'bg', 'cs', 'es', 'fi', 'hu', 'it', 'lv', 'uk'] as const;
 export type ContentLangCode = (typeof CONTENT_LANGS)[number];
 
 export const CONTENT_LANG_LABELS: Record<ContentLangCode, string> = {
@@ -9,6 +9,14 @@ export const CONTENT_LANG_LABELS: Record<ContentLangCode, string> = {
   pl: 'Polish',
   lt: 'Lithuanian',
   he: 'Hebrew',
+  bg: 'Bulgarian',
+  cs: 'Czech',
+  es: 'Spanish',
+  fi: 'Finnish',
+  hu: 'Hungarian',
+  it: 'Italian',
+  lv: 'Latvian',
+  uk: 'Ukrainian',
 };
 
 /** Generates `${Base}_de`, `${Base}_ru`, etc. as nullable string fields — used for API response shapes. */

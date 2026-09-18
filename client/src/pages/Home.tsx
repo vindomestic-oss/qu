@@ -11,7 +11,7 @@ export function Home() {
       <LanguageSwitcher />
       <h1>{t('home.title')}</h1>
       <p>
-        <Link to="/admin/login">Admin login</Link>
+        <Link to="/admin/login">{t('home.adminLogin')}</Link>
       </p>
       <p>
         <Link to="/join">{t('home.joinQuiz')}</Link>
