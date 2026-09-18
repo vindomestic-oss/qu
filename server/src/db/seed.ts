@@ -1,5 +1,6 @@
 import bcrypt from 'bcryptjs';
 import { db } from './index';
+import { seedSampleQuiz } from './seedSampleQuiz';
 
 const username = process.env.ADMIN_USERNAME || 'admin';
 const password = process.env.ADMIN_PASSWORD || 'changeme123';
@@ -12,4 +13,12 @@ if (existing) {
   db.prepare('INSERT INTO admins (username, password_hash) VALUES (?, ?)').run(username, hash);
   console.log(`Admin created: username="${username}" password="${password}"`);
   console.log('Change this password or set ADMIN_USERNAME/ADMIN_PASSWORD env vars before re-seeding.');
+}
+
+// Only auto-populate a demo quiz on truly fresh databases (no quizzes at all yet) —
+// this keeps re-running `npm run seed` on a real, in-use install from re-adding it
+// after someone deletes it on purpose.
+const anyQuiz = db.prepare('SELECT id FROM quizzes LIMIT 1').get();
+if (!anyQuiz && process.env.SEED_SAMPLE_QUIZ !== 'false') {
+  seedSampleQuiz();
 }
