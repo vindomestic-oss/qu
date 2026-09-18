@@ -5,6 +5,7 @@ import { useParticipant } from '../../auth/ParticipantContext';
 import { ApiError } from '../../api/client';
 import { useLanguage } from '../../i18n/LanguageContext';
 import { LanguageSwitcher } from '../../components/LanguageSwitcher';
+import { Logo } from '../../components/Logo';
 
 export function Join() {
   const { join } = useParticipant();
@@ -30,7 +31,8 @@ export function Join() {
   }
 
   return (
-    <div dir={isRtl ? 'rtl' : 'ltr'} style={{ maxWidth: 360, margin: '80px auto', fontFamily: 'sans-serif', textAlign: 'center' }}>
+    <div dir={isRtl ? 'rtl' : 'ltr'} style={{ maxWidth: 360, margin: '80px auto', textAlign: 'center' }}>
+      <Logo />
       <LanguageSwitcher />
       <h1>{t('join.title')}</h1>
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12, textAlign: isRtl ? 'right' : 'left' }}>

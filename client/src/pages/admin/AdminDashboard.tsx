@@ -71,7 +71,7 @@ export function AdminDashboard() {
   }
 
   return (
-    <div style={{ maxWidth: 720, margin: '40px auto', fontFamily: 'sans-serif' }}>
+    <div style={{ maxWidth: 720, margin: '40px auto' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <h1>Quizzes</h1>
         <div>

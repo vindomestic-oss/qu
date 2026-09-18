@@ -8,6 +8,7 @@ import { getSocket } from '../../lib/socket';
 import { useLanguage } from '../../i18n/LanguageContext';
 import { resolveField } from '../../i18n/resolveText';
 import { LanguageSwitcher } from '../../components/LanguageSwitcher';
+import { Logo } from '../../components/Logo';
 
 interface QuizMeta {
   id: number;
@@ -191,11 +192,12 @@ export function Play() {
     }
   }
 
-  if (loading) return <p style={{ margin: 40, fontFamily: 'sans-serif' }}>{t('play.loading')}</p>;
+  if (loading) return <p style={{ margin: 40 }}>{t('play.loading')}</p>;
 
   if (session && session.status === 'pending') {
     return (
-      <div dir={isRtl ? 'rtl' : 'ltr'} style={{ maxWidth: 480, margin: '80px auto', fontFamily: 'sans-serif', textAlign: 'center' }}>
+      <div dir={isRtl ? 'rtl' : 'ltr'} style={{ maxWidth: 480, margin: '80px auto', textAlign: 'center' }}>
+        <Logo />
         <LanguageSwitcher />
         <h1>{t('play.youreIn')}</h1>
         <p>{t('play.waitingForHost')}</p>
@@ -207,15 +209,15 @@ export function Play() {
   }
 
   if (error && !questions) {
-    return <p style={{ margin: 40, color: 'red', fontFamily: 'sans-serif' }}>{error}</p>;
+    return <p style={{ margin: 40, color: 'red' }}>{error}</p>;
   }
 
   if (!questions || !quizMeta || !session) {
-    return <p style={{ margin: 40, fontFamily: 'sans-serif' }}>{t('play.loadingQuiz')}</p>;
+    return <p style={{ margin: 40 }}>{t('play.loadingQuiz')}</p>;
   }
 
   if (questions.length === 0) {
-    return <p style={{ margin: 40, fontFamily: 'sans-serif' }}>{t('play.noQuestions')}</p>;
+    return <p style={{ margin: 40 }}>{t('play.noQuestions')}</p>;
   }
 
   const question = questions[index];
@@ -223,7 +225,7 @@ export function Play() {
   const quizTitle = resolveField(quizMeta, 'title', language);
 
   return (
-    <div dir={isRtl ? 'rtl' : 'ltr'} style={{ maxWidth: 640, margin: '40px auto', fontFamily: 'sans-serif' }}>
+    <div dir={isRtl ? 'rtl' : 'ltr'} style={{ maxWidth: 640, margin: '40px auto' }}>
       <LanguageSwitcher />
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
         <h1>{quizTitle}</h1>

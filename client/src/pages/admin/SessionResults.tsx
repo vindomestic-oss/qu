@@ -94,8 +94,8 @@ export function SessionResults() {
     }
   }
 
-  if (error && !data) return <p style={{ margin: 40, color: 'red', fontFamily: 'sans-serif' }}>{error}</p>;
-  if (!data) return <p style={{ margin: 40, fontFamily: 'sans-serif' }}>Loading…</p>;
+  if (error && !data) return <p style={{ margin: 40, color: 'red' }}>{error}</p>;
+  if (!data) return <p style={{ margin: 40 }}>Loading…</p>;
 
   const { session, quiz, questions, participants, answers } = data;
   const textQuestions = questions.filter((q) => q.type === 'text');
@@ -104,7 +104,7 @@ export function SessionResults() {
     .sort((a, b) => b.scored - a.scored);
 
   return (
-    <div style={{ maxWidth: 800, margin: '40px auto', fontFamily: 'sans-serif' }}>
+    <div style={{ maxWidth: 800, margin: '40px auto' }}>
       <Link to={`/admin/quizzes/${quiz.id}`}>&larr; Back to quiz</Link>
       <h1>{quiz.title} — Results</h1>
       <p>

@@ -145,7 +145,7 @@ export function QuizEditor() {
   const questions = [...(quiz.questions ?? [])].sort((a, b) => a.sort_order - b.sort_order);
 
   return (
-    <div style={{ maxWidth: 720, margin: '40px auto', fontFamily: 'sans-serif' }}>
+    <div style={{ maxWidth: 720, margin: '40px auto' }}>
       <Link to="/admin">&larr; Back to quizzes</Link>
       <h1>{quiz.title}</h1>
       {error && <p style={{ color: 'red' }}>{error}</p>}

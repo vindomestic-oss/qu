@@ -5,6 +5,7 @@ import { ApiError } from '../../api/client';
 import { useLanguage } from '../../i18n/LanguageContext';
 import { resolveField } from '../../i18n/resolveText';
 import { LanguageSwitcher } from '../../components/LanguageSwitcher';
+import { Logo } from '../../components/Logo';
 
 export function Results() {
   const { t, language, isRtl } = useLanguage();
@@ -35,11 +36,12 @@ export function Results() {
     };
   }, []);
 
-  if (error) return <p style={{ margin: 40, color: 'red', fontFamily: 'sans-serif' }}>{error}</p>;
-  if (!results) return <p style={{ margin: 40, fontFamily: 'sans-serif' }}>{t('results.loading')}</p>;
+  if (error) return <p style={{ margin: 40, color: 'red' }}>{error}</p>;
+  if (!results) return <p style={{ margin: 40 }}>{t('results.loading')}</p>;
 
   return (
-    <div dir={isRtl ? 'rtl' : 'ltr'} style={{ maxWidth: 640, margin: '40px auto', fontFamily: 'sans-serif' }}>
+    <div dir={isRtl ? 'rtl' : 'ltr'} style={{ maxWidth: 640, margin: '40px auto' }}>
+      <Logo />
       <LanguageSwitcher />
       <h1>{t('results.title')}</h1>
       <p style={{ fontSize: 20 }}>

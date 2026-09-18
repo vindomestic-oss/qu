@@ -3,6 +3,7 @@ import type { FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthContext';
 import { ApiError } from '../../api/client';
+import { Logo } from '../../components/Logo';
 
 export function AdminLogin() {
   const { login } = useAuth();
@@ -27,8 +28,9 @@ export function AdminLogin() {
   }
 
   return (
-    <div style={{ maxWidth: 360, margin: '80px auto', fontFamily: 'sans-serif' }}>
-      <h1>Admin Login</h1>
+    <div style={{ maxWidth: 360, margin: '80px auto' }}>
+      <Logo />
+      <h1 style={{ textAlign: 'center' }}>Admin Login</h1>
       <form onSubmit={handleSubmit}>
         <div style={{ marginBottom: 12 }}>
           <label>

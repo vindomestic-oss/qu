@@ -1,11 +1,13 @@
 import { Link } from 'react-router-dom';
 import { useLanguage } from '../i18n/LanguageContext';
 import { LanguageSwitcher } from '../components/LanguageSwitcher';
+import { Logo } from '../components/Logo';
 
 export function Home() {
   const { t, isRtl } = useLanguage();
   return (
-    <div dir={isRtl ? 'rtl' : 'ltr'} style={{ maxWidth: 480, margin: '80px auto', fontFamily: 'sans-serif', textAlign: 'center' }}>
+    <div dir={isRtl ? 'rtl' : 'ltr'} style={{ maxWidth: 480, margin: '80px auto', textAlign: 'center' }}>
+      <Logo />
       <LanguageSwitcher />
       <h1>{t('home.title')}</h1>
       <p>
