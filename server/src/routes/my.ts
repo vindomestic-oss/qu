@@ -115,15 +115,20 @@ myRouter.post('/answers/:questionId', (req: ParticipantRequest, res) => {
     if (typeof text_answer !== 'string') {
       return res.status(400).json({ error: 'text_answer must be a string' });
     }
+    const trimmed = text_answer.trim();
+    // A blank answer has nothing to grade manually — score it 0 outright instead of
+    // leaving it pending for the admin to review.
+    const isCorrect = trimmed ? null : 0;
+    const pointsAwarded = trimmed ? null : 0;
     db.prepare(
       `INSERT INTO answers (session_id, question_id, participant_id, text_answer, is_correct, points_awarded, submitted_at)
-       VALUES (?, ?, ?, ?, NULL, NULL, datetime('now'))
+       VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
        ON CONFLICT(participant_id, question_id) DO UPDATE SET
          text_answer = excluded.text_answer,
-         is_correct = NULL,
-         points_awarded = NULL,
+         is_correct = excluded.is_correct,
+         points_awarded = excluded.points_awarded,
          submitted_at = excluded.submitted_at`,
-    ).run(session.id, questionId, participantId, text_answer.trim());
+    ).run(session.id, questionId, participantId, trimmed, isCorrect, pointsAwarded);
     broadcastLiveUpdate(session.id);
     return res.json({ ok: true });
   }
