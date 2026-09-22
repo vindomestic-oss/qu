@@ -20,4 +20,13 @@ export function runMigrations(db: Database.Database) {
       }
     }
   }
+
+  // Blank text answers submitted before auto-scoring was added were left pending
+  // (points_awarded IS NULL) for manual grading; backfill them to 0 now that they don't need review.
+  db.exec(`
+    UPDATE answers SET points_awarded = 0, is_correct = 0
+    WHERE points_awarded IS NULL
+      AND (text_answer IS NULL OR trim(text_answer) = '')
+      AND question_id IN (SELECT id FROM questions WHERE type = 'text')
+  `);
 }
