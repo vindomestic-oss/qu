@@ -106,7 +106,7 @@ export function QuestionForm({ initial, onSubmit, onCancel }: Props) {
   return (
     <form
       onSubmit={handleSubmit}
-      style={{ border: '1px solid #ccc', padding: 16, marginTop: 12, display: 'flex', flexDirection: 'column', gap: 10 }}
+      style={{ border: '1px solid var(--border)', padding: 16, marginTop: 12, display: 'flex', flexDirection: 'column', gap: 10 }}
     >
       <label>
         Type
@@ -139,7 +139,7 @@ export function QuestionForm({ initial, onSubmit, onCancel }: Props) {
         <div>
           <div>Choices ({type === 'single' ? 'mark one correct' : 'mark one or more correct'})</div>
           {choices.map((c, i) => (
-            <div key={i} style={{ border: '1px solid #eee', padding: 8, marginTop: 4 }}>
+            <div key={i} style={{ border: '1px solid var(--border-subtle)', padding: 8, marginTop: 4 }}>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                 <input
                   type={type === 'single' ? 'radio' : 'checkbox'}
@@ -171,7 +171,7 @@ export function QuestionForm({ initial, onSubmit, onCancel }: Props) {
         </div>
       )}
 
-      {error && <p style={{ color: 'red' }}>{error}</p>}
+      {error && <p style={{ color: 'var(--danger)' }}>{error}</p>}
 
       <div style={{ display: 'flex', gap: 8 }}>
         <button type="submit" disabled={submitting}>

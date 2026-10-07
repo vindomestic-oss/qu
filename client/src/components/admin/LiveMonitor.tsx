@@ -36,7 +36,7 @@ export function LiveMonitor({ sessionId }: Props) {
   const totalQuestions = data.questions.length;
 
   return (
-    <div style={{ marginTop: 12, border: '1px solid #ccc', padding: 12, background: '#fff' }}>
+    <div style={{ marginTop: 12, border: '1px solid var(--border)', padding: 12, background: 'var(--surface)' }}>
       <p>
         <strong>{data.participants.length}</strong> participant(s) joined
       </p>
@@ -44,7 +44,7 @@ export function LiveMonitor({ sessionId }: Props) {
       {data.participants.length > 0 && (
         <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 12 }}>
           <thead>
-            <tr style={{ textAlign: 'left', borderBottom: '1px solid #999' }}>
+            <tr style={{ textAlign: 'left', borderBottom: '1px solid var(--border-strong)' }}>
               <th>Name</th>
               <th>Progress</th>
             </tr>
@@ -65,7 +65,7 @@ export function LiveMonitor({ sessionId }: Props) {
       {data.questions.length > 0 && (
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
-            <tr style={{ textAlign: 'left', borderBottom: '1px solid #999' }}>
+            <tr style={{ textAlign: 'left', borderBottom: '1px solid var(--border-strong)' }}>
               <th>Question</th>
               <th>Answered</th>
             </tr>

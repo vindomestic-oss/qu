@@ -99,9 +99,9 @@ export function SessionPanel({ quizId, initialSession, onSessionEnded }: Props) 
   }
 
   return (
-    <div style={{ border: '1px solid #999', padding: 16, marginTop: 24, background: '#f7f7f7' }}>
+    <div style={{ border: '1px solid var(--border-strong)', padding: 16, marginTop: 24, background: 'var(--surface-alt)' }}>
       <h2 style={{ marginTop: 0 }}>Live Session</h2>
-      {error && <p style={{ color: 'red' }}>{error}</p>}
+      {error && <p style={{ color: 'var(--danger)' }}>{error}</p>}
 
       {!session && (
         <button onClick={handleCreateOrShow} disabled={busy}>

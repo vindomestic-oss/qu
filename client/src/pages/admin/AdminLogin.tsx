@@ -54,7 +54,7 @@ export function AdminLogin() {
             />
           </label>
         </div>
-        {error && <p style={{ color: 'red' }}>{error}</p>}
+        {error && <p style={{ color: 'var(--danger)' }}>{error}</p>}
         <button type="submit" disabled={submitting} style={{ padding: '8px 16px' }}>
           {submitting ? 'Logging in…' : 'Log in'}
         </button>
