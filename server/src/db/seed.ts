@@ -2,6 +2,8 @@ import bcrypt from 'bcryptjs';
 import { db } from './index';
 import { seedSampleQuiz } from './seedSampleQuiz';
 import { seedChidonQuiz } from './seedChidonQuiz';
+import { seedChidon5787Anfaenger } from './seedChidon5787Anfaenger';
+import { seedChidon5787Fortgeschrittene } from './seedChidon5787Fortgeschrittene';
 
 const username = process.env.ADMIN_USERNAME || 'admin';
 const password = process.env.ADMIN_PASSWORD || 'changeme123';
@@ -24,3 +26,8 @@ if (!anyQuiz && process.env.SEED_SAMPLE_QUIZ !== 'false') {
   seedSampleQuiz();
   seedChidonQuiz();
 }
+
+// These each skip themselves if a quiz with their title already exists, so it's safe to
+// call them on every deploy — this is how new quizzes get added to the live database too.
+seedChidon5787Anfaenger();
+seedChidon5787Fortgeschrittene();
