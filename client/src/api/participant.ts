@@ -25,7 +25,7 @@ export function getMyQuiz() {
 }
 
 export function submitChoiceAnswer(questionId: number, selectedChoiceIds: number[]) {
-  return participantApi<{ ok: true; isCorrect: boolean; pointsAwarded: number }>(`/my/answers/${questionId}`, {
+  return participantApi<{ ok: true }>(`/my/answers/${questionId}`, {
     method: 'POST',
     body: JSON.stringify({ selected_choice_ids: selectedChoiceIds }),
   });

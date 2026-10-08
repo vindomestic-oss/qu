@@ -160,7 +160,7 @@ myRouter.post('/answers/:questionId', (req: ParticipantRequest, res) => {
   ).run(session.id, questionId, participantId, JSON.stringify(selected_choice_ids), isCorrect ? 1 : 0, pointsAwarded);
   broadcastLiveUpdate(session.id);
 
-  res.json({ ok: true, isCorrect, pointsAwarded });
+  res.json({ ok: true });
 });
 
 myRouter.get('/results', (req: ParticipantRequest, res) => {

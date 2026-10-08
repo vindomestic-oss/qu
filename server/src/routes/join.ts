@@ -33,17 +33,18 @@ joinRouter.post('/join', (req, res) => {
     return res.status(400).json({ error: 'This session has already ended' });
   }
 
-  let participant = db
+  const existing = db
     .prepare('SELECT * FROM participants WHERE session_id = ? AND display_name = ?')
     .get(session.id, name) as ParticipantRow | undefined;
-
-  if (!participant) {
-    const result = db
-      .prepare('INSERT INTO participants (session_id, display_name) VALUES (?, ?)')
-      .run(session.id, name);
-    participant = { id: Number(result.lastInsertRowid), session_id: session.id, display_name: name };
-    broadcastLiveUpdate(session.id);
+  if (existing) {
+    return res.status(409).json({ error: 'This name is already taken in this session. Choose another name.' });
   }
+
+  const result = db
+    .prepare('INSERT INTO participants (session_id, display_name) VALUES (?, ?)')
+    .run(session.id, name);
+  const participant: ParticipantRow = { id: Number(result.lastInsertRowid), session_id: session.id, display_name: name };
+  broadcastLiveUpdate(session.id);
 
   const token = signParticipantToken({
     participantId: participant.id,
