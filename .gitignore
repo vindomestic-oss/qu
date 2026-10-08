@@ -9,3 +9,4 @@ server/uploads/*
 !server/uploads/.gitkeep
 .env
 /EJKA.mhtml
+secrets.txt
