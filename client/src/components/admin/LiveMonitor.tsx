@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { getLiveStatus } from '../../api/sessions';
 import type { LiveStatusResponse } from '../../types';
-import { getSocket } from '../../lib/socket';
+import { getSocket, joinSessionRoom } from '../../lib/socket';
 
 interface Props {
   sessionId: number;
@@ -22,7 +22,7 @@ export function LiveMonitor({ sessionId }: Props) {
   useEffect(() => {
     refresh();
     const socket = getSocket();
-    socket.emit('session:join', sessionId);
+    joinSessionRoom(sessionId, 'admin');
     const handler = () => refresh();
     socket.on('session:live', handler);
     return () => {

@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { createOrGetSession, endSession, startSession } from '../../api/sessions';
 import type { QuizSession } from '../../types';
 import { ApiError } from '../../api/client';
-import { getSocket } from '../../lib/socket';
+import { getSocket, joinSessionRoom } from '../../lib/socket';
 import { LiveMonitor } from './LiveMonitor';
 
 interface Props {
@@ -43,7 +43,7 @@ export function SessionPanel({ quizId, initialSession, onSessionEnded }: Props) 
   useEffect(() => {
     if (!session) return;
     const socket = getSocket();
-    socket.emit('session:join', session.id);
+    joinSessionRoom(session.id, 'admin');
     const handler = (updated: QuizSession) => {
       if (updated.id !== session.id) return;
       setSession(updated);

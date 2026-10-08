@@ -4,7 +4,7 @@ import { getMyQuiz, getMySession, submitChoiceAnswer, submitTextAnswer } from '.
 import type { ParticipantQuestion, QuizSession } from '../../types';
 import { ApiError } from '../../api/client';
 import { useParticipant } from '../../auth/ParticipantContext';
-import { getSocket } from '../../lib/socket';
+import { getSocket, joinSessionRoom } from '../../lib/socket';
 import { useLanguage } from '../../i18n/LanguageContext';
 import { resolveField } from '../../i18n/resolveText';
 import { LanguageSwitcher } from '../../components/LanguageSwitcher';
@@ -138,7 +138,7 @@ export function Play() {
   useEffect(() => {
     if (!session) return;
     const socket = getSocket();
-    socket.emit('session:join', session.id);
+    joinSessionRoom(session.id, 'participant');
     const handler = async (updated: QuizSession) => {
       if (updated.id !== session.id) return;
       setSession(updated);
