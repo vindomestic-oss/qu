@@ -3,14 +3,17 @@ import { getMyResults } from '../../api/participant';
 import type { ResultsResponse } from '../../types';
 import { ApiError } from '../../api/client';
 import { useLanguage } from '../../i18n/LanguageContext';
+import { useContentLanguage } from '../../i18n/useContentLanguage';
 import { resolveField } from '../../i18n/resolveText';
-import { LanguageSwitcher } from '../../components/LanguageSwitcher';
+import { UiLanguageMenu } from '../../components/UiLanguageMenu';
+import { QuestionLanguageControl } from '../../components/QuestionLanguageControl';
 import { Logo } from '../../components/Logo';
 
 export function Results() {
-  const { t, language, isRtl } = useLanguage();
+  const { t, isRtl } = useLanguage();
   const [results, setResults] = useState<ResultsResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const { contentLanguage, setContentLanguage } = useContentLanguage(results?.offered_languages ?? ['en']);
 
   useEffect(() => {
     let attempts = 0;
@@ -42,16 +45,24 @@ export function Results() {
   return (
     <div dir={isRtl ? 'rtl' : 'ltr'} style={{ maxWidth: 640, margin: '40px auto' }}>
       <Logo />
-      <LanguageSwitcher />
+      <UiLanguageMenu />
       <h1>{t('results.title')}</h1>
       <p style={{ fontSize: 20 }}>
         {t('results.score')} <strong>{results.scoredPoints}</strong> / {results.maxPoints}
         {results.pendingGrading > 0 && <span> {t('results.pendingSuffix', { count: results.pendingGrading })}</span>}
       </p>
+      <p>
+        <QuestionLanguageControl
+          languages={results.offered_languages}
+          value={contentLanguage}
+          onChange={setContentLanguage}
+          label={t('play.questionLanguage')}
+        />
+      </p>
 
       {results.breakdown.map((item, i) => {
         const correctChoiceIds = new Set(item.question.choices.filter((c) => c.is_correct).map((c) => c.id));
-        const questionText = resolveField(item.question, 'text', language);
+        const questionText = resolveField(item.question, 'text', contentLanguage, results.base_language);
         return (
           <div key={item.question.id} style={{ border: '1px solid #ddd', padding: 12, marginBottom: 8 }}>
             <p style={{ fontWeight: 'bold' }}>
@@ -70,7 +81,7 @@ export function Results() {
                         color: isCorrectChoice ? 'green' : wasSelected ? 'red' : undefined,
                       }}
                     >
-                      {resolveField(c, 'text', language)} {wasSelected ? t('results.yourAnswer') : ''}{' '}
+                      {resolveField(c, 'text', contentLanguage, results.base_language)} {wasSelected ? t('results.yourAnswer') : ''}{' '}
                       {isCorrectChoice ? t('results.correct') : ''}
                     </li>
                   );

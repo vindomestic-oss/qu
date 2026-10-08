@@ -69,7 +69,7 @@ export function seedChidon5787Fortgeschrittene() {
 
   const seed = db.transaction(() => {
     const quizResult = db
-      .prepare('INSERT INTO quizzes (title, description, time_limit_seconds, created_by) VALUES (?, ?, ?, ?)')
+      .prepare("INSERT INTO quizzes (title, description, time_limit_seconds, created_by, base_language) VALUES (?, ?, ?, ?, 'de')")
       .run(
         QUIZ_TITLE,
         '20 Single-Choice-Fragen und 10 offene Fragen zu Sefer Bereschit, Sefer Schmot (Kap. 1-20) und Sefer Bamidbar (Kap. 11-16, 20-25).',

@@ -1,19 +1,21 @@
 import { createContext, useContext, useState } from 'react';
 import type { ReactNode } from 'react';
-import { DICTIONARIES, LANGUAGES, RTL_LANGUAGES, type Language } from './translations';
+import { DICTIONARIES, RTL_LANGUAGES, UI_LANGUAGES, type Language } from './translations';
 
 const STORAGE_KEY = 'quiz_ui_language';
-const LANGUAGE_CODES = LANGUAGES.map((l) => l.code);
 
-function isLanguage(value: string | null): value is Language {
-  return value !== null && (LANGUAGE_CODES as string[]).includes(value);
+function isUiLanguage(value: string | null): value is Language {
+  return value !== null && (UI_LANGUAGES as string[]).includes(value);
 }
 
+// Interface language is scoped to this browser tab (sessionStorage), not the device, so the
+// next participant on a shared iPad always starts from English rather than inheriting a
+// previous child's choice. Older builds stored this in localStorage; drop any such leftover.
+localStorage.removeItem(STORAGE_KEY);
+
 function detectDefaultLanguage(): Language {
-  const stored = localStorage.getItem(STORAGE_KEY);
-  if (isLanguage(stored)) return stored;
-  const browserLang = navigator.language?.slice(0, 2).toLowerCase();
-  if (isLanguage(browserLang)) return browserLang;
+  const stored = sessionStorage.getItem(STORAGE_KEY);
+  if (isUiLanguage(stored)) return stored;
   return 'en';
 }
 
@@ -30,7 +32,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   const [language, setLanguageState] = useState<Language>(detectDefaultLanguage);
 
   function setLanguage(lang: Language) {
-    localStorage.setItem(STORAGE_KEY, lang);
+    sessionStorage.setItem(STORAGE_KEY, lang);
     setLanguageState(lang);
   }
 

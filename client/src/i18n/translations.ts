@@ -1,22 +1,27 @@
 export type Language = 'en' | 'de' | 'ru' | 'fr' | 'pl' | 'lt' | 'he' | 'bg' | 'cs' | 'es' | 'fi' | 'hu' | 'it' | 'lv' | 'uk';
 
+// label is each language's own name for itself (an endonym), used in both the interface
+// language menu and the per-quiz question-language picker — never a flag or a two-letter code.
 export const LANGUAGES: { code: Language; label: string }[] = [
-  { code: 'en', label: 'EN' },
-  { code: 'de', label: 'DE' },
-  { code: 'ru', label: 'RU' },
-  { code: 'fr', label: 'FR' },
-  { code: 'pl', label: 'PL' },
-  { code: 'lt', label: 'LT' },
-  { code: 'he', label: 'HE' },
-  { code: 'bg', label: 'BG' },
-  { code: 'cs', label: 'CS' },
-  { code: 'es', label: 'ES' },
-  { code: 'fi', label: 'FI' },
-  { code: 'hu', label: 'HU' },
-  { code: 'it', label: 'IT' },
-  { code: 'lv', label: 'LV' },
-  { code: 'uk', label: 'UK' },
+  { code: 'en', label: 'English' },
+  { code: 'de', label: 'Deutsch' },
+  { code: 'ru', label: 'Русский' },
+  { code: 'fr', label: 'Français' },
+  { code: 'pl', label: 'Polski' },
+  { code: 'lt', label: 'Lietuvių' },
+  { code: 'he', label: 'עברית' },
+  { code: 'bg', label: 'Български' },
+  { code: 'cs', label: 'Čeština' },
+  { code: 'es', label: 'Español' },
+  { code: 'fi', label: 'Suomi' },
+  { code: 'hu', label: 'Magyar' },
+  { code: 'it', label: 'Italiano' },
+  { code: 'lv', label: 'Latviešu' },
+  { code: 'uk', label: 'Українська' },
 ];
+
+/** Interface (menu/button) language is restricted to these 4; quiz content can use any of LANGUAGES. */
+export const UI_LANGUAGES: Language[] = ['en', 'de', 'he', 'ru'];
 
 export const RTL_LANGUAGES: Language[] = ['he'];
 
@@ -37,6 +42,7 @@ const en: Dict = {
   'play.youreIn': "You're in!",
   'play.waitingForHost': 'Waiting for the host to start the quiz…',
   'play.joinCode': 'Join code:',
+  'play.questionLanguage': 'Question language:',
   'play.loadingQuiz': 'Loading quiz…',
   'play.timeLeft': 'Time left:',
   'play.questionOf': 'Question {n} of {total}',
@@ -76,6 +82,7 @@ const de: Dict = {
   'play.youreIn': 'Du bist dabei!',
   'play.waitingForHost': 'Warte darauf, dass der Gastgeber das Quiz startet…',
   'play.joinCode': 'Beitrittscode:',
+  'play.questionLanguage': 'Sprache der Fragen:',
   'play.loadingQuiz': 'Quiz wird geladen…',
   'play.timeLeft': 'Verbleibende Zeit:',
   'play.questionOf': 'Frage {n} von {total}',
@@ -115,6 +122,7 @@ const ru: Dict = {
   'play.youreIn': 'Вы подключились!',
   'play.waitingForHost': 'Ожидание начала викторины организатором…',
   'play.joinCode': 'Код для входа:',
+  'play.questionLanguage': 'Язык вопросов:',
   'play.loadingQuiz': 'Загрузка викторины…',
   'play.timeLeft': 'Осталось времени:',
   'play.questionOf': 'Вопрос {n} из {total}',
@@ -271,6 +279,7 @@ const he: Dict = {
   'play.youreIn': 'הצטרפת בהצלחה!',
   'play.waitingForHost': 'מחכים שהמנחה יתחיל את השאלון…',
   'play.joinCode': 'קוד הצטרפות:',
+  'play.questionLanguage': 'שפת השאלות:',
   'play.loadingQuiz': 'טוען שאלון…',
   'play.timeLeft': 'זמן שנותר:',
   'play.questionOf': 'שאלה {n} מתוך {total}',

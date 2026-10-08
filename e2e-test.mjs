@@ -86,8 +86,8 @@ async function main() {
   part.on('pageerror', (e) => log('participant-page-error', e.message));
 
   await part.goto(`${BASE}/join`);
-  // Force English regardless of browser locale, since this script's selectors assume English labels.
-  await part.getByRole('button', { name: 'EN', exact: true }).click();
+  // Interface language always defaults to English now (no browser-locale detection), so this
+  // script's selectors can rely on English labels without forcing the language explicitly.
   await part.getByLabel(/join code/i).fill(joinCodeText);
   await part.getByLabel(/your name/i).fill('PlaywrightBot');
   await part.getByRole('button', { name: /^join$/i }).click();

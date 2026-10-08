@@ -2,6 +2,7 @@ import { createContext, useContext, useState } from 'react';
 import type { ReactNode } from 'react';
 import { getParticipantToken, setParticipantToken } from '../api/participantClient';
 import { joinSession } from '../api/participant';
+import { clearStoredContentLanguage } from '../i18n/useContentLanguage';
 
 const NAME_KEY = 'quiz_participant_name';
 
@@ -19,6 +20,7 @@ export function ParticipantProvider({ children }: { children: ReactNode }) {
   const [isJoined, setIsJoined] = useState<boolean>(Boolean(getParticipantToken()));
 
   async function join(joinCode: string, name: string) {
+    clearStoredContentLanguage();
     const result = await joinSession(joinCode, name);
     setParticipantToken(result.token);
     sessionStorage.setItem(NAME_KEY, result.participant.display_name);
@@ -29,6 +31,7 @@ export function ParticipantProvider({ children }: { children: ReactNode }) {
   function leave() {
     setParticipantToken(null);
     sessionStorage.removeItem(NAME_KEY);
+    clearStoredContentLanguage();
     setDisplayName(null);
     setIsJoined(false);
   }

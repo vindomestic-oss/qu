@@ -1,8 +1,8 @@
 import { participantApi } from './participantClient';
-import type { Participant, ParticipantQuestion, QuizSession, ResultsResponse } from '../types';
+import type { Participant, ParticipantQuestion, QuizLanguageInfo, QuizSession, ResultsResponse } from '../types';
 import type { WithTranslations } from '../i18n/contentLanguages';
 
-interface QuizMeta extends WithTranslations<'title'>, WithTranslations<'description'> {
+export interface QuizMeta extends WithTranslations<'title'>, WithTranslations<'description'>, QuizLanguageInfo {
   id: number;
   title: string;
   description: string | null;
@@ -17,7 +17,11 @@ export function joinSession(joinCode: string, displayName: string) {
 }
 
 export function getMySession() {
-  return participantApi<{ session: QuizSession; participant: unknown }>('/my/session');
+  return participantApi<{
+    session: QuizSession;
+    participant: unknown;
+    quiz: ({ id: number } & QuizLanguageInfo) | null;
+  }>('/my/session');
 }
 
 export function getMyQuiz() {

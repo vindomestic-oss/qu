@@ -1,4 +1,5 @@
 import type { WithTranslations, WithTranslationInputs } from './i18n/contentLanguages';
+import type { Language } from './i18n/translations';
 
 export type QuestionType = 'single' | 'multiple' | 'text';
 
@@ -26,10 +27,17 @@ export interface Quiz extends WithTranslations<'title'>, WithTranslations<'descr
   title: string;
   description: string | null;
   time_limit_seconds: number;
+  base_language: Language;
   created_by: number;
   created_at: string;
   question_count?: number;
   questions?: Question[];
+}
+
+/** Which languages a quiz's questions are actually available in, computed server-side. */
+export interface QuizLanguageInfo {
+  base_language: Language;
+  offered_languages: Language[];
 }
 
 export interface ChoiceInput extends WithTranslationInputs<'text'> {
@@ -96,7 +104,7 @@ export interface ResultsBreakdownItem {
   } | null;
 }
 
-export interface ResultsResponse {
+export interface ResultsResponse extends QuizLanguageInfo {
   scoredPoints: number;
   maxPoints: number;
   pendingGrading: number;

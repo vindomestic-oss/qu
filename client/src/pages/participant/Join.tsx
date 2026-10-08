@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useParticipant } from '../../auth/ParticipantContext';
 import { ApiError } from '../../api/client';
 import { useLanguage } from '../../i18n/LanguageContext';
-import { LanguageSwitcher } from '../../components/LanguageSwitcher';
+import { UiLanguageMenu } from '../../components/UiLanguageMenu';
 import { Logo } from '../../components/Logo';
 
 export function Join() {
@@ -33,7 +33,7 @@ export function Join() {
   return (
     <div dir={isRtl ? 'rtl' : 'ltr'} style={{ maxWidth: 360, margin: '80px auto', textAlign: 'center' }}>
       <Logo />
-      <LanguageSwitcher />
+      <UiLanguageMenu />
       <h1>{t('join.title')}</h1>
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12, textAlign: isRtl ? 'right' : 'left' }}>
         <label>

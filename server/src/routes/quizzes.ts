@@ -5,6 +5,7 @@ import { parseQuestionInput, extractTranslations } from '../lib/questionInput';
 import { deleteImageFile } from '../lib/uploads';
 import { createUniqueJoinCode, refreshSessionStatus, SessionRow } from '../lib/sessions';
 import { translationColumns, translationValues } from '../lib/sqlTranslations';
+import { CONTENT_LANGS, isQuizLang } from '../lib/languages';
 
 export const quizzesRouter = Router();
 quizzesRouter.use(requireAdmin);
@@ -68,7 +69,7 @@ quizzesRouter.get('/', (_req, res) => {
 });
 
 quizzesRouter.post('/', (req: AuthedRequest, res) => {
-  const { title, description, time_limit_seconds } = req.body ?? {};
+  const { title, description, time_limit_seconds, base_language } = req.body ?? {};
   if (typeof title !== 'string' || !title.trim()) {
     return res.status(400).json({ error: 'title is required' });
   }
@@ -76,10 +77,22 @@ quizzesRouter.post('/', (req: AuthedRequest, res) => {
   if (!Number.isFinite(timeLimit) || timeLimit <= 0) {
     return res.status(400).json({ error: 'time_limit_seconds must be a positive number' });
   }
+  const baseLanguage = base_language === undefined || base_language === null ? 'en' : base_language;
+  if (!isQuizLang(baseLanguage)) {
+    return res.status(400).json({ error: `base_language must be one of: en, ${CONTENT_LANGS.join(', ')}` });
+  }
 
   const titleTranslations = extractTranslations(req.body, 'title');
   const descriptionTranslations = extractTranslations(req.body, 'description');
-  const columns = ['title', ...translationColumns('title'), 'description', ...translationColumns('description'), 'time_limit_seconds', 'created_by'];
+  const columns = [
+    'title',
+    ...translationColumns('title'),
+    'description',
+    ...translationColumns('description'),
+    'time_limit_seconds',
+    'created_by',
+    'base_language',
+  ];
   const placeholders = columns.map(() => '?').join(', ');
 
   const result = db
@@ -91,6 +104,7 @@ quizzesRouter.post('/', (req: AuthedRequest, res) => {
       ...translationValues(descriptionTranslations),
       timeLimit,
       req.admin!.adminId,
+      baseLanguage,
     );
 
   const quiz = getQuizWithQuestions(Number(result.lastInsertRowid));
@@ -105,16 +119,22 @@ quizzesRouter.get('/:id', (req, res) => {
 
 quizzesRouter.put('/:id', (req, res) => {
   const quizId = Number(req.params.id);
-  const existing = db.prepare('SELECT id FROM quizzes WHERE id = ?').get(quizId);
+  const existing = db.prepare('SELECT id, base_language FROM quizzes WHERE id = ?').get(quizId) as
+    | { id: number; base_language: string }
+    | undefined;
   if (!existing) return res.status(404).json({ error: 'Quiz not found' });
 
-  const { title, description, time_limit_seconds } = req.body ?? {};
+  const { title, description, time_limit_seconds, base_language } = req.body ?? {};
   if (typeof title !== 'string' || !title.trim()) {
     return res.status(400).json({ error: 'title is required' });
   }
   const timeLimit = Number(time_limit_seconds);
   if (!Number.isFinite(timeLimit) || timeLimit <= 0) {
     return res.status(400).json({ error: 'time_limit_seconds must be a positive number' });
+  }
+  const baseLanguage = base_language === undefined || base_language === null ? existing.base_language : base_language;
+  if (!isQuizLang(baseLanguage)) {
+    return res.status(400).json({ error: `base_language must be one of: en, ${CONTENT_LANGS.join(', ')}` });
   }
 
   const titleTranslations = extractTranslations(req.body, 'title');
@@ -125,6 +145,7 @@ quizzesRouter.put('/:id', (req, res) => {
     'description = ?',
     ...translationColumns('description').map((c) => `${c} = ?`),
     'time_limit_seconds = ?',
+    'base_language = ?',
   ];
 
   db.prepare(`UPDATE quizzes SET ${setClauses.join(', ')} WHERE id = ?`).run(
@@ -133,6 +154,7 @@ quizzesRouter.put('/:id', (req, res) => {
     description ?? null,
     ...translationValues(descriptionTranslations),
     timeLimit,
+    baseLanguage,
     quizId,
   );
 

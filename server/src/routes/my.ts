@@ -5,6 +5,7 @@ import { refreshSessionStatus, SessionRow } from '../lib/sessions';
 import { gradeChoiceAnswer } from '../lib/grading';
 import { broadcastLiveUpdate } from '../socket';
 import { translationColumns } from '../lib/sqlTranslations';
+import { getOfferedLanguages } from '../lib/quizLanguages';
 
 export const myRouter = Router();
 myRouter.use(requireParticipant);
@@ -52,7 +53,19 @@ function getSessionForParticipant(req: ParticipantRequest): SessionRow | null {
 myRouter.get('/session', (req: ParticipantRequest, res) => {
   const session = getSessionForParticipant(req);
   if (!session) return res.status(404).json({ error: 'Session not found' });
-  res.json({ session, participant: req.participant });
+
+  const quizRow = db.prepare('SELECT id, base_language FROM quizzes WHERE id = ?').get(session.quiz_id) as
+    | { id: number; base_language: string }
+    | undefined;
+  const languageInfo = quizRow
+    ? getOfferedLanguages(db, session.quiz_id, quizRow.base_language)
+    : { base_language: 'en' as const, offered_languages: ['en'] as const };
+
+  res.json({
+    session,
+    participant: req.participant,
+    quiz: quizRow ? { id: quizRow.id, ...languageInfo } : null,
+  });
 });
 
 myRouter.get('/quiz', (req: ParticipantRequest, res) => {
@@ -62,8 +75,19 @@ myRouter.get('/quiz', (req: ParticipantRequest, res) => {
     return res.status(400).json({ error: `Quiz is not active (status: ${session.status})` });
   }
 
-  const quizColumns = ['id', 'title', ...translationColumns('title'), 'description', ...translationColumns('description'), 'time_limit_seconds'];
-  const quiz = db.prepare(`SELECT ${quizColumns.join(', ')} FROM quizzes WHERE id = ?`).get(session.quiz_id);
+  const quizColumns = [
+    'id',
+    'title',
+    ...translationColumns('title'),
+    'description',
+    ...translationColumns('description'),
+    'time_limit_seconds',
+    'base_language',
+  ];
+  const quizRow = db.prepare(`SELECT ${quizColumns.join(', ')} FROM quizzes WHERE id = ?`).get(session.quiz_id) as {
+    base_language: string;
+  };
+  const quiz = { ...quizRow, ...getOfferedLanguages(db, session.quiz_id, quizRow.base_language) };
   const questions = db
     .prepare('SELECT * FROM questions WHERE quiz_id = ? ORDER BY sort_order')
     .all(session.quiz_id) as QuestionRow[];
@@ -170,6 +194,11 @@ myRouter.get('/results', (req: ParticipantRequest, res) => {
     return res.status(400).json({ error: 'Results are only available after the session ends' });
   }
 
+  const quizRow = db.prepare('SELECT base_language FROM quizzes WHERE id = ?').get(session.quiz_id) as {
+    base_language: string;
+  };
+  const languageInfo = getOfferedLanguages(db, session.quiz_id, quizRow.base_language);
+
   const questions = db
     .prepare('SELECT * FROM questions WHERE quiz_id = ? ORDER BY sort_order')
     .all(session.quiz_id) as QuestionRow[];
@@ -205,5 +234,5 @@ myRouter.get('/results', (req: ParticipantRequest, res) => {
     };
   });
 
-  res.json({ scoredPoints, maxPoints, pendingGrading, breakdown });
+  res.json({ scoredPoints, maxPoints, pendingGrading, breakdown, ...languageInfo });
 });
