@@ -102,6 +102,13 @@ export function SessionResults() {
   const scored = participants
     .map((p) => ({ participant: p, ...computeScore(p.id, questions, answers) }))
     .sort((a, b) => b.scored - a.scored);
+  // While the quiz is still running, a participant's text answers can still change until they
+  // click "Finish" — grading only the already-finished ones avoids grading something stale.
+  // Once the session has ended, nobody can change anything, so everyone is gradable.
+  const gradableParticipantIds = new Set(
+    participants.filter((p) => session.status === 'ended' || p.submitted_at).map((p) => p.id),
+  );
+  const notYetFinishedCount = participants.length - gradableParticipantIds.size;
 
   return (
     <div style={{ maxWidth: 800, margin: '40px auto' }}>
@@ -124,6 +131,7 @@ export function SessionResults() {
           <thead>
             <tr style={{ textAlign: 'left', borderBottom: '2px solid #333' }}>
               <th>Name</th>
+              <th>Status</th>
               <th>Score</th>
               <th>Pending grading</th>
             </tr>
@@ -132,6 +140,9 @@ export function SessionResults() {
             {scored.map(({ participant, scored: s, max, pending }) => (
               <tr key={participant.id} style={{ borderBottom: '1px solid #ddd' }}>
                 <td>{participant.display_name}</td>
+                <td>
+                  {session.status === 'ended' ? '—' : participant.submitted_at ? '✓ finished' : 'still answering'}
+                </td>
                 <td>
                   {s} / {max}
                 </td>
@@ -145,15 +156,22 @@ export function SessionResults() {
       {textQuestions.length > 0 && (
         <>
           <h2 style={{ marginTop: 32 }}>Grade text answers</h2>
+          {session.status !== 'ended' && (
+            <p style={{ color: '#555' }}>
+              {notYetFinishedCount > 0
+                ? `${notYetFinishedCount} participant(s) haven't clicked "Finish" yet — their answers aren't shown here until they do.`
+                : 'All participants who have joined so far have finished — their answers are shown below.'}
+            </p>
+          )}
           {textQuestions.map((q) => {
-            const questionAnswers = answers.filter((a) => a.question_id === q.id);
+            const questionAnswers = answers.filter((a) => a.question_id === q.id && gradableParticipantIds.has(a.participant_id));
             return (
               <div key={q.id} style={{ marginBottom: 24 }}>
                 <h3>
                   {q.text} ({q.points} pt{q.points !== 1 ? 's' : ''})
                 </h3>
                 {questionAnswers.length === 0 ? (
-                  <p>No answers submitted.</p>
+                  <p>{answers.some((a) => a.question_id === q.id) ? 'No finished participants have answered this yet.' : 'No answers submitted.'}</p>
                 ) : (
                   <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                     <thead>

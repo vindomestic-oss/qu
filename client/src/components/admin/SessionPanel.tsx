@@ -131,7 +131,8 @@ export function SessionPanel({ quizId, initialSession, onSessionEnded }: Props) 
           </p>
           <button onClick={handleEnd} disabled={busy}>
             End early
-          </button>
+          </button>{' '}
+          <Link to={`/admin/sessions/${session.id}/results`}>Grade finished participants</Link>
           <LiveMonitor sessionId={session.id} />
         </div>
       )}

@@ -50,6 +50,13 @@ function getSessionForParticipant(req: ParticipantRequest): SessionRow | null {
   return refreshSessionStatus(row);
 }
 
+function getSubmittedAt(participantId: number): string | null {
+  const row = db.prepare('SELECT submitted_at FROM participants WHERE id = ?').get(participantId) as
+    | { submitted_at: string | null }
+    | undefined;
+  return row?.submitted_at ?? null;
+}
+
 myRouter.get('/session', (req: ParticipantRequest, res) => {
   const session = getSessionForParticipant(req);
   if (!session) return res.status(404).json({ error: 'Session not found' });
@@ -63,9 +70,25 @@ myRouter.get('/session', (req: ParticipantRequest, res) => {
 
   res.json({
     session,
-    participant: req.participant,
+    participant: { ...req.participant, submitted_at: getSubmittedAt(req.participant!.participantId) },
     quiz: quizRow ? { id: quizRow.id, ...languageInfo } : null,
   });
+});
+
+myRouter.post('/submit', (req: ParticipantRequest, res) => {
+  const session = getSessionForParticipant(req);
+  if (!session) return res.status(404).json({ error: 'Session not found' });
+  if (session.status !== 'active') {
+    return res.status(400).json({ error: `Cannot finish (session status: ${session.status})` });
+  }
+
+  const participantId = req.participant!.participantId;
+  db.prepare("UPDATE participants SET submitted_at = COALESCE(submitted_at, datetime('now')) WHERE id = ?").run(
+    participantId,
+  );
+  broadcastLiveUpdate(session.id);
+
+  res.json({ submitted_at: getSubmittedAt(participantId) });
 });
 
 myRouter.get('/quiz', (req: ParticipantRequest, res) => {
@@ -115,7 +138,12 @@ myRouter.get('/quiz', (req: ParticipantRequest, res) => {
     };
   });
 
-  res.json({ session, quiz, questions: questionsOut });
+  res.json({
+    session,
+    quiz,
+    questions: questionsOut,
+    participant: { submitted_at: getSubmittedAt(req.participant!.participantId) },
+  });
 });
 
 myRouter.post('/answers/:questionId', (req: ParticipantRequest, res) => {
@@ -125,14 +153,17 @@ myRouter.post('/answers/:questionId', (req: ParticipantRequest, res) => {
     return res.status(400).json({ error: `Cannot submit answers (session status: ${session.status})` });
   }
 
+  const participantId = req.participant!.participantId;
+  if (getSubmittedAt(participantId)) {
+    return res.status(409).json({ error: 'You already finished this quiz; answers can no longer be changed.', code: 'already_submitted' });
+  }
+
   const questionId = Number(req.params.questionId);
   const question = db.prepare('SELECT * FROM questions WHERE id = ? AND quiz_id = ?').get(
     questionId,
     session.quiz_id,
   ) as QuestionRow | undefined;
   if (!question) return res.status(404).json({ error: 'Question not found in this quiz' });
-
-  const participantId = req.participant!.participantId;
 
   if (question.type === 'text') {
     const { text_answer } = req.body ?? {};

@@ -19,13 +19,22 @@ export function joinSession(joinCode: string, displayName: string) {
 export function getMySession() {
   return participantApi<{
     session: QuizSession;
-    participant: unknown;
+    participant: { participantId: number; sessionId: number; displayName: string; submitted_at: string | null };
     quiz: ({ id: number } & QuizLanguageInfo) | null;
   }>('/my/session');
 }
 
 export function getMyQuiz() {
-  return participantApi<{ session: QuizSession; quiz: QuizMeta; questions: ParticipantQuestion[] }>('/my/quiz');
+  return participantApi<{
+    session: QuizSession;
+    quiz: QuizMeta;
+    questions: ParticipantQuestion[];
+    participant: { submitted_at: string | null };
+  }>('/my/quiz');
+}
+
+export function submitQuiz() {
+  return participantApi<{ submitted_at: string }>('/my/submit', { method: 'POST' });
 }
 
 export function submitChoiceAnswer(questionId: number, selectedChoiceIds: number[]) {

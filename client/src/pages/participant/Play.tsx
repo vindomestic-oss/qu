@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getMyQuiz, getMySession, submitChoiceAnswer, submitTextAnswer } from '../../api/participant';
+import { getMyQuiz, getMySession, submitChoiceAnswer, submitQuiz, submitTextAnswer } from '../../api/participant';
 import type { QuizMeta } from '../../api/participant';
 import type { ParticipantQuestion, QuizLanguageInfo, QuizSession } from '../../types';
 import { ApiError } from '../../api/client';
@@ -68,17 +68,20 @@ export function Play() {
   const [textSaveStatus, setTextSaveStatus] = useState<{ questionId: number; state: 'saving' | 'saved' } | null>(
     null,
   );
+  const [submitted, setSubmitted] = useState(false);
+  const [finishing, setFinishing] = useState(false);
   const finishedRef = useRef(false);
   const currentQuestion = questions?.[index] ?? null;
   const imageReady = useImageReady(currentQuestion?.image_path ?? null);
 
   async function loadQuiz() {
     try {
-      const { session, quiz, questions } = await getMyQuiz();
+      const { session, quiz, questions, participant } = await getMyQuiz();
       setSession(session);
       setQuizMeta(quiz);
       setLanguageInfo(sanitizeLanguageInfo(quiz));
       setQuestions(questions);
+      setSubmitted(Boolean(participant.submitted_at));
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Failed to load quiz');
     }
@@ -93,9 +96,10 @@ export function Play() {
   useEffect(() => {
     async function init() {
       try {
-        const { session, quiz } = await getMySession();
+        const { session, quiz, participant } = await getMySession();
         setSession(session);
         if (quiz) setLanguageInfo(sanitizeLanguageInfo(quiz));
+        setSubmitted(Boolean(participant.submitted_at));
         if (session.status === 'ended') {
           goToResults();
         } else if (session.status === 'active') {
@@ -126,9 +130,10 @@ export function Play() {
     if (!session || session.status !== 'pending') return;
     const poll = setInterval(async () => {
       try {
-        const { session: updated, quiz } = await getMySession();
+        const { session: updated, quiz, participant } = await getMySession();
         setSession(updated);
         if (quiz) setLanguageInfo(sanitizeLanguageInfo(quiz));
+        setSubmitted(Boolean(participant.submitted_at));
         if (updated.status === 'active') await loadQuiz();
         if (updated.status === 'ended') goToResults();
       } catch {
@@ -196,6 +201,26 @@ export function Play() {
     }
   }
 
+  async function handleFinish() {
+    if (!window.confirm(t('play.finishConfirm'))) return;
+    setFinishing(true);
+    setError(null);
+    try {
+      await submitQuiz();
+      setSubmitted(true);
+    } catch (err) {
+      // A 409 here means some other request already marked this participant finished
+      // (e.g. a duplicate click or a second tab) — that's the outcome we wanted anyway.
+      if (err instanceof ApiError && err.status === 409) {
+        setSubmitted(true);
+      } else {
+        setError(err instanceof ApiError ? err.message : 'Failed to finish');
+      }
+    } finally {
+      setFinishing(false);
+    }
+  }
+
   if (loading) return <p style={{ margin: 40 }}>{t('play.loading')}</p>;
 
   if (session && session.status === 'pending') {
@@ -220,6 +245,16 @@ export function Play() {
     );
   }
 
+  if (submitted) {
+    return (
+      <div dir={isRtl ? 'rtl' : 'ltr'} style={{ maxWidth: 480, margin: '80px auto', textAlign: 'center' }}>
+        <Logo />
+        <h1>{t('play.submittedTitle')}</h1>
+        <p>{t('play.submittedBody')}</p>
+      </div>
+    );
+  }
+
   if (error && !questions) {
     return <p style={{ margin: 40, color: 'red' }}>{error}</p>;
   }
@@ -235,6 +270,10 @@ export function Play() {
   const question = questions[index];
   const questionText = resolveField(question, 'text', contentLanguage, languageInfo.base_language);
   const quizTitle = resolveField(quizMeta, 'title', contentLanguage, languageInfo.base_language);
+  const hasAnswer =
+    question.type === 'text'
+      ? Boolean(question.myAnswer?.text_answer?.trim())
+      : Boolean(question.myAnswer?.selected_choice_ids.length);
 
   return (
     <div dir={isRtl ? 'rtl' : 'ltr'} style={{ maxWidth: 640, margin: '40px auto' }}>
@@ -308,9 +347,13 @@ export function Play() {
         <button onClick={() => setIndex((i) => Math.max(0, i - 1))} disabled={index === 0}>
           {t('play.previous')}
         </button>
-        <button onClick={() => setIndex((i) => Math.min(questions.length - 1, i + 1))} disabled={index === questions.length - 1}>
-          {t('play.next')}
-        </button>
+        {index === questions.length - 1 ? (
+          <button onClick={handleFinish} disabled={!hasAnswer || finishing}>
+            {finishing ? t('play.finishing') : t('play.finish')}
+          </button>
+        ) : (
+          <button onClick={() => setIndex((i) => Math.min(questions.length - 1, i + 1))}>{t('play.next')}</button>
+        )}
       </div>
     </div>
   );

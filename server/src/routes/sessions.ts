@@ -104,7 +104,7 @@ sessionsRouter.get('/:id/live', (req, res) => {
 
   const participants = db
     .prepare(
-      `SELECT p.id, p.display_name, p.joined_at, COUNT(a.id) as answered_count
+      `SELECT p.id, p.display_name, p.joined_at, p.submitted_at, COUNT(a.id) as answered_count
        FROM participants p LEFT JOIN answers a ON a.participant_id = p.id
        WHERE p.session_id = ?
        GROUP BY p.id

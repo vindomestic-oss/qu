@@ -116,6 +116,7 @@ export interface SessionParticipant {
   session_id: number;
   display_name: string;
   joined_at: string;
+  submitted_at: string | null;
 }
 
 export interface SessionAnswer {
@@ -143,6 +144,7 @@ export interface LiveParticipant {
   id: number;
   display_name: string;
   joined_at: string;
+  submitted_at: string | null;
   answered_count: number;
 }
 

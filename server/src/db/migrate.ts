@@ -9,6 +9,8 @@ const ADDED_COLUMNS: Record<string, { name: string; type: string }[]> = {
   ],
   questions: CONTENT_LANGS.map((lang) => ({ name: `text_${lang}`, type: 'TEXT' })),
   choices: CONTENT_LANGS.map((lang) => ({ name: `text_${lang}`, type: 'TEXT' })),
+  // NULL means the participant hasn't clicked "Finish" yet; set once, never cleared.
+  participants: [{ name: 'submitted_at', type: 'TEXT' }],
 };
 
 // Quizzes whose questions are written directly in a non-English base language. Backfilled into
