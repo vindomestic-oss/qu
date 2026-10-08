@@ -1,3 +1,4 @@
+import { randomInt } from 'crypto';
 import { db } from '../db';
 
 export interface SessionRow {
@@ -15,7 +16,7 @@ const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no O/0/I/1 to avoid am
 function generateJoinCode(): string {
   let code = '';
   for (let i = 0; i < 6; i++) {
-    code += CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)];
+    code += CODE_CHARS[randomInt(CODE_CHARS.length)];
   }
   return code;
 }

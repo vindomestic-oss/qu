@@ -15,13 +15,15 @@ npm run install-all   # installs both server and client dependencies
 npm run seed          # creates the admin account
 ```
 
-The seed script creates an admin with username `admin` and password `changeme123` (unless overridden — see below). **This only runs once**: if an admin already exists it does nothing, so to set a specific username/password up front, set env vars before seeding:
+The seed script creates an admin with username `admin` and a built-in local-development-only default password (see `server/src/db/seed.ts`), unless overridden — see below. **This only runs once**: if an admin already exists it does nothing, so to set a specific username/password up front, set env vars before seeding:
 
 ```sh
 ADMIN_USERNAME=myname ADMIN_PASSWORD=mypassword npm run seed
 ```
 
-There is currently no "change password" screen in the admin UI. To change it later, either delete the `admins` row from `server/quiz.db` and re-run `npm run seed`, or edit it directly with a short script (ask if you want one).
+In production (on Render), `ADMIN_PASSWORD` must be set to a strong password (12+ characters, not the local default) or the server refuses to start.
+
+To change the password later, set a new `ADMIN_PASSWORD` and re-run `npm run seed` (or redeploy on Render) — it updates the existing admin's password instead of skipping.
 
 ## Running it
 
