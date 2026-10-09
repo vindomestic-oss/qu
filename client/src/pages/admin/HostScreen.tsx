@@ -7,6 +7,7 @@ import { useStaffLive } from '../../lib/useStaffLive';
 import { useLiveStatus } from '../../lib/useLiveStatus';
 import { useWakeLock } from '../../lib/useWakeLock';
 import { formatCountdown } from '../../lib/time';
+import { serverNow } from '../../lib/clock';
 import { displayHost, formatJoinCode } from '../../lib/joinLink';
 import { JoinQrCode } from '../../components/JoinQrCode';
 import { LiveMonitor } from '../../components/admin/LiveMonitor';
@@ -44,7 +45,9 @@ export function HostScreen() {
   const [notFound, setNotFound] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [now, setNow] = useState(() => Date.now());
+  // Re-renders once a second; the time is read at render (below), so the first paint after a clock
+  // reading is already right instead of showing the device clock for a second (S15).
+  const [, setTick] = useState(0);
   const [showQr, setShowQr] = useState(false);
   const showQrRef = useRef<HTMLButtonElement>(null);
   const wasShowingQrRef = useRef(false);
@@ -100,10 +103,11 @@ export function HostScreen() {
   const joined = live.data?.participants.length ?? 0;
 
   useEffect(() => {
-    const tick = setInterval(() => setNow(Date.now()), 1000);
+    const tick = setInterval(() => setTick((n) => n + 1), 1000);
     return () => clearInterval(tick);
   }, []);
 
+  const now = serverNow();
   // A missed "ended" broadcast must not leave the projector at 0:00: ask every 3 s once time is up.
   const expired = session?.status === 'active' && session.ends_at !== null && Date.parse(session.ends_at) <= now;
   useEffect(() => {

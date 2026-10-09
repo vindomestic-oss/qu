@@ -203,6 +203,8 @@ export interface LiveParticipant {
   display_name: string;
   joined_at: string;
   submitted_at: string | null;
+  /** 'participant' (pressed Finish) or 'session_end' (submitted by the end); null while answering. */
+  submit_source: string | null;
   /** 1 while "Allow rejoin" is in effect: the name can be claimed without its secret. */
   rejoin_open: number;
   answered_count: number;

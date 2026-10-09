@@ -1,4 +1,5 @@
 import { ApiError, getToken, setToken } from './client';
+import { recordServerTime } from '../lib/clock';
 
 // Grading panel (wish 8): admins use their admin token; graders a token from a grader link, stored
 // per session. The admin token wins when both exist and it is still valid.
@@ -83,7 +84,12 @@ export async function staffApi<T>(sessionId: number, path: string, options: Requ
     ...(options.headers as Record<string, string> | undefined),
   };
   if (staff) headers.Authorization = `Bearer ${staff.token}`;
+  const sentAt = Date.now();
   const res = await fetch(`/api/grading/${sessionId}${path}`, { ...options, headers });
+  // The header's countdown (S15): grading responses are never cached (no-store), so their Date header
+  // (1 s resolution) is a fresh reading of the server clock.
+  const date = res.headers.get('Date');
+  if (date) recordServerTime(Date.parse(date), sentAt, Date.now(), 1000);
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     if (res.status === 401) handleStaffUnauthorized(sessionId, staff?.kind ?? 'grader');

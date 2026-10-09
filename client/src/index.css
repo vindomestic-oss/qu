@@ -879,6 +879,52 @@ label {
   color: var(--on-success-bg);
   font-size: 14px;
 }
+/* Countdown digits outside the participant page: the system font has tabular figures (Raleway has none). */
+.tabular-time {
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Live monitor (admin): fixed columns, so statuses and buttons never move the table (S15). */
+.monitor-scroll {
+  overflow-x: auto;
+}
+.monitor-table {
+  inline-size: 100%;
+  min-inline-size: 40em; /* the name column keeps about 9em; narrower screens scroll the table */
+  table-layout: fixed;
+  border-collapse: collapse;
+  margin-block-end: 12px;
+}
+.monitor-table th,
+.monitor-table td {
+  text-align: start;
+  vertical-align: middle;
+  overflow-wrap: anywhere;
+}
+.monitor-table thead tr {
+  border-block-end: 1px solid var(--border-strong);
+}
+.monitor-table .nowrap {
+  white-space: nowrap;
+  overflow-wrap: normal;
+}
+.monitor-btn {
+  min-block-size: 32px;
+  padding: 4px 10px;
+  font-size: 14px;
+  white-space: nowrap;
+}
+@media (pointer: coarse) {
+  .monitor-btn {
+    min-block-size: 44px;
+  }
+}
+.monitor-message {
+  min-block-size: 1.5em;
+  margin: 0 0 8px;
+}
+
 .btn-outline-danger,
 .btn-outline-danger:hover:not(:disabled) {
   background: transparent;

@@ -2,6 +2,7 @@ import type { Server as HttpServer } from 'http';
 import { Server } from 'socket.io';
 import { authenticate } from './middleware/jwt';
 import { db } from './db';
+import { nowIso } from './lib/time';
 
 // Rooms: `session:<id>` (participants and staff) carries only session:update. `staff:<id>` (admins, and
 // graders with a valid link for that one session) carries session:update, session:live and
@@ -137,15 +138,17 @@ export async function disconnectGraderLink(sessionId: number, linkId: number): P
 
 /**
  * Session status changes go to everyone in the session, participants and staff alike; graders get
- * the row without its join code.
+ * the row without its join code. Every payload carries server_now (ISO), so screens can correct
+ * their countdowns for a device clock that is off (S15; display only, the server ends the session).
  */
 export function broadcastSessionUpdate(sessionId: number, payload: unknown) {
   if (!io) return;
-  io.to(`session:${sessionId}`).to(`staff:${sessionId}`).except(`graders:${sessionId}`).emit('session:update', payload);
+  const stamped = typeof payload === 'object' && payload !== null ? { ...payload, server_now: nowIso() } : payload;
+  io.to(`session:${sessionId}`).to(`staff:${sessionId}`).except(`graders:${sessionId}`).emit('session:update', stamped);
   const forGraders =
-    typeof payload === 'object' && payload !== null
-      ? Object.fromEntries(Object.entries(payload).filter(([key]) => key !== 'join_code'))
-      : payload;
+    typeof stamped === 'object' && stamped !== null
+      ? Object.fromEntries(Object.entries(stamped).filter(([key]) => key !== 'join_code'))
+      : stamped;
   io.to(`graders:${sessionId}`).emit('session:update', forGraders);
 }
 
@@ -183,6 +186,27 @@ export function broadcastLiveUpdate(sessionId: number) {
     return timer;
   };
   liveWindows.set(sessionId, { timer: open(), dirty: false });
+}
+
+/**
+ * An event for one participant only (S15 "Reopen submission"): it goes to the sockets in the session
+ * room whose token is still that participant's, never to the room, so no one else learns of it.
+ * Returns how many sockets got it; a participant who is offline catches up through the page's poll
+ * and reconnect refresh.
+ */
+export function emitToParticipant(sessionId: number, participantId: number, event: string, payload: object): number {
+  if (!io) return 0;
+  let sent = 0;
+  for (const socket of io.sockets.sockets.values()) {
+    const grant = grants(socket).get(`session:${sessionId}`);
+    if (!grant) continue;
+    const who = authenticate(grant.token, 'participant');
+    if (who.ok && who.role === 'participant' && who.participant.participantId === participantId && who.participant.sessionId === sessionId) {
+      socket.emit(event, payload);
+      sent += 1;
+    }
+  }
+  return sent;
 }
 
 /** Grading-relevant changes (submit, session end, grades) for the grading panel (S12). */

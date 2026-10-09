@@ -28,6 +28,7 @@ export function useLiveStatus(sessionId: number | null): { data: LiveStatusRespo
     refresh();
   }, [refresh]);
 
-  useStaffLive(sessionId, refresh, { events: ['session:live'] });
+  // session:update too: the monitor's "Reopen" buttons follow the session's state (S15).
+  useStaffLive(sessionId, refresh, { events: ['session:live', 'session:update'] });
   return { data: state && state.sessionId === sessionId ? state.data : null, refresh };
 }

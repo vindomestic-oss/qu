@@ -1,12 +1,40 @@
-import { Router } from 'express';
+import { Router, type NextFunction, type Request, type Response } from 'express';
 import crypto from 'crypto';
 import { db } from '../db';
+import { createFailureLimiter } from '../middleware/rateLimit';
 import { refreshSessionStatus, SessionRow } from '../lib/sessions';
 import { signParticipantToken } from '../middleware/jwt';
 import { broadcastLiveUpdate, revalidateRooms } from '../socket';
 import { nameKey, normalizeDisplayName } from '../lib/names';
 
 export const joinRouter = Router();
+
+// Unknown join codes per client address: 100 in 10 minutes (wish 5, S15). Only 404 INVALID_CODE
+// counts, so joins, rejoins, NAME_TAKEN, JOINING_LOCKED and SESSION_ENDED never do: a whole class
+// behind one school address would need 100 mistyped codes within 10 minutes (the QR fills the code
+// in). Over the limit EVERY join from that address gets 429 RATE_LIMITED until the window ends, as
+// express-rate-limit would do; otherwise the answer would still tell a guesser which code exists.
+// Codes carry 30 bits, so this caps guessing at about 14,400 tries a day per address.
+export const JOIN_WINDOW_MS = 10 * 60 * 1000;
+export const JOIN_FAILURE_LIMIT = 100;
+const joinFailures = createFailureLimiter({ windowMs: JOIN_WINDOW_MS, limit: JOIN_FAILURE_LIMIT });
+
+/**
+ * The limiter runs only when the app trusts at least one proxy hop (TRUST_PROXY_HOPS ≥ 1, set after
+ * the /api/debug/ip check). With 0, req.ip on Render is the proxy's address for every visitor, and
+ * one shared counter would lock everybody out.
+ */
+export function joinLimiterActive(app: { get(setting: string): unknown }): boolean {
+  const hops = app.get('trust proxy');
+  return typeof hops === 'number' && hops >= 1;
+}
+
+function limitJoins(req: Request, res: Response, next: NextFunction) {
+  if (!joinLimiterActive(req.app)) return next();
+  joinFailures.headers(req, res);
+  if (joinFailures.blocked(req)) return res.status(429).json({ error: 'Too many attempts', code: 'RATE_LIMITED' });
+  next();
+}
 
 interface ParticipantRow {
   id: number;
@@ -42,7 +70,7 @@ function isUniqueViolation(err: unknown): boolean {
   return typeof err === 'object' && err !== null && (err as { code?: string }).code === 'SQLITE_CONSTRAINT_UNIQUE';
 }
 
-joinRouter.post('/join', (req, res) => {
+joinRouter.post('/join', limitJoins, (req, res) => {
   const { joinCode, displayName, rejoinSecret } = req.body ?? {};
   if (typeof joinCode !== 'string' || !joinCode.trim()) {
     return res.status(400).json({ error: 'joinCode is required', code: 'JOIN_CODE_REQUIRED' });
@@ -58,6 +86,10 @@ joinRouter.post('/join', (req, res) => {
     | SessionRow
     | undefined;
   if (!sessionRow) {
+    if (joinLimiterActive(req.app)) {
+      joinFailures.fail(req);
+      joinFailures.headers(req, res);
+    }
     return res.status(404).json({ error: 'Invalid join code', code: 'INVALID_CODE' });
   }
   const session = refreshSessionStatus(sessionRow);

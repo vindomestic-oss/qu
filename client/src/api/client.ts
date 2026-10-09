@@ -1,3 +1,5 @@
+import { recordServerNow } from '../lib/clock';
+
 const TOKEN_KEY = 'quiz_admin_token';
 const USERNAME_KEY = 'quiz_admin_username';
 
@@ -54,12 +56,16 @@ export async function api<T>(path: string, options: RequestInit & { background?:
   };
   if (token) headers.Authorization = `Bearer ${token}`;
 
+  const sentAt = Date.now();
   const res = await fetch(`/api${path}`, { ...options, headers });
+  const receivedAt = Date.now();
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     if (isExpiredAdmin(res.status, path, Boolean(token))) handleExpiredAdminToken(background);
     throw new ApiError(res.status, data.error || 'Request failed', data.code);
   }
+  // GET /api/sessions/:id carries the server's clock for the host's countdown (S15).
+  recordServerNow(data?.server_now, sentAt, receivedAt);
   return data as T;
 }
 

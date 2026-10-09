@@ -10,6 +10,7 @@ import { sessionsRouter } from '../routes/sessions';
 import { adminRouter } from '../routes/admin';
 import { sectionsRouter } from '../routes/sections';
 import { gradingRouter } from '../routes/grading';
+import { debugRouter } from '../routes/debug';
 import { nowIso } from '../lib/time';
 import {
   createAdmin,
@@ -56,12 +57,14 @@ const EXPECTED_ADMIN_ROUTES = [
   'GET /api/sessions/:id/live',
   'GET /api/sessions/:id/results',
   'PUT /api/sessions/:id/participants/:participantId/allow-rejoin',
+  'POST /api/sessions/:id/participants/:participantId/reopen',
   'PUT /api/sessions/:id/joining',
   'POST /api/sessions/:id/grader-links',
   'GET /api/sessions/:id/grader-links',
   'DELETE /api/sessions/:id/grader-links/:linkId',
   'GET /api/admin/backups',
   'GET /api/admin/backups/latest',
+  'GET /api/debug/ip',
 ].sort();
 
 /**
@@ -147,6 +150,7 @@ describe('route coverage', () => {
       ...collectRoutes(sessionsRouter, '/api/sessions'),
       ...collectRoutes(adminRouter, '/api/admin'),
       ...collectRoutes(sectionsRouter, '/api/sections'),
+      ...collectRoutes(debugRouter, '/api/debug'),
       'GET /api/auth/me',
     ].sort();
     assert.deepEqual(actual, EXPECTED_ADMIN_ROUTES);
@@ -159,6 +163,7 @@ describe('route coverage', () => {
       '/api/sessions': fx.sessionId,
       '/api/sections': sectionId,
       '/api/admin': 0,
+      '/api/debug': 0,
       '/api/auth': 0,
     };
     const snapshot = () => ({
