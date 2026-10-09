@@ -1,5 +1,5 @@
 import './env';
-import { test } from 'node:test';
+import { after, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'child_process';
 import fs from 'fs';
@@ -11,6 +11,10 @@ import Database from 'better-sqlite3';
 const SERVER_DIR = path.join(__dirname, '..', '..');
 const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'qu-seed-test-'));
 let dbCounter = 0;
+
+after(() => {
+  fs.rmSync(tmpDir, { recursive: true, force: true });
+});
 
 function freshDbPath(): string {
   dbCounter += 1;
@@ -49,11 +53,13 @@ for (const [label, pw] of [
   ['empty', ''],
   ['the development default', 'changeme123'],
   ['a 10-character password', 'abcdefghij'],
+  ['a short password padded with spaces', 'abc          '],
 ] as const) {
   test(`production refuses ${label} ADMIN_PASSWORD`, () => {
     const dbPath = freshDbPath();
     const r = runSeed(dbPath, pw, 'true');
     assert.equal(r.status, 1);
+    assert.match(r.output, /Refusing to start/);
     assert.equal(adminRow(dbPath), undefined);
   });
 }

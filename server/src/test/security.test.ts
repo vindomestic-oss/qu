@@ -2,6 +2,7 @@ import './env';
 import { after, before, describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 import type { Router } from 'express';
+import bcrypt from 'bcryptjs';
 import { db } from '../db';
 import { quizzesRouter } from '../routes/quizzes';
 import { questionsRouter } from '../routes/questions';
@@ -194,6 +195,23 @@ describe('admin tokens', () => {
     assert.equal(r.body.code, 'INVALID_TOKEN');
   });
 
+  test('a token whose username no longer matches the row gets 401', async () => {
+    const r = await request(base, 'GET', '/api/quizzes', sign({ role: 'admin', adminId, username: 'someone-else' }));
+    assert.equal(r.status, 401);
+    assert.equal(r.body.code, 'INVALID_TOKEN');
+  });
+
+  test('a password change invalidates tokens issued with the old password, whenever they were issued', async () => {
+    const tempId = createAdmin('rotating-admin', 'old-password');
+    const oldToken = await login(base, 'rotating-admin', 'old-password');
+    assert.equal((await request(base, 'GET', '/api/quizzes', oldToken)).status, 200);
+    db.prepare('UPDATE admins SET password_hash = ? WHERE id = ?').run(bcrypt.hashSync('new-password', 4), tempId);
+    assert.equal((await request(base, 'GET', '/api/quizzes', oldToken)).status, 401);
+    const newToken = await login(base, 'rotating-admin', 'new-password');
+    assert.equal((await request(base, 'GET', '/api/quizzes', newToken)).status, 200);
+    db.prepare('DELETE FROM admins WHERE id = ?').run(tempId);
+  });
+
   test('tokens issued before tokens_valid_after are rejected', async () => {
     const cutoff = new Date(Date.now() + 10_000).toISOString();
     db.prepare('UPDATE admins SET tokens_valid_after = ? WHERE id = ?').run(cutoff, adminId);
@@ -241,6 +259,19 @@ describe('participant scope', () => {
     const r = await request(base, 'GET', '/api/my/session', joined.body.token);
     assert.equal(r.status, 401);
     assert.equal(r.body.code, 'INVALID_TOKEN');
+  });
+
+  test('a participant token older than its row (database wiped and ids reused) gets 401', async () => {
+    const joined = await join(base, fx.joinCode, 'Reused Kid');
+    const stale = sign({
+      role: 'participant',
+      participantId: joined.body.participant.id,
+      sessionId: fx.sessionId,
+      displayName: 'Reused Kid',
+      iat: Math.floor(Date.now() / 1000) - 3600,
+    });
+    assert.equal((await request(base, 'GET', '/api/my/session', stale)).status, 401);
+    assert.equal((await request(base, 'GET', '/api/my/session', joined.body.token)).status, 200);
   });
 
   test('a participant token with a changed display name gets 401', async () => {

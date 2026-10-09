@@ -11,8 +11,13 @@ const IS_PRODUCTION = process.env.NODE_ENV === 'production' || process.env.RENDE
 const DEV_DEFAULT_PASSWORD = 'changeme123'; // local development only; refused in production
 const username = process.env.ADMIN_USERNAME || 'admin';
 const envPassword = process.env.ADMIN_PASSWORD?.trim() ? process.env.ADMIN_PASSWORD : undefined;
+// Strength is judged without surrounding spaces, so padding cannot pass a weak password.
+const trimmedPassword = envPassword?.trim();
 
-if (IS_PRODUCTION && (!envPassword || envPassword === DEV_DEFAULT_PASSWORD || envPassword.length < 12)) {
+if (
+  IS_PRODUCTION &&
+  (!trimmedPassword || trimmedPassword === DEV_DEFAULT_PASSWORD || trimmedPassword.length < 12)
+) {
   console.error(
     'Refusing to start: set ADMIN_PASSWORD (12+ characters, not the development default) in the Render dashboard.',
   );
