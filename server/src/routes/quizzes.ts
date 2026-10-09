@@ -5,58 +5,27 @@ import { parseQuestionInput, extractTranslations } from '../lib/questionInput';
 import { deleteImageFile } from '../lib/uploads';
 import { createUniqueJoinCode, getSession, refreshSessionStatus, SessionRow } from '../lib/sessions';
 import { translationColumns, translationValues } from '../lib/sqlTranslations';
-import { CONTENT_LANGS, isQuizLang } from '../lib/languages';
-import { invalidateQuizLanguages } from '../lib/quizLanguages';
+import { CONTENT_LANGS, isContentLang, isQuizLang, QuizLang, translationLangs } from '../lib/languages';
+import {
+  computeUsedLanguages,
+  invalidateQuizLanguages,
+  normalizeQuizLanguages,
+  parseStoredLanguages,
+} from '../lib/quizLanguages';
+import { baseOf, declaredLanguagesOf, getQuizWithQuestions as loadQuiz } from '../lib/quizPayload';
 
 export const quizzesRouter = Router();
 
 const MAX_TIME_LIMIT_SECONDS = 7 * 24 * 60 * 60;
 quizzesRouter.use(requireAdmin);
 
-// Rows selected with `SELECT *` also carry title_de/text_ru/etc. translation
-// columns (see lib/languages.ts) that these interfaces don't spell out.
-interface QuizRow {
-  id: number;
-  title: string;
-  description: string | null;
-  time_limit_seconds: number;
-  created_by: number;
-  created_at: string;
-}
-
-interface QuestionRow {
-  id: number;
-  quiz_id: number;
-  sort_order: number;
-  type: string;
-  text: string;
-  image_path: string | null;
-  points: number;
-}
-
-interface ChoiceRow {
-  id: number;
-  question_id: number;
-  text: string;
-  is_correct: number;
-  sort_order: number;
-}
-
 function getQuizWithQuestions(quizId: number) {
-  const quiz = db.prepare('SELECT * FROM quizzes WHERE id = ?').get(quizId) as QuizRow | undefined;
-  if (!quiz) return null;
+  return loadQuiz(db, quizId);
+}
 
-  const questions = db
-    .prepare('SELECT * FROM questions WHERE quiz_id = ? ORDER BY sort_order')
-    .all(quizId) as QuestionRow[];
-
-  const choiceStmt = db.prepare('SELECT * FROM choices WHERE question_id = ? ORDER BY sort_order');
-  const questionsWithChoices = questions.map((q) => ({
-    ...q,
-    choices: q.type === 'text' ? [] : (choiceStmt.all(q.id) as ChoiceRow[]),
-  }));
-
-  return { ...quiz, questions: questionsWithChoices };
+/** The stored declared list of a quiz, or the languages it has text in when nothing is stored yet. */
+function declaredLanguages(quizId: number, base: QuizLang, raw: unknown): QuizLang[] {
+  return parseStoredLanguages(raw, base) ?? computeUsedLanguages(db, quizId, base);
 }
 
 // --- Quizzes ---
@@ -75,6 +44,7 @@ quizzesRouter.get('/', (_req, res) => {
     const s = open_session_id ? getSession(open_session_id) : null;
     return {
       ...quiz,
+      content_languages: declaredLanguagesOf(quiz),
       open_session:
         s && s.status !== 'ended'
           ? { id: s.id, status: s.status, join_code: s.join_code, ends_at: s.ends_at, joining_locked: s.joining_locked }
@@ -100,6 +70,11 @@ quizzesRouter.post('/', (req: AuthedRequest, res) => {
 
   const titleTranslations = extractTranslations(req.body, 'title');
   const descriptionTranslations = extractTranslations(req.body, 'description');
+  // Declared from the start: the base plus every language whose title or description was filled in.
+  const contentLanguages = normalizeQuizLanguages(
+    [baseLanguage, ...translationLangs(baseLanguage).filter((l) => titleTranslations[l] || descriptionTranslations[l])],
+    baseLanguage,
+  );
   const columns = [
     'title',
     ...translationColumns('title'),
@@ -108,6 +83,7 @@ quizzesRouter.post('/', (req: AuthedRequest, res) => {
     'time_limit_seconds',
     'created_by',
     'base_language',
+    'content_languages',
   ];
   const placeholders = columns.map(() => '?').join(', ');
 
@@ -121,6 +97,7 @@ quizzesRouter.post('/', (req: AuthedRequest, res) => {
       timeLimit,
       req.admin!.adminId,
       baseLanguage,
+      JSON.stringify(contentLanguages ?? [baseLanguage]),
     );
 
   const quiz = getQuizWithQuestions(Number(result.lastInsertRowid));
@@ -135,8 +112,8 @@ quizzesRouter.get('/:id', (req, res) => {
 
 quizzesRouter.put('/:id', (req, res) => {
   const quizId = Number(req.params.id);
-  const existing = db.prepare('SELECT id, base_language FROM quizzes WHERE id = ?').get(quizId) as
-    | { id: number; base_language: string }
+  const existing = db.prepare('SELECT id, base_language, content_languages FROM quizzes WHERE id = ?').get(quizId) as
+    | { id: number; base_language: string; content_languages: string | null }
     | undefined;
   if (!existing) return res.status(404).json({ error: 'Quiz not found' });
 
@@ -163,18 +140,50 @@ quizzesRouter.put('/:id', (req, res) => {
     'time_limit_seconds = ?',
     'base_language = ?',
   ];
-
-  db.prepare(`UPDATE quizzes SET ${setClauses.join(', ')} WHERE id = ?`).run(
+  const values: unknown[] = [
     title.trim(),
     ...translationValues(titleTranslations),
     description ?? null,
     ...translationValues(descriptionTranslations),
     timeLimit,
     baseLanguage,
-    quizId,
-  );
+  ];
+  const oldBase = baseOf(existing);
+  db.transaction(() => {
+    const declared = declaredLanguages(quizId, oldBase, existing.content_languages);
+    db.prepare(`UPDATE quizzes SET ${setClauses.join(', ')} WHERE id = ?`).run(...values, quizId);
+    if (baseLanguage === oldBase) return;
+    // Only a change of the main language changes the declared list: the new base goes first. The old
+    // base stays only when it is a translation language that has text in its own translation columns
+    // (en -> de -> en keeps the German translations offered); English has no such columns, and a
+    // German-only quiz keeps its German in the base fields.
+    const keepOldBase = isContentLang(oldBase) && computeUsedLanguages(db, quizId, baseLanguage).includes(oldBase);
+    const next = normalizeQuizLanguages(
+      [baseLanguage, ...declared.filter((l) => l !== oldBase && l !== baseLanguage), ...(keepOldBase ? [oldBase] : [])],
+      baseLanguage,
+    );
+    db.prepare('UPDATE quizzes SET content_languages = ? WHERE id = ?').run(JSON.stringify(next ?? [baseLanguage]), quizId);
+  })();
   invalidateQuizLanguages(quizId);
 
+  res.json({ quiz: getQuizWithQuestions(quizId) });
+});
+
+// Declares which languages the quiz has (editor: "+ Add language" and "×"). Replaces the whole list
+// and never touches any text: a removed language's translations stay and come back when it is re-added.
+quizzesRouter.put('/:id/languages', (req, res) => {
+  const quizId = Number(req.params.id);
+  const quiz = db.prepare('SELECT id, base_language FROM quizzes WHERE id = ?').get(quizId) as
+    | { id: number; base_language: string }
+    | undefined;
+  if (!quiz) return res.status(404).json({ error: 'Quiz not found' });
+
+  const normalized = normalizeQuizLanguages(req.body?.content_languages, baseOf(quiz));
+  if (!normalized) {
+    return res.status(400).json({ error: 'content_languages must be an array of supported language codes' });
+  }
+  db.prepare('UPDATE quizzes SET content_languages = ? WHERE id = ?').run(JSON.stringify(normalized), quizId);
+  invalidateQuizLanguages(quizId);
   res.json({ quiz: getQuizWithQuestions(quizId) });
 });
 
@@ -196,11 +205,15 @@ quizzesRouter.delete('/:id', (req, res) => {
 
 quizzesRouter.post('/:id/questions', (req, res) => {
   const quizId = Number(req.params.id);
-  const quiz = db.prepare('SELECT id FROM quizzes WHERE id = ?').get(quizId);
+  const quiz = db.prepare('SELECT id, base_language, content_languages FROM quizzes WHERE id = ?').get(quizId) as
+    | { id: number; base_language: string; content_languages: string | null }
+    | undefined;
   if (!quiz) return res.status(404).json({ error: 'Quiz not found' });
 
+  // Choice ids in this body are ignored: every choice of a new question is new.
   const parsed = parseQuestionInput(req.body);
   if ('error' in parsed) return res.status(400).json({ error: parsed.error });
+  const base = baseOf(quiz);
 
   const createQuestion = db.transaction(() => {
     const { count } = db
@@ -220,6 +233,17 @@ quizzesRouter.post('/:id/questions', (req, res) => {
     parsed.choices.forEach((c, i) =>
       insertChoice.run(questionId, c.text, ...translationValues(c.translations), c.is_correct ? 1 : 0, i),
     );
+
+    // Languages this question is written in become declared, so an importer never creates
+    // translations the editor and participants cannot see.
+    const used = translationLangs(base).filter(
+      (l) => parsed.translations[l] || parsed.choices.some((c) => c.translations[l]),
+    );
+    if (used.length > 0) {
+      const declared = declaredLanguages(quizId, base, quiz.content_languages);
+      const next = normalizeQuizLanguages([...declared, ...used], base);
+      if (next) db.prepare('UPDATE quizzes SET content_languages = ? WHERE id = ?').run(JSON.stringify(next), quizId);
+    }
 
     return questionId;
   });

@@ -7,6 +7,7 @@ import os from 'os';
 import path from 'path';
 import bcrypt from 'bcryptjs';
 import Database from 'better-sqlite3';
+import { getQuizLanguageInfo } from '../lib/quizLanguages';
 
 const SERVER_DIR = path.join(__dirname, '..', '..');
 const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'qu-seed-test-'));
@@ -89,4 +90,49 @@ test('local development without ADMIN_PASSWORD starts with a warning', () => {
   assert.equal(r.status, 0, r.output);
   assert.match(r.output, /ADMIN_PASSWORD is not set/);
   assert.ok(adminRow(dbPath));
+});
+
+test('seeded quizzes declare exactly the languages they contain; the 5787 quizzes offer only Deutsch', () => {
+  const dbPath = freshDbPath();
+  const seedAll = () =>
+    spawnSync(process.execPath, ['--import', 'tsx', 'src/db/seed.ts'], {
+      cwd: SERVER_DIR,
+      encoding: 'utf-8',
+      env: { PATH: process.env.PATH, QUIZ_DB_PATH: dbPath, UPLOAD_DIR: path.join(tmpDir, 'uploads'), ADMIN_USERNAME: 'admin' },
+    });
+  const first = seedAll();
+  assert.equal(first.status, 0, first.stderr);
+
+  const read = () => {
+    const db = new Database(dbPath, { readonly: true });
+    try {
+      const rows = db.prepare('SELECT id, title, base_language, content_languages FROM quizzes ORDER BY id').all() as {
+        id: number;
+        title: string;
+        base_language: string;
+        content_languages: string;
+      }[];
+      return rows.map((r) => ({
+        title: r.title,
+        declared: JSON.parse(r.content_languages),
+        offered: getQuizLanguageInfo(db, r).offered,
+      }));
+    } finally {
+      db.close();
+    }
+  };
+  const quizzes = read();
+  const byTitle = (re: RegExp) => quizzes.find((q) => re.test(q.title))!;
+  assert.deepEqual(byTitle(/World Geography/).declared, ['en', 'de', 'he', 'ru', 'fr', 'lt', 'pl']);
+  assert.deepEqual(byTitle(/5786/).declared, ['en', 'de', 'ru', 'cs', 'es', 'it', 'lv', 'lt', 'hu', 'fi', 'bg', 'uk']);
+  assert.deepEqual(byTitle(/5786/).offered, ['en', 'de', 'ru', 'cs', 'es', 'it', 'lv', 'lt', 'hu', 'fi', 'bg', 'uk']);
+  for (const re of [/5787 – Anfänger/, /5787 – Fortgeschrittene/]) {
+    assert.deepEqual(byTitle(re).declared, ['de']);
+    assert.deepEqual(byTitle(re).offered, ['de']);
+  }
+
+  // The next boot (seed again, which also runs the migrations) changes nothing.
+  const second = seedAll();
+  assert.equal(second.status, 0, second.stderr);
+  assert.deepEqual(read(), quizzes);
 });

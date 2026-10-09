@@ -5,8 +5,14 @@ import fs from 'fs';
 import path from 'path';
 import Database from 'better-sqlite3';
 import { runMigrations } from '../db/migrate';
-import { getQuizLanguageInfo, invalidateQuizLanguages } from '../lib/quizLanguages';
-import { CHIDON_5787_ANFAENGER_TITLE } from '../db/quizTitles';
+import {
+  computeUsedLanguages,
+  getQuizLanguageInfo,
+  invalidateQuizLanguages,
+  normalizeQuizLanguages,
+  parseStoredLanguages,
+} from '../lib/quizLanguages';
+import { CHIDON_5787_ANFAENGER_TITLE, CHIDON_5787_FORTGESCHRITTENE_TITLE } from '../db/quizTitles';
 
 const SCHEMA = fs.readFileSync(path.join(__dirname, '..', 'db', 'schema.sql'), 'utf-8');
 
@@ -22,8 +28,8 @@ function freshDb(): Database.Database {
 let db: Database.Database;
 let quizId: number;
 
-function quiz(base = 'en') {
-  return { id: quizId, base_language: base };
+function quiz(base = 'en', contentLanguages?: string[]) {
+  return { id: quizId, base_language: base, content_languages: contentLanguages ? JSON.stringify(contentLanguages) : null };
 }
 
 /** Adds a question; `langs` get a translation on the question and each choice. */
@@ -114,4 +120,116 @@ test('migrations run twice are a no-op; the 5787 backfill runs only when base_la
   runMigrations(legacy);
   assert.deepEqual(bases(), ['en', 'en']);
   assert.deepEqual(legacy.prepare("SELECT sql FROM sqlite_master WHERE type = 'table' ORDER BY name").all(), schemaBefore);
+});
+
+test('normalizeQuizLanguages: base first, display order, no duplicates, invalid input is null', () => {
+  assert.deepEqual(normalizeQuizLanguages(['de', 'en', 'de'], 'en'), ['en', 'de']);
+  assert.deepEqual(normalizeQuizLanguages([], 'en'), ['en']);
+  assert.deepEqual(normalizeQuizLanguages(['uk', 'ru', 'he', 'cs'], 'en'), ['en', 'he', 'ru', 'cs', 'uk']);
+  assert.deepEqual(normalizeQuizLanguages(['ru', 'de'], 'de'), ['de', 'ru']);
+  assert.equal(normalizeQuizLanguages(['xx'], 'en'), null);
+  assert.equal(normalizeQuizLanguages('de', 'en'), null);
+  assert.equal(normalizeQuizLanguages(['de', 7], 'en'), null);
+  assert.equal(normalizeQuizLanguages(['en'], 'de'), null, 'English cannot be a translation (no *_en columns)');
+  assert.equal(normalizeQuizLanguages(null, 'en'), null);
+});
+
+test('parseStoredLanguages: JSON in, normalised array out, null for garbage', () => {
+  assert.deepEqual(parseStoredLanguages('["ru","en","de"]', 'en'), ['en', 'de', 'ru']);
+  assert.equal(parseStoredLanguages('not json', 'en'), null);
+  assert.equal(parseStoredLanguages('{"de":1}', 'en'), null);
+  assert.equal(parseStoredLanguages(null, 'en'), null);
+});
+
+test('computeUsedLanguages: text anywhere counts, the base comes first, the base columns of a German quiz are ignored', () => {
+  addQuestion('single', [], [['de'], []]);
+  assert.deepEqual(computeUsedLanguages(db, quizId, 'en'), ['en', 'de'], 'German on one choice only');
+  db.prepare("UPDATE quizzes SET title_he = 'כותרת', description_lt = '   ' WHERE id = ?").run(quizId);
+  assert.deepEqual(computeUsedLanguages(db, quizId, 'en'), ['en', 'de', 'he'], 'title counts, whitespace does not');
+  assert.deepEqual(computeUsedLanguages(db, quizId, 'de'), ['de', 'he'], 'text_de is not a translation of a German quiz');
+
+  const germanQuiz = Number(
+    db.prepare("INSERT INTO quizzes (title, time_limit_seconds, created_by, base_language) VALUES ('G', 60, 1, 'de')").run().lastInsertRowid,
+  );
+  db.prepare("INSERT INTO questions (quiz_id, sort_order, type, text) VALUES (?, 0, 'text', 'Frage')").run(germanQuiz);
+  assert.deepEqual(computeUsedLanguages(db, germanQuiz, 'de'), ['de']);
+});
+
+test('offered = declared ∩ complete: a complete language that is not declared is hidden', () => {
+  addQuestion('single', ['de', 'ru'], [['de', 'ru'], ['de', 'ru']]);
+  assert.deepEqual(getQuizLanguageInfo(db, quiz('en', ['en', 'de', 'ru'])).offered, ['en', 'de', 'ru']);
+  invalidateQuizLanguages();
+  const info = getQuizLanguageInfo(db, quiz('en', ['en', 'ru']));
+  assert.deepEqual(info.offered, ['en', 'ru']);
+  assert.deepEqual(info.content_languages, ['en', 'ru']);
+});
+
+test('offered = declared ∩ complete: a declared language that is incomplete is hidden', () => {
+  addQuestion('single', ['de', 'pl'], [['de', 'pl'], ['de']]);
+  const info = getQuizLanguageInfo(db, quiz('en', ['en', 'de', 'pl']));
+  assert.deepEqual(info.offered, ['en', 'de']);
+  assert.equal(info.missing_by_language.pl, 1);
+  assert.deepEqual(info.content_languages, ['en', 'de', 'pl']);
+});
+
+test('a changed declared list takes effect at once (it is part of the memo key)', () => {
+  addQuestion('text', ['de']);
+  assert.deepEqual(getQuizLanguageInfo(db, quiz('en', ['en', 'de'])).offered, ['en', 'de']);
+  assert.deepEqual(getQuizLanguageInfo(db, quiz('en', ['en'])).offered, ['en']);
+});
+
+test('without a stored list, the languages with text are declared (fallback)', () => {
+  addQuestion('text', ['de', 'fr']);
+  const info = getQuizLanguageInfo(db, quiz('en'));
+  assert.deepEqual(info.content_languages, ['en', 'de', 'fr']);
+  assert.deepEqual(info.offered, ['en', 'de', 'fr']);
+});
+
+test('migration: content_languages is added and backfilled once, after base_language; a second run changes nothing', () => {
+  const legacy = new Database(':memory:');
+  legacy.pragma('foreign_keys = ON');
+  // schema.sql alone is a database from before base_language and content_languages existed.
+  legacy.exec(SCHEMA);
+  legacy.prepare("INSERT INTO admins (username, password_hash) VALUES ('admin', 'x')").run();
+  const insertQuiz = legacy.prepare('INSERT INTO quizzes (title, time_limit_seconds, created_by) VALUES (?, 60, 1)');
+  const russian = Number(insertQuiz.run('Russian on one question').lastInsertRowid);
+  legacy.prepare("INSERT INTO questions (quiz_id, sort_order, type, text, text_ru) VALUES (?, 0, 'text', 'Q', 'В')").run(russian);
+  legacy.prepare("INSERT INTO questions (quiz_id, sort_order, type, text) VALUES (?, 1, 'text', 'Q2')").run(russian);
+  const anfaenger = Number(insertQuiz.run(CHIDON_5787_ANFAENGER_TITLE).lastInsertRowid);
+  // German text sits in the base columns AND (by accident) in text_de: still only Deutsch.
+  legacy.prepare("INSERT INTO questions (quiz_id, sort_order, type, text, text_de) VALUES (?, 0, 'text', 'Frage', 'Frage')").run(anfaenger);
+  const fortgeschrittene = Number(insertQuiz.run(CHIDON_5787_FORTGESCHRITTENE_TITLE).lastInsertRowid);
+  const empty = Number(insertQuiz.run('Empty').lastInsertRowid);
+
+  runMigrations(legacy);
+  const declared = () =>
+    Object.fromEntries(
+      (legacy.prepare('SELECT id, content_languages FROM quizzes').all() as { id: number; content_languages: string }[]).map((r) => [
+        r.id,
+        JSON.parse(r.content_languages),
+      ]),
+    );
+  assert.deepEqual(declared(), { [russian]: ['en', 'ru'], [anfaenger]: ['de'], [fortgeschrittene]: ['de'], [empty]: ['en'] });
+
+  // An author's edit survives later boots, and nothing else moves.
+  legacy.prepare("UPDATE quizzes SET content_languages = '[\"en\"]' WHERE id = ?").run(russian);
+  const quizzesBefore = legacy.prepare('SELECT * FROM quizzes ORDER BY id').all();
+  const schemaBefore = legacy.prepare("SELECT sql FROM sqlite_master ORDER BY name").all();
+  runMigrations(legacy);
+  assert.deepEqual(legacy.prepare('SELECT * FROM quizzes ORDER BY id').all(), quizzesBefore);
+  assert.deepEqual(legacy.prepare("SELECT sql FROM sqlite_master ORDER BY name").all(), schemaBefore);
+});
+
+test('migration on a database that already has base_language (live shape): only NULL rows are filled', () => {
+  // freshDb() ran the migrations without quizzes; simulate the column arriving on a live database.
+  db.prepare("UPDATE quizzes SET content_languages = NULL, title_pl = 'Tytuł' WHERE id = ?").run(quizId);
+  const keep = Number(
+    db
+      .prepare("INSERT INTO quizzes (title, time_limit_seconds, created_by, content_languages) VALUES ('Kept', 60, 1, '[\"en\",\"he\"]')")
+      .run().lastInsertRowid,
+  );
+  runMigrations(db);
+  const row = (id: number) => (db.prepare('SELECT content_languages FROM quizzes WHERE id = ?').get(id) as { content_languages: string }).content_languages;
+  assert.equal(row(quizId), '["en","pl"]');
+  assert.equal(row(keep), '["en","he"]');
 });

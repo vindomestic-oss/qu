@@ -26,3 +26,22 @@ export const NEEDS_REVIEW_SQL = `(q.type = 'text' AND ${ANSWERED_SQL} AND a.poin
 export const AWAITING_SUBMISSION_SQL = `(q.type = 'text' AND ${ANSWERED_SQL} AND a.points_awarded IS NULL AND p.submitted_at IS NULL)`;
 export const CORRECT_SQL = `(${ANSWERED_SQL} AND a.points_awarded IS NOT NULL AND a.is_correct = 1)`;
 export const INCORRECT_SQL = `(${ANSWERED_SQL} AND a.points_awarded IS NOT NULL AND a.is_correct = 0)`;
+
+/**
+ * Points are integers and halves (decision Q-points-step): finite, at most 100, a multiple of 0.5,
+ * and > 0 for a question's points (>= 0 with allowZero, for awarded points).
+ */
+export function isValidPoints(v: unknown, { allowZero = false }: { allowZero?: boolean } = {}): v is number {
+  return (
+    typeof v === 'number' &&
+    Number.isFinite(v) &&
+    v <= 100 &&
+    (allowZero ? v >= 0 : v > 0 && roundPoints(v) > 0) &&
+    Math.abs(v * 2 - Math.round(v * 2)) < 1e-9
+  );
+}
+
+/** The stored form of valid points: exactly k/2, without float noise. */
+export function roundPoints(v: number): number {
+  return Math.round(v * 2) / 2;
+}

@@ -1,5 +1,5 @@
 import type { WithTranslations, WithTranslationInputs } from './i18n/contentLanguages';
-import type { QuizLang } from './i18n/contentLanguages';
+import type { ContentLangCode, QuizLang } from './i18n/contentLanguages';
 
 export type QuestionType = 'single' | 'multiple' | 'text';
 
@@ -28,6 +28,12 @@ export interface Quiz extends WithTranslations<'title'>, WithTranslations<'descr
   description: string | null;
   time_limit_seconds: number;
   base_language: QuizLang;
+  /** Languages the author declared (base first). Participants see only declared, complete ones. */
+  content_languages: QuizLang[];
+  /** What participants are offered: declared and fully translated (admin quiz payload only). */
+  offered_languages?: QuizLang[];
+  /** Per translation language: question and choice texts still empty (admin quiz payload only). */
+  missing_by_language?: Partial<Record<ContentLangCode, number>>;
   created_by: number;
   created_at: string;
   question_count?: number;
@@ -50,6 +56,8 @@ export interface QuizLanguageInfo {
 }
 
 export interface ChoiceInput extends WithTranslationInputs<'text'> {
+  /** The existing choice this row edits; omitted for a new choice. Keeps saved answers valid. */
+  id?: number;
   text: string;
   is_correct: boolean;
 }

@@ -4,8 +4,10 @@ import { requireAdmin } from '../middleware/jwt';
 import { parseQuestionInput } from '../lib/questionInput';
 import { uploadImage } from '../middleware/upload';
 import { deleteImageFile } from '../lib/uploads';
-import { translationColumns, translationValues } from '../lib/sqlTranslations';
 import { invalidateQuizLanguages } from '../lib/quizLanguages';
+import { getQuizWithQuestions as loadQuiz } from '../lib/quizPayload';
+import { QuestionWriteError, updateQuestionWithChoices } from '../lib/questionWrite';
+import { broadcastGradingChanged, broadcastLiveUpdate } from '../socket';
 
 export const questionsRouter = Router();
 questionsRouter.use(requireAdmin);
@@ -26,17 +28,7 @@ function getQuestion(id: number): QuestionRow | undefined {
 }
 
 function getQuizWithQuestions(quizId: number) {
-  const quiz = db.prepare('SELECT * FROM quizzes WHERE id = ?').get(quizId);
-  if (!quiz) return null;
-  const questions = db
-    .prepare('SELECT * FROM questions WHERE quiz_id = ? ORDER BY sort_order')
-    .all(quizId) as QuestionRow[];
-  const choiceStmt = db.prepare('SELECT * FROM choices WHERE question_id = ? ORDER BY sort_order');
-  const questionsWithChoices = questions.map((q) => ({
-    ...q,
-    choices: q.type === 'text' ? [] : choiceStmt.all(q.id),
-  }));
-  return { ...quiz, questions: questionsWithChoices };
+  return loadQuiz(db, quizId);
 }
 
 questionsRouter.put('/:id', (req, res) => {
@@ -46,26 +38,18 @@ questionsRouter.put('/:id', (req, res) => {
   const parsed = parseQuestionInput(req.body);
   if ('error' in parsed) return res.status(400).json({ error: parsed.error });
 
-  const update = db.transaction(() => {
-    const setClauses = ['type = ?', 'text = ?', ...translationColumns('text').map((c) => `${c} = ?`), 'points = ?'];
-    db.prepare(`UPDATE questions SET ${setClauses.join(', ')} WHERE id = ?`).run(
-      parsed.type,
-      parsed.text,
-      ...translationValues(parsed.translations),
-      parsed.points,
-      question.id,
-    );
-    db.prepare('DELETE FROM choices WHERE question_id = ?').run(question.id);
-    const choiceColumns = ['question_id', 'text', ...translationColumns('text'), 'is_correct', 'sort_order'];
-    const insertChoice = db.prepare(
-      `INSERT INTO choices (${choiceColumns.join(', ')}) VALUES (${choiceColumns.map(() => '?').join(', ')})`,
-    );
-    parsed.choices.forEach((c, i) =>
-      insertChoice.run(question.id, c.text, ...translationValues(c.translations), c.is_correct ? 1 : 0, i),
-    );
-  });
-  update();
+  let result;
+  try {
+    result = updateQuestionWithChoices(db, question.id, parsed);
+  } catch (err) {
+    if (err instanceof QuestionWriteError) return res.status(err.status).json(err.body);
+    throw err;
+  }
   invalidateQuizLanguages(question.quiz_id);
+  for (const [sessionId, answerIds] of result.regradedBySession) {
+    broadcastLiveUpdate(sessionId);
+    broadcastGradingChanged(sessionId, { kind: 'regrade', answerIds });
+  }
 
   res.json({ quiz: getQuizWithQuestions(question.quiz_id) });
 });

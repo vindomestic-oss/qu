@@ -428,6 +428,204 @@ label {
   color: var(--text-muted);
 }
 
+/* Read by screen readers, not shown. */
+.visually-hidden {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Translation editor (wish 6): one language pair at a time, coverage per language. Admin only. */
+.pair-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.pair-tabs__label {
+  font-size: 14px;
+  color: var(--text-muted);
+}
+.pair-tabs .toggle-chip {
+  padding-block: 0;
+  padding-inline: 10px;
+}
+/* Only the unpressed chip is restyled; the pressed one keeps the .toggle-chip selected colours. */
+.pair-tabs .toggle-chip:not([aria-pressed='true']) {
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--input-border);
+}
+.pair-tabs .toggle-chip:not([aria-pressed='true']):hover:not(:disabled) {
+  background: var(--surface-hover);
+}
+/* A language with text that the quiz does not declare: never offered to participants. */
+.pair-tabs .toggle-chip.is-undeclared {
+  border-style: dashed;
+}
+/* Symbol fonts draw ✓ ◐ ○ as geometric shapes; a bit smaller than the text, so ○ never reads as the letter O. */
+.pair-tabs__glyph {
+  margin-inline-start: 6px;
+  font-family: 'Segoe UI Symbol', 'Apple Symbols', 'Noto Sans Symbols 2', 'DejaVu Sans', system-ui, sans-serif;
+  font-size: 0.9em;
+}
+.add-lang {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.add-lang select {
+  min-height: 40px;
+  padding-inline: 8px;
+  max-width: 100%;
+}
+.add-lang__error,
+.quiz-langs__error {
+  color: var(--danger);
+  font-size: 14px;
+}
+/* A choice in the question form: correct-answer input, base + translation fields, Remove. On phones
+   Remove moves under the fields so they keep their width. */
+.choice-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: start;
+}
+.choice-row__correct {
+  margin-top: 10px;
+}
+.question-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 16px;
+  border: 1px solid var(--border);
+}
+@media (max-width: 480px) {
+  .question-form {
+    padding: 10px;
+  }
+  .choice-row {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+  .choice-row__remove {
+    grid-column: 2;
+    justify-self: start;
+  }
+}
+/* The quiz editor page: 16 px side gutters on narrow screens, 720 px of content otherwise. */
+.editor-page {
+  max-width: 752px;
+  margin: 16px auto;
+  padding-inline: 16px;
+}
+.pair-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.pair-field input,
+.pair-field textarea {
+  display: block;
+  width: 100%;
+}
+.pair-field__base {
+  font-size: 14px;
+  color: var(--text-muted);
+}
+.pair-field__translation {
+  display: block;
+  margin-inline-start: 16px;
+  border-inline-start: 3px solid var(--link);
+  padding-inline-start: 8px;
+}
+.pair-field__lang {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+}
+@media (max-width: 480px) {
+  .pair-field__translation {
+    margin-inline-start: 4px;
+  }
+}
+.quiz-langs {
+  margin-block: 8px 20px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-alt);
+}
+.quiz-langs__title {
+  margin: 0 0 8px;
+  font-size: 18px;
+}
+.quiz-langs__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 10px;
+  padding: 0;
+  list-style: none;
+}
+.lang-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 40px;
+  padding-inline: 12px 2px;
+  border: 1px solid var(--input-border);
+  border-radius: 20px;
+  background: var(--surface);
+  color: var(--text);
+}
+.lang-chip--base {
+  padding-inline-end: 12px;
+  font-weight: 600;
+}
+/* Declared but incomplete: hidden from participants (decision Q-partial-languages). */
+.lang-chip--warning {
+  background: var(--warning-bg);
+  color: var(--on-warning-bg);
+  border-color: var(--on-warning-bg);
+}
+.lang-chip__remove {
+  min-height: 36px;
+  width: 36px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid transparent;
+  background: transparent;
+  color: inherit;
+  font-size: 20px;
+  line-height: 1;
+}
+.lang-chip__remove:hover:not(:disabled) {
+  background: var(--surface-hover);
+  border-color: var(--input-border);
+  color: var(--text);
+}
+.quiz-langs__summary {
+  margin: 10px 0 0;
+  font-size: 14px;
+  color: var(--text-muted);
+}
+.q-missing {
+  display: block;
+  margin-top: 2px;
+  font-size: 14px;
+  color: var(--warning);
+}
+
 /* QR codes (wish 5): always black on white, never inverted, nothing on top. */
 .qr-card {
   background: var(--qr-bg);

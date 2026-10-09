@@ -3,7 +3,7 @@ import { db } from '../db';
 import { requireAdmin, AuthedRequest } from '../middleware/jwt';
 import { finalizeSession, getSession, SessionRow } from '../lib/sessions';
 import { clearSessionTimer, scheduleSessionEnd } from '../lib/sessionTimers';
-import { ANSWERED_SQL } from '../lib/grading';
+import { ANSWERED_SQL, isValidPoints, roundPoints } from '../lib/grading';
 import { nowIso } from '../lib/time';
 import { broadcastLiveUpdate, broadcastSessionUpdate } from '../socket';
 
@@ -217,10 +217,13 @@ sessionsRouter.put('/:id/answers/:answerId/grade', (req: AuthedRequest, res) => 
     return res.status(400).json({ error: 'Only text answers can be graded manually' });
   }
 
-  const pointsAwarded = Number(req.body?.points_awarded);
-  if (!Number.isFinite(pointsAwarded) || pointsAwarded < 0 || pointsAwarded > question.points) {
-    return res.status(400).json({ error: `points_awarded must be between 0 and ${question.points}` });
+  const rawPoints = req.body?.points_awarded;
+  const parsedPoints = typeof rawPoints === 'string' && rawPoints.trim() ? Number(rawPoints) : rawPoints;
+  // Whole and half points only (decision Q-points-step).
+  if (!isValidPoints(parsedPoints, { allowZero: true }) || parsedPoints > question.points) {
+    return res.status(400).json({ error: `points_awarded must be a whole or half number between 0 and ${question.points}` });
   }
+  const pointsAwarded = roundPoints(parsedPoints);
 
   const isCorrect = pointsAwarded >= question.points ? 1 : 0;
   db.prepare(
