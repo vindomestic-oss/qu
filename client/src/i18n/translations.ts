@@ -40,6 +40,10 @@ const en: Dict = {
   'join.joining': 'Joining…',
   'join.join': 'Join',
   'join.error.NAME_TAKEN': 'This name is already taken. Choose another name or ask the host.',
+  'join.rejoin.question': 'This device already joined this quiz as {name}. Is that you?',
+  'join.rejoin.yes': 'Yes, that\'s me',
+  'join.rejoin.no': 'No, I\'m someone else',
+  'join.rejoin.otherName': 'Please enter your own name.',
 
   'play.loading': 'Loading…',
   'play.youreIn': "You're in!",
@@ -88,6 +92,10 @@ const de: Dict = {
   'join.joining': 'Trete bei…',
   'join.join': 'Beitreten',
   'join.error.NAME_TAKEN': 'Dieser Name ist schon vergeben. Wähle einen anderen Namen oder wende dich an die Spielleitung.',
+  'join.rejoin.question': 'Dieses Gerät ist dem Quiz schon als {name} beigetreten. Bist du das?',
+  'join.rejoin.yes': 'Ja, das bin ich',
+  'join.rejoin.no': 'Nein, ich bin jemand anderes',
+  'join.rejoin.otherName': 'Bitte gib deinen eigenen Namen ein.',
 
   'play.loading': 'Lädt…',
   'play.youreIn': 'Du bist dabei!',
@@ -136,6 +144,10 @@ const ru: Dict = {
   'join.joining': 'Подключение…',
   'join.join': 'Войти',
   'join.error.NAME_TAKEN': 'Это имя уже занято. Выберите другое или обратитесь к ведущему.',
+  'join.rejoin.question': 'С этого устройства уже входили в квиз под именем {name}. Это вы?',
+  'join.rejoin.yes': 'Да, это я',
+  'join.rejoin.no': 'Нет, я другой человек',
+  'join.rejoin.otherName': 'Введите своё имя.',
 
   'play.loading': 'Загрузка…',
   'play.youreIn': 'Вы подключились!',
@@ -299,6 +311,10 @@ const he: Dict = {
   'join.joining': 'מתחבר…',
   'join.join': 'הצטרפות',
   'join.error.NAME_TAKEN': 'השם הזה כבר תפוס. בחרו שם אחר או פנו למנחה.',
+  'join.rejoin.question': 'מהמכשיר הזה כבר הצטרפו לחידון בשם {name}. זה אתם?',
+  'join.rejoin.yes': 'כן, זה אני',
+  'join.rejoin.no': 'לא, אני מישהו אחר',
+  'join.rejoin.otherName': 'נא להזין את השם שלכם.',
 
   'play.loading': 'טוען…',
   'play.youreIn': 'הצטרפת בהצלחה!',

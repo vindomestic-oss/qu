@@ -18,6 +18,7 @@ export function AdminDashboard() {
   const [timeLimitMinutes, setTimeLimitMinutes] = useState(10);
   const [creating, setCreating] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  const [backupError, setBackupError] = useState<string | null>(null);
 
   async function refresh() {
     setLoading(true);
@@ -62,12 +63,12 @@ export function AdminDashboard() {
   }
 
   async function handleDownloadBackup() {
-    setError(null);
+    setBackupError(null);
     setDownloading(true);
     try {
       await downloadAdminFile('/admin/backups/latest', `quiz-backup-${new Date().toISOString().slice(0, 10)}.db`);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to download the backup');
+      setBackupError(err instanceof ApiError ? err.message : 'Failed to download the backup');
     } finally {
       setDownloading(false);
     }
@@ -166,6 +167,11 @@ export function AdminDashboard() {
       <button type="button" onClick={handleDownloadBackup} disabled={downloading}>
         {downloading ? 'Preparing…' : 'Download database backup'}
       </button>
+      {backupError && (
+        <p role="alert" style={{ color: 'var(--danger)' }}>
+          Backup failed: {backupError}
+        </p>
+      )}
     </div>
   );
 }

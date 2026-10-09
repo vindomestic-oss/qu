@@ -7,7 +7,7 @@ export const adminRouter = Router();
 adminRouter.use(requireAdmin);
 
 adminRouter.get('/backups', (_req, res) => {
-  res.json({ backups: listBackups() });
+  res.json(listBackups());
 });
 
 // Off-site copy for EJKA's OneDrive, made right after an event, so it refreshes today's file from

@@ -92,3 +92,52 @@ test('the admin results payload carries no rejoin_hash', async () => {
   assert.equal(r.status, 200);
   assert.deepEqual(findKeys(r.body, ['rejoin_hash']), []);
 });
+
+test('after "Allow rejoin" and a new claim, the earlier holder of the row is signed out', async () => {
+  const first = await join(base, fx.joinCode, 'Eva');
+  assert.equal((await request(base, 'GET', '/api/my/session', first.body.token)).status, 200);
+  await request(base, 'PUT', `/api/sessions/${fx.sessionId}/participants/${first.body.participant.id}/allow-rejoin`, adminToken);
+  const claim = await joinWith('Eva');
+  assert.equal(claim.status, 200);
+  assert.equal((await request(base, 'GET', '/api/my/session', claim.body.token)).status, 200);
+  const old = await request(base, 'GET', '/api/my/session', first.body.token);
+  assert.equal(old.status, 401);
+  assert.equal(old.body.code, 'INVALID_TOKEN');
+});
+
+test('names that differ only in case, spacing or invisible characters are the same name', async () => {
+  const first = await join(base, fx.joinCode, 'Lea Marie');
+  for (const lookalike of ['lea marie', 'Lea  Marie', 'Lea​ Marie', ' LEA MARIE ']) {
+    const r = await joinWith(lookalike);
+    assert.equal(r.status, 409, lookalike);
+    assert.equal(r.body.code, 'NAME_TAKEN');
+  }
+  const again = await joinWith('lea marie', first.body.rejoinSecret);
+  assert.equal(again.status, 200);
+  assert.equal(again.body.participant.id, first.body.participant.id);
+  assert.equal(again.body.participant.display_name, 'Lea Marie');
+});
+
+test('a name made only of invisible characters is rejected', async () => {
+  const r = await joinWith('​‍ ');
+  assert.equal(r.status, 400);
+});
+
+test('/live reports which names are open for rejoin', async () => {
+  const p = await join(base, fx.joinCode, 'Finn');
+  const live = async () =>
+    (await request(base, 'GET', `/api/sessions/${fx.sessionId}/live`, adminToken)).body.participants.find(
+      (x: { id: number }) => x.id === p.body.participant.id,
+    );
+  assert.equal((await live()).rejoin_open, 0);
+  await request(base, 'PUT', `/api/sessions/${fx.sessionId}/participants/${p.body.participant.id}/allow-rejoin`, adminToken);
+  assert.equal((await live()).rejoin_open, 1);
+  await joinWith('Finn');
+  assert.equal((await live()).rejoin_open, 0);
+});
+
+test('GET /api/admin/backups returns a plain list', async () => {
+  const r = await request(base, 'GET', '/api/admin/backups', adminToken);
+  assert.equal(r.status, 200);
+  assert.ok(Array.isArray(r.body));
+});

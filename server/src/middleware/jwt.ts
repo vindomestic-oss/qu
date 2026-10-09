@@ -42,9 +42,15 @@ export function signAdminToken(p: AdminIdentity & { passwordHash: string }): str
   );
 }
 
-export function signParticipantToken(p: ParticipantIdentity): string {
+export function signParticipantToken(p: ParticipantIdentity & { tokenVersion: number }): string {
   return jwt.sign(
-    { role: 'participant', participantId: p.participantId, sessionId: p.sessionId, displayName: p.displayName },
+    {
+      role: 'participant',
+      participantId: p.participantId,
+      sessionId: p.sessionId,
+      displayName: p.displayName,
+      tv: p.tokenVersion,
+    },
     JWT_SECRET,
     { algorithm: 'HS256', expiresIn: '6h' },
   );
@@ -100,9 +106,11 @@ export function authenticate(token: string, want: 'admin' | 'participant'): Auth
     return { ok: true, role: 'admin', admin: { adminId: row.id, username: row.username } };
   }
   const row = db
-    .prepare('SELECT id, joined_at FROM participants WHERE id = ? AND session_id = ? AND display_name = ?')
-    .get(p.participantId, p.sessionId, p.displayName) as { id: number; joined_at: string } | undefined;
+    .prepare('SELECT id, joined_at, token_version FROM participants WHERE id = ? AND session_id = ? AND display_name = ?')
+    .get(p.participantId, p.sessionId, p.displayName) as { id: number; joined_at: string; token_version: number } | undefined;
   if (!row) return { ok: false, status: 401, code: 'INVALID_TOKEN' };
+  // The row was claimed again after "Allow rejoin": tokens of earlier holders stop working (legacy tokens count as 0).
+  if ((typeof p.tv === 'number' ? p.tv : 0) !== row.token_version) return { ok: false, status: 401, code: 'INVALID_TOKEN' };
   // A token older than its row was issued for an earlier row with the same ids, e.g. before a
   // free-plan restart wiped the database (ids start again at 1, JWT_SECRET stays).
   const joinedAtSec = Math.floor(parseDbTime(row.joined_at) / 1000);

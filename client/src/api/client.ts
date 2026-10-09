@@ -21,14 +21,31 @@ export class ApiError extends Error {
   }
 }
 
-/** The admin token expired or was revoked: drop it and go to the login page, which brings the admin back here. */
-function handleExpiredAdminToken(): void {
-  setToken(null);
-  localStorage.removeItem(USERNAME_KEY);
-  location.assign(`/admin/login?expired=1&next=${encodeURIComponent(location.pathname + location.search)}`);
+export const ADMIN_EXPIRED_EVENT = 'quiz:admin-session-expired';
+
+export function adminLoginUrl(): string {
+  return `/admin/login?expired=1&next=${encodeURIComponent(location.pathname + location.search)}`;
 }
 
-export async function api<T>(path: string, options: RequestInit = {}): Promise<T> {
+/**
+ * The admin token expired or was revoked (or another tab already dropped it). A request the admin
+ * started goes to the login page, which brings them back here. A background refresh (live monitor)
+ * only raises a banner, so a half-typed question is not thrown away by a redirect.
+ */
+function handleExpiredAdminToken(background: boolean): void {
+  setToken(null);
+  localStorage.removeItem(USERNAME_KEY);
+  if (background) window.dispatchEvent(new Event(ADMIN_EXPIRED_EVENT));
+  else location.assign(adminLoginUrl());
+}
+
+function isExpiredAdmin(status: number, path: string, hadToken: boolean): boolean {
+  return status === 401 && path !== '/auth/login' && (hadToken || location.pathname.startsWith('/admin'));
+}
+
+export async function api<T>(path: string, options: RequestInit & { background?: boolean } = {}): Promise<T> {
+  const { background = false, ...init } = options;
+  options = init;
   const token = getToken();
   const isFormData = options.body instanceof FormData;
   const headers: Record<string, string> = {
@@ -40,7 +57,7 @@ export async function api<T>(path: string, options: RequestInit = {}): Promise<T
   const res = await fetch(`/api${path}`, { ...options, headers });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    if (res.status === 401 && token && path !== '/auth/login') handleExpiredAdminToken();
+    if (isExpiredAdmin(res.status, path, Boolean(token))) handleExpiredAdminToken(background);
     throw new ApiError(res.status, data.error || 'Request failed', data.code);
   }
   return data as T;
@@ -52,7 +69,7 @@ export async function downloadAdminFile(path: string, fallbackName: string): Pro
   const res = await fetch(`/api${path}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
-    if (res.status === 401 && token) handleExpiredAdminToken();
+    if (isExpiredAdmin(res.status, path, Boolean(token))) handleExpiredAdminToken(false);
     throw new ApiError(res.status, data.error || 'Download failed', data.code);
   }
   const disposition = res.headers.get('Content-Disposition') ?? '';

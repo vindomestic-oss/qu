@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { allowRejoin, getLiveStatus } from '../../api/sessions';
 import type { LiveStatusResponse } from '../../types';
 import { getSocket, joinSessionRoom } from '../../lib/socket';
@@ -9,14 +9,18 @@ interface Props {
 
 export function LiveMonitor({ sessionId }: Props) {
   const [data, setData] = useState<LiveStatusResponse | null>(null);
-  const [rejoinAllowed, setRejoinAllowed] = useState<Set<number>>(new Set());
+  const [rejoinMessage, setRejoinMessage] = useState('');
   const [rejoinError, setRejoinError] = useState<string | null>(null);
+  const statusRef = useRef<HTMLParagraphElement>(null);
 
-  async function handleAllowRejoin(participantId: number) {
+  async function handleAllowRejoin(participantId: number, name: string) {
     setRejoinError(null);
     try {
       await allowRejoin(sessionId, participantId);
-      setRejoinAllowed((prev) => new Set(prev).add(participantId));
+      setRejoinMessage(`Rejoin allowed for ${name}. The next device that joins with this name gets this place.`);
+      // The clicked button disappears; keep keyboard focus on the confirmation instead of the page body.
+      statusRef.current?.focus();
+      await refresh();
     } catch (err) {
       setRejoinError(err instanceof Error ? err.message : 'Failed to allow rejoin');
     }
@@ -53,7 +57,14 @@ export function LiveMonitor({ sessionId }: Props) {
         <strong>{data.participants.length}</strong> participant(s) joined
       </p>
 
-      {rejoinError && <p style={{ color: 'var(--danger)' }}>{rejoinError}</p>}
+      <p ref={statusRef} tabIndex={-1} role="status" aria-live="polite" style={{ margin: rejoinMessage ? '0 0 8px' : 0 }}>
+        {rejoinMessage}
+      </p>
+      {rejoinError && (
+        <p role="alert" style={{ color: 'var(--danger)' }}>
+          {rejoinError}
+        </p>
+      )}
       {data.participants.length > 0 && (
         <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 12 }}>
           <thead>
@@ -75,12 +86,12 @@ export function LiveMonitor({ sessionId }: Props) {
                   {p.answered_count} / {totalQuestions} answered
                 </td>
                 <td>
-                  {rejoinAllowed.has(p.id) ? (
-                    <span role="status">Rejoin allowed</span>
+                  {p.rejoin_open ? (
+                    <span>Rejoin allowed</span>
                   ) : (
                     <button
                       type="button"
-                      onClick={() => handleAllowRejoin(p.id)}
+                      onClick={() => handleAllowRejoin(p.id, p.display_name)}
                       aria-label={`Allow rejoin for ${p.display_name}`}
                       style={{ minHeight: 32, padding: '4px 10px', fontSize: 14 }}
                     >

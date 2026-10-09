@@ -16,6 +16,8 @@ const ADDED_COLUMNS: Record<string, { name: string; type: string }[]> = {
     { name: 'submitted_at', type: 'TEXT' },
     // sha256 hex of the participant's rejoin secret; NULL = the name can be claimed (legacy row or "Allow rejoin").
     { name: 'rejoin_hash', type: 'TEXT' },
+    // Raised whenever the row is claimed again; participant tokens carry it, so older tokens stop working.
+    { name: 'token_version', type: 'INTEGER NOT NULL DEFAULT 0' },
   ],
 };
 

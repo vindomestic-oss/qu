@@ -26,7 +26,7 @@ export function getSessionResults(sessionId: number) {
 }
 
 export function getLiveStatus(sessionId: number) {
-  return api<LiveStatusResponse>(`/sessions/${sessionId}/live`);
+  return api<LiveStatusResponse>(`/sessions/${sessionId}/live`, { background: true });
 }
 
 export function gradeAnswer(sessionId: number, answerId: number, pointsAwarded: number) {

@@ -4,6 +4,7 @@ import { db } from '../db';
 import { refreshSessionStatus, SessionRow } from '../lib/sessions';
 import { signParticipantToken } from '../middleware/jwt';
 import { broadcastLiveUpdate } from '../socket';
+import { nameKey, normalizeDisplayName } from '../lib/names';
 
 export const joinRouter = Router();
 
@@ -46,10 +47,10 @@ joinRouter.post('/join', (req, res) => {
   if (typeof joinCode !== 'string' || !joinCode.trim()) {
     return res.status(400).json({ error: 'joinCode is required' });
   }
-  if (typeof displayName !== 'string' || !displayName.trim()) {
+  const name = typeof displayName === 'string' ? normalizeDisplayName(displayName) : '';
+  if (!name) {
     return res.status(400).json({ error: 'displayName is required' });
   }
-  const name = displayName.trim().slice(0, 50);
 
   const sessionRow = db.prepare('SELECT * FROM sessions WHERE join_code = ?').get(joinCode.trim().toUpperCase()) as
     | SessionRow
@@ -62,9 +63,16 @@ joinRouter.post('/join', (req, res) => {
     return res.status(400).json({ error: 'This session has already ended' });
   }
 
-  const existing = db
-    .prepare('SELECT id, rejoin_hash FROM participants WHERE session_id = ? AND display_name = ?')
-    .get(session.id, name) as { id: number; rejoin_hash: string | null } | undefined;
+  // Names that differ only in case, spacing or invisible characters count as the same name, so a
+  // look-alike row cannot sit next to the real one in the host's list.
+  const key = nameKey(name);
+  const existing = (
+    db.prepare('SELECT id, display_name, rejoin_hash FROM participants WHERE session_id = ?').all(session.id) as {
+      id: number;
+      display_name: string;
+      rejoin_hash: string | null;
+    }[]
+  ).find((p) => nameKey(p.display_name) === key);
 
   let participantId: number;
   let secret: string;
@@ -83,12 +91,14 @@ joinRouter.post('/join', (req, res) => {
     broadcastLiveUpdate(session.id);
   } else if (existing.rejoin_hash === null) {
     secret = newSecret();
-    // Guarded on NULL so two devices claiming the same row at once cannot both win.
+    // Guarded on NULL so two devices claiming the same row at once cannot both win. The new
+    // token_version signs out whoever held the row before.
     const claimed = db
-      .prepare('UPDATE participants SET rejoin_hash = ? WHERE id = ? AND rejoin_hash IS NULL')
+      .prepare('UPDATE participants SET rejoin_hash = ?, token_version = token_version + 1 WHERE id = ? AND rejoin_hash IS NULL')
       .run(hashSecret(secret), existing.id);
     if (claimed.changes === 0) return res.status(409).json(NAME_TAKEN);
     participantId = existing.id;
+    broadcastLiveUpdate(session.id);
   } else if (secretMatches(rejoinSecret, existing.rejoin_hash)) {
     secret = rejoinSecret as string;
     participantId = existing.id;
@@ -99,11 +109,15 @@ joinRouter.post('/join', (req, res) => {
   const participant = db
     .prepare(`SELECT ${PARTICIPANT_COLUMNS} FROM participants WHERE id = ?`)
     .get(participantId) as ParticipantRow;
+  const { token_version } = db.prepare('SELECT token_version FROM participants WHERE id = ?').get(participantId) as {
+    token_version: number;
+  };
 
   const token = signParticipantToken({
     participantId: participant.id,
     sessionId: session.id,
     displayName: participant.display_name,
+    tokenVersion: token_version,
   });
 
   res.json({ token, session, participant, rejoinSecret: secret });
