@@ -1,6 +1,7 @@
 import type { Server as HttpServer } from 'http';
 import { Server } from 'socket.io';
 import { authenticate } from './middleware/jwt';
+import { db } from './db';
 
 // Rooms: `session:<id>` (participants and staff) carries only session:update. `staff:<id>` (admins;
 // graders from S12) carries session:update, session:live and grading:changed. This module imports no
@@ -9,6 +10,21 @@ import { authenticate } from './middleware/jwt';
 let io: Server | undefined;
 
 type Ack = (r: object) => void;
+type RoomGrant = { kind: 'session' | 'staff'; sessionId: number; token: string };
+
+/** Who may be in a room, re-checked later: the token can expire, or a participant row be reclaimed. */
+function mayJoin(kind: 'session' | 'staff', sessionId: number, token: string): boolean {
+  const asAdmin = authenticate(token, 'admin');
+  if (asAdmin.ok) return true;
+  if (kind === 'staff') return false;
+  const asParticipant = authenticate(token, 'participant');
+  return asParticipant.ok && asParticipant.role === 'participant' && asParticipant.participant.sessionId === sessionId;
+}
+
+function grants(socket: { data: { grants?: Map<string, RoomGrant> } }): Map<string, RoomGrant> {
+  socket.data.grants ??= new Map();
+  return socket.data.grants;
+}
 
 function toAck(ack: unknown): Ack {
   return typeof ack === 'function' ? (ack as Ack) : () => {};
@@ -29,21 +45,18 @@ export function initSocket(server: HttpServer): Server {
       if (!Number.isInteger(p.sessionId) || typeof p.token !== 'string') {
         return reply({ ok: false, error: 'TOKEN_REQUIRED' }); // also the old bare-number form
       }
-      const asAdmin = authenticate(p.token, 'admin');
-      const asParticipant = asAdmin.ok ? null : authenticate(p.token, 'participant');
-      const allowed =
-        asAdmin.ok ||
-        (asParticipant?.ok === true &&
-          asParticipant.role === 'participant' &&
-          asParticipant.participant.sessionId === p.sessionId);
-      if (!allowed) return reply({ ok: false, error: 'FORBIDDEN' });
-      socket.join(`session:${p.sessionId}`);
+      const sessionId = p.sessionId as number;
+      if (!mayJoin('session', sessionId, p.token)) return reply({ ok: false, error: 'FORBIDDEN' });
+      socket.join(`session:${sessionId}`);
+      grants(socket).set(`session:${sessionId}`, { kind: 'session', sessionId, token: p.token });
       reply({ ok: true });
     });
 
     socket.on('session:leave', (payload: unknown) => {
       const p = readPayload(payload);
-      if (Number.isInteger(p.sessionId)) socket.leave(`session:${p.sessionId}`);
+      if (!Number.isInteger(p.sessionId)) return;
+      socket.leave(`session:${p.sessionId}`);
+      grants(socket).delete(`session:${p.sessionId}`);
     });
 
     // Staff room: admins only until S12 adds grader tokens for their own session.
@@ -53,18 +66,41 @@ export function initSocket(server: HttpServer): Server {
       if (!Number.isInteger(p.sessionId) || typeof p.token !== 'string') {
         return reply({ ok: false, error: 'TOKEN_REQUIRED' });
       }
-      if (!authenticate(p.token, 'admin').ok) return reply({ ok: false, error: 'FORBIDDEN' });
-      socket.join(`staff:${p.sessionId}`);
+      const sessionId = p.sessionId as number;
+      if (!db.prepare('SELECT 1 FROM sessions WHERE id = ?').get(sessionId)) return reply({ ok: false, error: 'NOT_FOUND' });
+      if (!mayJoin('staff', sessionId, p.token)) return reply({ ok: false, error: 'FORBIDDEN' });
+      socket.join(`staff:${sessionId}`);
+      grants(socket).set(`staff:${sessionId}`, { kind: 'staff', sessionId, token: p.token });
       reply({ ok: true });
     });
 
     socket.on('staff:leave', (payload: unknown) => {
       const p = readPayload(payload);
-      if (Number.isInteger(p.sessionId)) socket.leave(`staff:${p.sessionId}`);
+      if (!Number.isInteger(p.sessionId)) return;
+      socket.leave(`staff:${p.sessionId}`);
+      grants(socket).delete(`staff:${p.sessionId}`);
     });
   });
 
   return io;
+}
+
+/**
+ * Removes sockets from rooms their token no longer allows: expired tokens, a changed admin password,
+ * a participant row claimed by another device. Run by the 30 s sweep, and at once for one session
+ * after a claim. A client that still holds a valid token simply joins again on its next reconnect.
+ */
+export function revalidateRooms(onlySessionId?: number): void {
+  if (!io) return;
+  for (const socket of io.sockets.sockets.values()) {
+    for (const [room, g] of grants(socket)) {
+      if (onlySessionId !== undefined && g.sessionId !== onlySessionId) continue;
+      if (!mayJoin(g.kind, g.sessionId, g.token)) {
+        socket.leave(room);
+        grants(socket).delete(room);
+      }
+    }
+  }
 }
 
 export function getIo(): Server | undefined {

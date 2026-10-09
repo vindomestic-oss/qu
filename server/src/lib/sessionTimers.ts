@@ -1,6 +1,6 @@
 import { db } from '../db';
 import { finalizeSession, SessionRow } from './sessions';
-import { nowIso } from './time';
+import { revalidateRooms } from '../socket';
 
 // setTimeout cannot wait longer than 2^31-1 ms (about 24.8 days); longer waits re-check.
 const MAX_DELAY_MS = 2 ** 31 - 1;
@@ -38,12 +38,21 @@ export function recoverActiveSessions(): void {
   for (const s of active) scheduleSessionEnd(s.id, s.ends_at!);
 }
 
-/** Safety net for a missed timer: every 30 s, end active sessions whose time is up. */
+/** Ends active sessions whose time is up (compared as numbers, so odd ISO forms cannot confuse it). */
+export function sweepDueSessions(now = Date.now()): void {
+  const active = db.prepare("SELECT id, ends_at FROM sessions WHERE status = 'active' AND ends_at IS NOT NULL").all() as {
+    id: number;
+    ends_at: string;
+  }[];
+  for (const s of active) {
+    if (Date.parse(s.ends_at) <= now) finalizeSession(s.id, s.ends_at);
+  }
+}
+
+/** Safety net every 30 s: end sessions whose timer was missed, and drop sockets whose token went bad. */
 export function startSessionSweep(): void {
   setInterval(() => {
-    const due = db
-      .prepare("SELECT id, ends_at FROM sessions WHERE status = 'active' AND ends_at IS NOT NULL AND ends_at <= ?")
-      .all(nowIso()) as { id: number; ends_at: string }[];
-    for (const s of due) finalizeSession(s.id, s.ends_at);
+    sweepDueSessions();
+    revalidateRooms();
   }, SWEEP_MS).unref();
 }

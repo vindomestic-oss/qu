@@ -9,6 +9,8 @@ import { CONTENT_LANGS, isQuizLang } from '../lib/languages';
 import { invalidateQuizLanguages } from '../lib/quizLanguages';
 
 export const quizzesRouter = Router();
+
+const MAX_TIME_LIMIT_SECONDS = 7 * 24 * 60 * 60;
 quizzesRouter.use(requireAdmin);
 
 // Rows selected with `SELECT *` also carry title_de/text_ru/etc. translation
@@ -75,8 +77,8 @@ quizzesRouter.post('/', (req: AuthedRequest, res) => {
     return res.status(400).json({ error: 'title is required' });
   }
   const timeLimit = Number(time_limit_seconds);
-  if (!Number.isFinite(timeLimit) || timeLimit <= 0) {
-    return res.status(400).json({ error: 'time_limit_seconds must be a positive number' });
+  if (!Number.isFinite(timeLimit) || timeLimit <= 0 || timeLimit > MAX_TIME_LIMIT_SECONDS) {
+    return res.status(400).json({ error: 'time_limit_seconds must be between 1 second and 7 days' });
   }
   const baseLanguage = base_language === undefined || base_language === null ? 'en' : base_language;
   if (!isQuizLang(baseLanguage)) {
@@ -130,8 +132,8 @@ quizzesRouter.put('/:id', (req, res) => {
     return res.status(400).json({ error: 'title is required' });
   }
   const timeLimit = Number(time_limit_seconds);
-  if (!Number.isFinite(timeLimit) || timeLimit <= 0) {
-    return res.status(400).json({ error: 'time_limit_seconds must be a positive number' });
+  if (!Number.isFinite(timeLimit) || timeLimit <= 0 || timeLimit > MAX_TIME_LIMIT_SECONDS) {
+    return res.status(400).json({ error: 'time_limit_seconds must be between 1 second and 7 days' });
   }
   const baseLanguage = base_language === undefined || base_language === null ? existing.base_language : base_language;
   if (!isQuizLang(baseLanguage)) {

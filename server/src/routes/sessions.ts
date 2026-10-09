@@ -74,6 +74,7 @@ sessionsRouter.put('/:id/start', (req, res) => {
 
   const startedAt = new Date();
   const endsAt = new Date(startedAt.getTime() + quiz.time_limit_seconds * 1000);
+  if (!Number.isFinite(endsAt.getTime())) return res.status(400).json({ error: 'The quiz has an invalid time limit' });
 
   db.prepare("UPDATE sessions SET status = 'active', started_at = ?, ends_at = ? WHERE id = ?").run(
     startedAt.toISOString(),

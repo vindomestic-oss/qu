@@ -44,19 +44,37 @@ export function SessionPanel({ quizId, initialSession, onSessionEnded }: Props) 
   const sessionId = session?.id ?? null;
   const live = useLiveStatus(sessionId);
   const refetchingRef = useRef(false);
+  const refetchAgainRef = useRef(false);
+  const seqRef = useRef(0);
   const lastStatusRef = useRef<QuizSession['status'] | null>(null);
 
+  // Background refresh: a 401 shows the banner instead of leaving the page. A call that arrives while
+  // one is in flight runs once more afterwards, and an outdated response never overwrites a newer one.
   const refetchSession = useCallback(() => {
-    if (sessionId === null || refetchingRef.current) return;
-    refetchingRef.current = true;
-    getSession(sessionId)
-      .then(({ session: fresh }) => setSession(fresh))
-      .catch(() => {
-        // transient; the next event, reconnect or expiry check tries again
-      })
-      .finally(() => {
-        refetchingRef.current = false;
-      });
+    if (sessionId === null) return;
+    if (refetchingRef.current) {
+      refetchAgainRef.current = true;
+      return;
+    }
+    const run = () => {
+      refetchingRef.current = true;
+      const mine = ++seqRef.current;
+      getSession(sessionId, { background: true })
+        .then(({ session: fresh }) => {
+          if (mine === seqRef.current) setSession(fresh);
+        })
+        .catch(() => {
+          // transient; the next event, reconnect or expiry check tries again
+        })
+        .finally(() => {
+          refetchingRef.current = false;
+          if (refetchAgainRef.current) {
+            refetchAgainRef.current = false;
+            run();
+          }
+        });
+    };
+    run();
   }, [sessionId]);
 
   // Status changes arrive in the staff room; after a reconnect the session is fetched again.
@@ -98,6 +116,7 @@ export function SessionPanel({ quizId, initialSession, onSessionEnded }: Props) 
     setError(null);
     try {
       const { session: updated } = await startSession(session.id);
+      seqRef.current += 1;
       setSession(updated);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Failed to start session');
@@ -113,6 +132,7 @@ export function SessionPanel({ quizId, initialSession, onSessionEnded }: Props) 
     setError(null);
     try {
       const { session: updated } = await endSession(session.id);
+      seqRef.current += 1;
       setSession(updated);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Failed to end session');

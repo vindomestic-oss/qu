@@ -7,8 +7,9 @@ import Database from 'better-sqlite3';
 import { io as connect, type Socket } from 'socket.io-client';
 import { db } from '../db';
 import { runMigrations } from '../db/migrate';
-import { recoverActiveSessions } from '../lib/sessionTimers';
-import { createAdmin, createQuizFixture, join, login, request, startServer, type QuizFixture } from './helpers';
+import { recoverActiveSessions, sweepDueSessions } from '../lib/sessionTimers';
+import { revalidateRooms } from '../socket';
+import { createAdmin, createQuizFixture, join, login, request, sign, startServer, type QuizFixture } from './helpers';
 
 let base = '';
 let close: () => Promise<void>;
@@ -249,4 +250,56 @@ test('S5 backfills on an older database run once and are no-ops afterwards', () 
   const beforeSecond = snapshot();
   runMigrations(legacy);
   assert.equal(snapshot(), beforeSecond);
+});
+
+test('the sweep ends overdue sessions; boot recovery re-arms a running one', async () => {
+  const overdue = createQuizFixture(adminId, 'Sweep quiz');
+  const past = new Date(Date.now() - 5000).toISOString();
+  db.prepare("UPDATE sessions SET status = 'active', started_at = ?, ends_at = ? WHERE id = ?").run(past, past, overdue.sessionId);
+  sweepDueSessions();
+  assert.equal((db.prepare('SELECT status FROM sessions WHERE id = ?').get(overdue.sessionId) as { status: string }).status, 'ended');
+
+  const running = createQuizFixture(adminId, 'Rearm quiz');
+  const soon = new Date(Date.now() + 1200).toISOString();
+  db.prepare("UPDATE sessions SET status = 'active', started_at = ?, ends_at = ? WHERE id = ?").run(soon, soon, running.sessionId);
+  recoverActiveSessions();
+  assert.equal((db.prepare('SELECT status FROM sessions WHERE id = ?').get(running.sessionId) as { status: string }).status, 'active');
+  await sleep(1700);
+  assert.equal((db.prepare('SELECT status FROM sessions WHERE id = ?').get(running.sessionId) as { status: string }).status, 'ended');
+});
+
+test('time limits above 7 days are refused', async () => {
+  const r = await request(base, 'POST', '/api/quizzes', adminToken, { title: 'Too long', time_limit_seconds: 8 * 24 * 3600 });
+  assert.equal(r.status, 400);
+});
+
+test('staff:join needs an existing session', async () => {
+  const s = await open();
+  const r = await s.emitWithAck('staff:join', { sessionId: 999999, token: adminToken });
+  assert.equal(r.ok, false);
+});
+
+test('sockets lose rooms their token no longer allows', async () => {
+  const fx = createQuizFixture(adminId, 'Revalidate quiz');
+  // An admin token that expires in 1 s.
+  const shortAdmin = sign({ role: 'admin', adminId, username: 'admin' }, undefined, { expiresIn: 1 });
+  const staff = await open();
+  assert.equal((await staff.emitWithAck('staff:join', { sessionId: fx.sessionId, token: shortAdmin })).ok, true);
+  // A participant whose row is later claimed by another device.
+  const kid = await join(base, fx.joinCode, 'Moved Kid');
+  const kidSocket = await open();
+  assert.equal((await kidSocket.emitWithAck('session:join', { sessionId: fx.sessionId, token: kid.body.token })).ok, true);
+  await request(base, 'PUT', `/api/sessions/${fx.sessionId}/participants/${kid.body.participant.id}/allow-rejoin`, adminToken);
+  assert.equal((await join(base, fx.joinCode, 'Moved Kid')).status, 200); // revalidates this session at once
+
+  await sleep(1300);
+  revalidateRooms(); // what the 30 s sweep does
+  let staffGot = 0;
+  let kidGot = 0;
+  staff.on('session:update', () => (staffGot += 1));
+  kidSocket.on('session:update', () => (kidGot += 1));
+  await request(base, 'PUT', `/api/sessions/${fx.sessionId}/start`, adminToken);
+  await sleep(500);
+  assert.equal(staffGot, 0, 'expired admin token still in the staff room');
+  assert.equal(kidGot, 0, 'reclaimed participant still in the session room');
 });
