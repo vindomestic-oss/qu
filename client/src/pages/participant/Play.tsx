@@ -221,7 +221,6 @@ export function Play() {
   async function handleFinish() {
     if (!window.confirm(t('play.finishConfirm'))) return;
     setFinishing(true);
-    setError(null);
     try {
       await submitQuiz();
       setSubmitted(true);
@@ -231,7 +230,9 @@ export function Play() {
       if (err instanceof ApiError && err.status === 409) {
         setSubmitted(true);
       } else {
-        setError(err instanceof ApiError ? err.message : 'Failed to finish');
+        // Shown in the status slot of the question on screen (the page has no other message area).
+        const current = questions?.[index];
+        if (current) setStatus({ questionId: current.id, state: 'error', message: err instanceof ApiError ? err.message : 'Failed to finish' });
       }
     } finally {
       setFinishing(false);
