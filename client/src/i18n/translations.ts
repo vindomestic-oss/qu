@@ -1,4 +1,5 @@
 import type { QuizLang } from './contentLanguages';
+import { GRADER_DE, GRADER_EN, GRADER_HE, GRADER_RU } from './graderTranslations';
 
 /** Any language a dictionary can exist for (all 15 quiz languages; only UI_LANGUAGES are complete). */
 export type Language = QuizLang;
@@ -831,4 +832,21 @@ const uk: Dict = {
   'results.loading': 'Завантаження результатів…',
 };
 
-export const DICTIONARIES: Record<Language, Dict> = { en, de, ru, fr, pl, lt, he, bg, cs, es, fi, hu, it, lv, uk };
+// The grading panel's strings (wish 8) live in their own file, in the four interface languages.
+export const DICTIONARIES: Record<Language, Dict> = {
+  en: { ...en, ...GRADER_EN },
+  de: { ...de, ...GRADER_DE },
+  ru: { ...ru, ...GRADER_RU },
+  fr,
+  pl,
+  lt,
+  he: { ...he, ...GRADER_HE },
+  bg,
+  cs,
+  es,
+  fi,
+  hu,
+  it,
+  lv,
+  uk,
+};

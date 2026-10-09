@@ -73,6 +73,8 @@ export function QuizEditor() {
   );
   const [timeLimitMinutes, setTimeLimitMinutes] = useState(10);
   const [baseLanguage, setBaseLanguage] = useState<QuizLang>('en');
+  // A string draft, like the points field of a question.
+  const [defaultPointsText, setDefaultPointsText] = useState('1');
   const [savingMeta, setSavingMeta] = useState(false);
 
   const [formMode, setFormMode] = useState<'none' | 'create' | number>('none');
@@ -141,6 +143,7 @@ export function QuizEditor() {
       setDescriptionTranslations(unflattenTranslations('description', quiz));
       setTimeLimitMinutes(Math.round(quiz.time_limit_seconds / 60));
       setBaseLanguage(quiz.base_language);
+      setDefaultPointsText(String(quiz.default_points ?? 1));
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Failed to load quiz');
     } finally {
@@ -174,6 +177,7 @@ export function QuizEditor() {
         ...flattenTranslations('description', descriptionTranslations),
         time_limit_seconds: timeLimitMinutes * 60,
         base_language: baseLanguage,
+        default_points: Number(defaultPointsText),
       });
       setQuiz(quiz);
     } catch (err) {
@@ -261,7 +265,9 @@ export function QuizEditor() {
     onActiveLangChange: setPairLang,
     onAddLanguage: handleAddLanguage,
     sections,
+    defaultPoints: quiz.default_points ?? 1,
   };
+  const totalPoints = quiz.total_points ?? questions.reduce((sum, q) => sum + q.points, 0);
 
   return (
     <div className="editor-page">
@@ -342,6 +348,20 @@ export function QuizEditor() {
             ))}
           </select>
         </label>
+        <label>
+          Points for new questions
+          <input
+            type="number"
+            min={0.5}
+            max={100}
+            step={0.5}
+            inputMode="decimal"
+            value={defaultPointsText}
+            onChange={(e) => setDefaultPointsText(e.target.value)}
+            required
+            style={{ display: 'block', width: 100 }}
+          />
+        </label>
         <button type="submit" disabled={savingMeta} style={{ alignSelf: 'flex-start' }}>
           {savingMeta ? 'Saving…' : 'Save quiz details'}
         </button>
@@ -362,7 +382,8 @@ export function QuizEditor() {
               <li key={s.id} style={{ padding: '4px 0' }}>
                 <bdi dir="ltr">{formatJoinCode(s.join_code)}</bdi> — {s.status}
                 {s.started_at ? ` — started ${new Date(s.started_at).toLocaleString()}` : ''}{' '}
-                <Link to={`/admin/sessions/${s.id}/results`}>View results</Link>
+                <Link to={`/admin/sessions/${s.id}/results`}>View results</Link> ·{' '}
+                <Link to={`/grade/${s.id}`}>Grading</Link>
               </li>
             ))}
           </ul>
@@ -383,7 +404,9 @@ export function QuizEditor() {
         onQuizChange={setQuiz}
       />
 
-      <h2 style={{ marginTop: 32 }}>Questions</h2>
+      <h2 style={{ marginTop: 32 }}>
+        Questions <small style={{ fontWeight: 400, fontSize: 16, color: 'var(--text-muted)' }}>· Total points: {totalPoints}</small>
+      </h2>
       {questions.length === 0 && <p>No questions yet.</p>}
       {questions.map((q, i) => (
         <div key={q.id} style={{ border: '1px solid var(--border-subtle)', padding: 12, marginBottom: 8 }}>

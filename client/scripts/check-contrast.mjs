@@ -56,6 +56,15 @@ PAIRS.push(
   ['--focus-ring', '--bg', 3],
   ['--focus-ring', '--surface-alt', 3],
   ['--selected-bg', '--button-bg', 3],
+  // Grading panel (wish 8): the stacked bar's segments carry --bg text, and the segments, legend
+  // glyphs and progress bars sit on the page and card backgrounds.
+  ...['--success', '--danger', '--warning', '--neutral'].flatMap((seg) => [
+    ['--bg', seg, 4.5],
+    [seg, '--bg', 4.5],
+    [seg, '--surface', 4.5],
+    [seg, '--surface-alt', 4.5],
+  ]),
+  ['--link', '--surface-hover', 4.5],
 );
 
 function stripComments(css) {

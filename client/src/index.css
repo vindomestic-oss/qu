@@ -54,6 +54,7 @@
   --danger: #c62828; /* 5.62 on --bg */
   --success: #2e7d32; /* 5.13 on --bg */
   --warning: #8a5a00; /* 5.93 on --bg */
+  --neutral: #5f6b7a; /* grading bar "awaiting submission": 5.43 on --bg; --bg text on it 5.43 */
   --selected-bg: #e8eef8;
   --selected-text: #1c4179; /* 8.66 on --selected-bg */
   --selected-border: #27589f; /* --selected-bg vs --button-bg 6.04 */
@@ -107,6 +108,7 @@
   --danger: #ff8a80; /* 8.08 on --bg, 6.32 on --surface-alt */
   --success: #81d99a; /* 10.83 on --bg, 8.47 on --surface-alt */
   --warning: #f5c26b; /* 11.26 on --bg */
+  --neutral: #aab3bf; /* 8.71 on --bg; --bg text on it 8.71 */
   --selected-bg: #dbe7fb;
   --selected-text: #12305c; /* 10.50 on --selected-bg */
   --selected-border: #8fb8f5; /* --selected-bg vs --button-bg 3.99 */

@@ -7,6 +7,7 @@ import { useStaffLive } from '../../lib/useStaffLive';
 import { useLiveStatus } from '../../lib/useLiveStatus';
 import { LiveMonitor } from './LiveMonitor';
 import { JoinLinkActions } from './JoinLinkActions';
+import { GraderAccessDialog } from './GraderAccessDialog';
 import { JoinQrCode } from '../JoinQrCode';
 import { displayHost, formatJoinCode } from '../../lib/joinLink';
 import { formatCountdown } from '../../lib/time';
@@ -24,6 +25,7 @@ export function SessionPanel({ quizId, initialSession, onSessionEnded, onSession
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [now, setNow] = useState(() => Date.now());
+  const [graderAccessOpen, setGraderAccessOpen] = useState(false);
   const onSessionEndedRef = useRef(onSessionEnded);
   const onSessionChangedRef = useRef(onSessionChanged);
   useEffect(() => {
@@ -199,6 +201,19 @@ export function SessionPanel({ quizId, initialSession, onSessionEnded, onSession
     );
   }
 
+  // Grading (wish 8): the panel for admins, and access links for other graders.
+  function gradingTools(s: QuizSession) {
+    return (
+      <>
+        <Link to={`/grade/${s.id}`}>Grading panel</Link>{' '}
+        <button type="button" onClick={() => setGraderAccessOpen(true)}>
+          Grader access
+        </button>
+        <GraderAccessDialog sessionId={s.id} open={graderAccessOpen} onClose={() => setGraderAccessOpen(false)} />
+      </>
+    );
+  }
+
   // Names stay in a collapsed block, so they are not shown if someone projects the editor (Q-names).
   function joinedAndDetails(s: QuizSession) {
     return (
@@ -248,7 +263,7 @@ export function SessionPanel({ quizId, initialSession, onSessionEnded, onSession
             End early
           </button>{' '}
           {hostTools(session)}{' '}
-          <Link to={`/admin/sessions/${session.id}/results`}>Grade finished participants</Link>
+          {gradingTools(session)}
           {joinedAndDetails(session)}
         </div>
       )}
@@ -256,7 +271,7 @@ export function SessionPanel({ quizId, initialSession, onSessionEnded, onSession
       {session && session.status === 'ended' && (
         <div>
           <p>Session ended.</p>
-          <Link to={`/admin/sessions/${session.id}/results`}>View results / grade answers</Link>
+          <Link to={`/admin/sessions/${session.id}/results`}>View results</Link> {gradingTools(session)}
           <div style={{ marginTop: 8 }}>
             <button onClick={handleCreateOrShow} disabled={busy}>
               Start a new session

@@ -13,7 +13,8 @@ export interface SessionRow {
   joining_locked: number;
 }
 
-const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no O/0/I/1 to avoid ambiguity
+/** Join and grader codes: no O/0/I/1 to avoid ambiguity (32 characters, 5 bits each). */
+export const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
 function generateJoinCode(): string {
   let code = '';

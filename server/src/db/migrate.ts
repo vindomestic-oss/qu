@@ -3,6 +3,7 @@ import { CONTENT_LANGS, isQuizLang } from '../lib/languages';
 import { computeUsedLanguages } from '../lib/quizLanguages';
 import { CHIDON_5787_ANFAENGER_TITLE, CHIDON_5787_FORTGESCHRITTENE_TITLE } from './quizTitles';
 import { backfillSeededSections } from './chidonSections';
+import { CHIDON_ANSWER_KEYS } from './chidonAnswerKey';
 
 const ADDED_COLUMNS: Record<string, { name: string; type: string }[]> = {
   // ISO time; admin tokens issued before it are rejected (set on creation and on every password change).
@@ -14,11 +15,19 @@ const ADDED_COLUMNS: Record<string, { name: string; type: string }[]> = {
     // JSON array of the languages the author declared (base first, then display order); NULL until
     // backfilled below. Participants are offered only declared languages that are complete.
     { name: 'content_languages', type: 'TEXT' },
+    // Points a new question starts with in the editor (integers and halves).
+    { name: 'default_points', type: 'REAL NOT NULL DEFAULT 1' },
   ],
   questions: [
     ...CONTENT_LANGS.map((lang) => ({ name: `text_${lang}`, type: 'TEXT' })),
     // The question's rubric (S11); NULL = none. Deleting the rubric keeps the question.
     { name: 'section_id', type: 'INTEGER REFERENCES quiz_sections(id) ON DELETE SET NULL' },
+    // Text questions only (NULL for choice types); for graders, never in participant payloads.
+    { name: 'reference_answer', type: 'TEXT' },
+    // JSON array of accepted variants (≤ 30 strings ≤ 120 chars); filled by the answer-key backfill,
+    // edited and used for matching from S13.
+    { name: 'accepted_answers', type: 'TEXT' },
+    { name: 'grader_notes', type: 'TEXT' },
   ],
   choices: CONTENT_LANGS.map((lang) => ({ name: `text_${lang}`, type: 'TEXT' })),
   participants: [
@@ -132,4 +141,26 @@ export function runMigrations(db: Database.Database) {
   db.exec('CREATE INDEX IF NOT EXISTS idx_questions_section ON questions(section_id)');
   // Rubrics of the seeded Chidon quizzes; skips quizzes that already have any (later boots: no-op).
   backfillSeededSections(db);
+  const filled = backfillAnswerKeys(db);
+  if (filled.some((n) => n > 0)) {
+    console.log(`Chidon answer keys filled: ${CHIDON_ANSWER_KEYS.map((k, i) => `${k.name} ${filled[i]}`).join(', ')}`);
+  }
+}
+
+/**
+ * Model answers of the seeded Chidon quizzes (chidonAnswerKey.ts) for text questions that have none
+ * yet, matched by the exact question text. Guarded by IS NULL: a later boot, or an answer the author
+ * edited, is never overwritten. Returns the rows filled per key (30 / 10 / 10 on a database holding
+ * all three quizzes the first time, then 0 / 0 / 0).
+ */
+export function backfillAnswerKeys(db: Database.Database): number[] {
+  const fill = db.prepare(
+    `UPDATE questions SET reference_answer = ?, accepted_answers = ?, grader_notes = coalesce(grader_notes, ?)
+     WHERE type = 'text' AND text = ? AND reference_answer IS NULL`,
+  );
+  return db.transaction(() =>
+    CHIDON_ANSWER_KEYS.map(({ entries }) =>
+      entries.reduce((n, e) => n + fill.run(e.reference, JSON.stringify(e.accepted), e.notes ?? null, e.text).changes, 0),
+    ),
+  )();
 }

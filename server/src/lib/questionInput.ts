@@ -22,7 +22,13 @@ export interface QuestionInput {
   /** The question's rubric. Absent = not sent (a new question gets none, an edit keeps the stored
    *  one); null = no rubric; a number = that rubric (the route checks it belongs to the quiz). */
   section_id?: number | null;
+  /** Text questions only (wish 8): the graders' model answer and notes. undefined = the key was not
+   *  sent, so the stored value stays; '' = cleared. Always undefined for choice types (stored as NULL). */
+  reference_answer?: string;
+  grader_notes?: string;
 }
+
+export const GRADER_FIELD_MAX = 2000;
 
 export function optionalText(v: unknown): string | null {
   return typeof v === 'string' && v.trim() ? v.trim() : null;
@@ -69,7 +75,16 @@ export function parseQuestionInput(body: any): QuestionInput | { error: string }
   if ('error' in section) return section;
 
   if (type === 'text') {
-    return { type, text: text.trim(), translations, points: parsedPoints, choices: [], ...section };
+    const graderFields: Pick<QuestionInput, 'reference_answer' | 'grader_notes'> = {};
+    for (const key of ['reference_answer', 'grader_notes'] as const) {
+      const v = body?.[key];
+      if (v === undefined) continue;
+      if (v !== null && typeof v !== 'string') return { error: `${key} must be a string` };
+      const trimmed = (v ?? '').trim();
+      if (trimmed.length > GRADER_FIELD_MAX) return { error: `${key} must be at most ${GRADER_FIELD_MAX} characters` };
+      graderFields[key] = trimmed;
+    }
+    return { type, text: text.trim(), translations, points: parsedPoints, choices: [], ...section, ...graderFields };
   }
 
   if (!Array.isArray(choices) || choices.length < 2) {

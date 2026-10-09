@@ -14,6 +14,7 @@ import {
 } from '../lib/quizLanguages';
 import { baseOf, declaredLanguagesOf, getQuizWithQuestions as loadQuiz } from '../lib/quizPayload';
 import { createSection, parseSectionInput, reorderSections, SECTION_NOT_IN_QUIZ, sectionBelongsToQuiz } from '../lib/sections';
+import { isValidPoints, roundPoints } from '../lib/grading';
 
 export const quizzesRouter = Router();
 
@@ -23,6 +24,14 @@ quizzesRouter.use(requireAdmin);
 function getQuizWithQuestions(quizId: number) {
   return loadQuiz(db, quizId);
 }
+
+/** quizzes.default_points from a request body: undefined when absent, null when invalid. */
+function parseDefaultPoints(v: unknown): number | undefined | null {
+  if (v === undefined) return undefined;
+  const n = typeof v === 'string' && v.trim() ? Number(v) : v;
+  return isValidPoints(n) ? roundPoints(n) : null;
+}
+const DEFAULT_POINTS_ERROR = 'default_points must be a positive whole or half number (0.5, 1, 1.5, …) of at most 100';
 
 /** The stored declared list of a quiz, or the languages it has text in when nothing is stored yet. */
 function declaredLanguages(quizId: number, base: QuizLang, raw: unknown): QuizLang[] {
@@ -69,6 +78,9 @@ quizzesRouter.post('/', (req: AuthedRequest, res) => {
     return res.status(400).json({ error: `base_language must be one of: en, ${CONTENT_LANGS.join(', ')}` });
   }
 
+  const defaultPoints = parseDefaultPoints(req.body?.default_points);
+  if (defaultPoints === null) return res.status(400).json({ error: DEFAULT_POINTS_ERROR });
+
   const titleTranslations = extractTranslations(req.body, 'title');
   const descriptionTranslations = extractTranslations(req.body, 'description');
   // Declared from the start: the base plus every language whose title or description was filled in.
@@ -85,6 +97,7 @@ quizzesRouter.post('/', (req: AuthedRequest, res) => {
     'created_by',
     'base_language',
     'content_languages',
+    'default_points',
   ];
   const placeholders = columns.map(() => '?').join(', ');
 
@@ -99,6 +112,7 @@ quizzesRouter.post('/', (req: AuthedRequest, res) => {
       req.admin!.adminId,
       baseLanguage,
       JSON.stringify(contentLanguages ?? [baseLanguage]),
+      defaultPoints ?? 1,
     );
 
   const quiz = getQuizWithQuestions(Number(result.lastInsertRowid));
@@ -131,6 +145,10 @@ quizzesRouter.put('/:id', (req, res) => {
     return res.status(400).json({ error: `base_language must be one of: en, ${CONTENT_LANGS.join(', ')}` });
   }
 
+  // Absent = keep the stored value (older editors do not send it).
+  const defaultPoints = parseDefaultPoints(req.body?.default_points);
+  if (defaultPoints === null) return res.status(400).json({ error: DEFAULT_POINTS_ERROR });
+
   const titleTranslations = extractTranslations(req.body, 'title');
   const descriptionTranslations = extractTranslations(req.body, 'description');
   const setClauses = [
@@ -149,6 +167,10 @@ quizzesRouter.put('/:id', (req, res) => {
     timeLimit,
     baseLanguage,
   ];
+  if (defaultPoints !== undefined) {
+    setClauses.push('default_points = ?');
+    values.push(defaultPoints);
+  }
   const oldBase = baseOf(existing);
   db.transaction(() => {
     const declared = declaredLanguages(quizId, oldBase, existing.content_languages);
@@ -224,10 +246,31 @@ quizzesRouter.post('/:id/questions', (req, res) => {
       .prepare('SELECT COUNT(*) as count FROM questions WHERE quiz_id = ?')
       .get(quizId) as { count: number };
 
-    const questionColumns = ['quiz_id', 'sort_order', 'type', 'text', ...translationColumns('text'), 'points', 'section_id'];
+    // Model answer and notes: text questions only (undefined for choice types).
+    const questionColumns = [
+      'quiz_id',
+      'sort_order',
+      'type',
+      'text',
+      ...translationColumns('text'),
+      'points',
+      'section_id',
+      'reference_answer',
+      'grader_notes',
+    ];
     const result = db
       .prepare(`INSERT INTO questions (${questionColumns.join(', ')}) VALUES (${questionColumns.map(() => '?').join(', ')})`)
-      .run(quizId, count, parsed.type, parsed.text, ...translationValues(parsed.translations), parsed.points, parsed.section_id ?? null);
+      .run(
+        quizId,
+        count,
+        parsed.type,
+        parsed.text,
+        ...translationValues(parsed.translations),
+        parsed.points,
+        parsed.section_id ?? null,
+        parsed.reference_answer || null,
+        parsed.grader_notes || null,
+      );
     const questionId = Number(result.lastInsertRowid);
 
     const choiceColumns = ['question_id', 'text', ...translationColumns('text'), 'is_correct', 'sort_order'];

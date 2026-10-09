@@ -34,9 +34,9 @@ export function declaredLanguagesOf(row: { base_language?: unknown; content_lang
 
 /**
  * The admin editor's view of a quiz: every quiz column, its rubrics (`sections`, in order), its
- * questions with choices (in order, each with its section_id), and the language fields as parsed
+ * questions with choices (in order, each with its section_id), the language fields as parsed
  * arrays: content_languages (declared), offered_languages (what participants see) and
- * missing_by_language. The only copy of this function.
+ * missing_by_language, plus total_points (the sum of the questions' points). The only copy of this function.
  */
 export function getQuizWithQuestions(db: Database.Database, quizId: number) {
   const quiz = db.prepare('SELECT * FROM quizzes WHERE id = ?').get(quizId) as QuizRow | undefined;
@@ -51,8 +51,12 @@ export function getQuizWithQuestions(db: Database.Database, quizId: number) {
     choices: q.type === 'text' ? [] : choiceStmt.all(q.id),
   }));
 
+  // Rounded to one decimal for display; points are integers and halves (wish 8).
+  const totalPoints = Math.round(questions.reduce((sum, q) => sum + Number(q.points ?? 0), 0) * 10) / 10;
+
   return {
     ...quiz,
+    total_points: totalPoints,
     base_language: info.base_language,
     content_languages: info.content_languages,
     offered_languages: info.offered,

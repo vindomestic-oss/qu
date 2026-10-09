@@ -7,6 +7,8 @@ export interface QuizMetaInput extends Partial<WithTranslationInputs<'title'>>, 
   description: string;
   time_limit_seconds: number;
   base_language?: QuizLang;
+  /** Points a new question starts with; omitted = keep. */
+  default_points?: number;
 }
 
 export function listQuizzes() {

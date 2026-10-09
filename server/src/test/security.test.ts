@@ -9,6 +9,8 @@ import { questionsRouter } from '../routes/questions';
 import { sessionsRouter } from '../routes/sessions';
 import { adminRouter } from '../routes/admin';
 import { sectionsRouter } from '../routes/sections';
+import { gradingRouter } from '../routes/grading';
+import { nowIso } from '../lib/time';
 import {
   createAdmin,
   createQuizFixture,
@@ -52,11 +54,26 @@ const EXPECTED_ADMIN_ROUTES = [
   'PUT /api/sessions/:id/end',
   'GET /api/sessions/:id/live',
   'GET /api/sessions/:id/results',
-  'PUT /api/sessions/:id/answers/:answerId/grade',
   'PUT /api/sessions/:id/participants/:participantId/allow-rejoin',
   'PUT /api/sessions/:id/joining',
+  'POST /api/sessions/:id/grader-links',
+  'GET /api/sessions/:id/grader-links',
+  'DELETE /api/sessions/:id/grader-links/:linkId',
   'GET /api/admin/backups',
   'GET /api/admin/backups/latest',
+].sort();
+
+/**
+ * Every grading-panel route (wish 8). Admins and the grader of THIS session only; checked against
+ * every other token kind below, like the admin routes.
+ */
+const EXPECTED_GRADING_ROUTES = [
+  'GET /api/grading/:sessionId/summary',
+  'GET /api/grading/:sessionId/participants/:participantId',
+  'GET /api/grading/:sessionId/quiz',
+  'GET /api/grading/:sessionId/answers',
+  'PUT /api/grading/:sessionId/answers/:answerId',
+  'POST /api/grading/:sessionId/answers/bulk-grade',
 ].sort();
 
 const FORBIDDEN_KEYS = [
@@ -185,6 +202,7 @@ describe('route coverage', () => {
       const path = pattern
         .replace(':answerId', String(answerId))
         .replace(':participantId', String(participantId))
+        .replace(':linkId', '1')
         .replace(':id', String(idFor[mount]));
       for (const v of variants) {
         const body =
@@ -197,6 +215,82 @@ describe('route coverage', () => {
       }
     }
 
+    assert.deepEqual(snapshot(), beforeState);
+  });
+
+  test('the grading table lists every grading route', () => {
+    assert.deepEqual(collectRoutes(gradingRouter, '/api/grading/:sessionId').sort(), EXPECTED_GRADING_ROUTES);
+  });
+
+  test('every grading route rejects missing, foreign, forged and revoked tokens without side effects', async () => {
+    const other = createQuizFixture(adminId, 'Coverage quiz B');
+    const linkFor = (sessionId: number) =>
+      Number(
+        db
+          .prepare('INSERT INTO grader_links (session_id, code_hash, created_at, expires_at) VALUES (?, ?, ?, ?)')
+          .run(sessionId, `hash-${sessionId}-${Math.random()}`, new Date(Date.now() - 60_000).toISOString(), new Date(Date.now() + 3_600_000).toISOString())
+          .lastInsertRowid,
+      );
+    const otherLink = linkFor(other.sessionId);
+    const revokedLink = linkFor(fx.sessionId);
+    db.prepare('UPDATE grader_links SET revoked_at = ? WHERE id = ?').run(nowIso(), revokedLink);
+    const snapshot = () => ({
+      counts: tableCounts(),
+      answer: db.prepare('SELECT points_awarded, grade_version FROM answers WHERE id = ?').get(answerId),
+      events: (db.prepare('SELECT COUNT(*) AS n FROM grade_events').get() as { n: number }).n,
+    });
+    const beforeState = snapshot();
+    const variants: { name: string; token?: string; status: number; code: string }[] = [
+      { name: 'no token', status: 401, code: 'AUTH_REQUIRED' },
+      { name: 'participant token', token: participantToken, status: 403, code: 'FORBIDDEN' },
+      {
+        name: 'legacy participant token',
+        token: sign({ participantId, sessionId: fx.sessionId, displayName: 'Coverage Kid' }),
+        status: 403,
+        code: 'FORBIDDEN',
+      },
+      {
+        name: 'grader token of another session',
+        token: sign({ role: 'grader', sessionId: other.sessionId, linkId: otherLink, graderName: 'G' }),
+        status: 403,
+        code: 'FORBIDDEN',
+      },
+      {
+        name: 'grader token of a revoked link',
+        token: sign({ role: 'grader', sessionId: fx.sessionId, linkId: revokedLink, graderName: 'G' }),
+        status: 401,
+        code: 'INVALID_TOKEN',
+      },
+      {
+        name: 'grader token of a link that does not exist',
+        token: sign({ role: 'grader', sessionId: fx.sessionId, linkId: 999_999, graderName: 'G' }),
+        status: 401,
+        code: 'INVALID_TOKEN',
+      },
+      {
+        name: 'token signed with another secret',
+        token: sign({ role: 'admin', adminId, username: 'admin' }, 'another-secret'),
+        status: 401,
+        code: 'INVALID_TOKEN',
+      },
+      { name: 'unsigned token', token: unsignedToken({ role: 'admin', adminId, username: 'admin' }), status: 401, code: 'INVALID_TOKEN' },
+    ];
+    for (const route of EXPECTED_GRADING_ROUTES) {
+      const [method, pattern] = route.split(' ');
+      const path = pattern
+        .replace(':sessionId', String(fx.sessionId))
+        .replace(':participantId', String(participantId))
+        .replace(':answerId', String(answerId));
+      for (const v of variants) {
+        const body =
+          method === 'GET'
+            ? undefined
+            : { is_correct: true, points_awarded: 1, expected_version: 0, items: [{ answer_id: answerId, expected_version: 0 }] };
+        const r = await request(base, method, path, v.token, body);
+        assert.equal(r.status, v.status, `${route} with ${v.name}: expected ${v.status}, got ${r.status}`);
+        assert.equal(r.body?.code, v.code, `${route} with ${v.name}: code`);
+      }
+    }
     assert.deepEqual(snapshot(), beforeState);
   });
 });
@@ -337,6 +431,10 @@ describe('no correctness before release', () => {
   });
 
   test('active session: quiz and saves reveal nothing, results are closed', async () => {
+    // Graders' fields filled in, so a leak would show (wish 8).
+    db.prepare(`UPDATE questions SET reference_answer = 'secret', accepted_answers = '["secret"]', grader_notes = 'note' WHERE id = ?`).run(
+      fx.textQuestionId,
+    );
     assert.equal((await request(base, 'PUT', `/api/sessions/${fx.sessionId}/start`, adminToken)).status, 200);
 
     const quiz = await request(base, 'GET', '/api/my/quiz', token);
@@ -356,10 +454,11 @@ describe('no correctness before release', () => {
     assert.equal((await request(base, 'GET', '/api/my/results', token)).status, 400);
   });
 
-  test('ended session: results include correctness', async () => {
+  test('ended session: results include correctness, never the graders\' fields', async () => {
     assert.equal((await request(base, 'PUT', `/api/sessions/${fx.sessionId}/end`, adminToken)).status, 200);
     const r = await request(base, 'GET', '/api/my/results', token);
     assert.equal(r.status, 200);
     assert.ok(findKeys(r.body, ['is_correct']).length > 0);
+    assert.deepEqual(findKeys(r.body, ['reference_answer', 'accepted_answers', 'grader_notes', 'graded_by', 'grade_version']), []);
   });
 });

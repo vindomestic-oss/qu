@@ -1,7 +1,7 @@
 import type Database from 'better-sqlite3';
 import type { QuestionInput } from './questionInput';
 import { translationColumns, translationValues } from './sqlTranslations';
-import { gradeChoiceAnswer } from './grading';
+import { gradeChoiceAnswer, insertGradeEvent } from './grading';
 import { SECTION_NOT_IN_QUIZ, sectionBelongsToQuiz } from './sections';
 
 // Imports only better-sqlite3 types and lib modules, never '../db' (that module opens quiz.db on import).
@@ -66,11 +66,15 @@ function parseSelected(raw: string | null): number[] {
  * same transaction (wish 8): automatic grades are recomputed, except answers that selected a choice
  * which no longer exists (kept as graded); human grades that had full points move to the new
  * maximum, other human grades are clamped to it, and a grade at the maximum counts as correct.
+ * Every grade it changes gets a grade_events row ('regrade_points') in the same transaction.
+ * Model-answer fields (wish 8) apply to text questions only and are cleared for choice types.
  */
 export function updateQuestionWithChoices(
   db: Database.Database,
   questionId: number,
   parsed: QuestionInput,
+  /** Who saved the question, for the grade_events rows of a regrade (e.g. 'admin:alex'). */
+  actor: string | null = null,
 ): QuestionWriteResult {
   const run = db.transaction((): QuestionWriteResult => {
     const question = db.prepare('SELECT id, quiz_id, type, points FROM questions WHERE id = ?').get(questionId) as
@@ -106,12 +110,25 @@ export function updateQuestionWithChoices(
       'points = ?',
       ...(sendsSection ? ['section_id = ?'] : []),
     ];
+    const graderValues: (string | null)[] = [];
+    if (isText) {
+      // A grader field that was not sent keeps its stored value; a cleared one is stored as ''.
+      for (const key of ['reference_answer', 'grader_notes'] as const) {
+        if (parsed[key] === undefined) continue;
+        setClauses.push(`${key} = ?`);
+        graderValues.push(parsed[key]!);
+      }
+    } else {
+      // Model answers belong to text questions only.
+      setClauses.push('reference_answer = NULL', 'accepted_answers = NULL', 'grader_notes = NULL');
+    }
     db.prepare(`UPDATE questions SET ${setClauses.join(', ')} WHERE id = ?`).run(
       parsed.type,
       parsed.text,
       ...translationValues(parsed.translations),
       parsed.points,
       ...(sendsSection ? [parsed.section_id ?? null] : []),
+      ...graderValues,
       questionId,
     );
 
@@ -183,6 +200,16 @@ export function updateQuestionWithChoices(
       }
       if (!next || (next.isCorrect === a.is_correct && samePoints(next.points, a.points_awarded))) continue;
       setGrade.run(next.isCorrect, next.points, a.id);
+      insertGradeEvent(db, {
+        answerId: a.id,
+        sessionId: a.session_id,
+        actor,
+        action: 'regrade_points',
+        oldPoints: a.points_awarded,
+        newPoints: next.points,
+        isCorrect: next.isCorrect,
+        gradeSource: a.grade_source,
+      });
       const ids = result.regradedBySession.get(a.session_id) ?? [];
       ids.push(a.id);
       result.regradedBySession.set(a.session_id, ids);

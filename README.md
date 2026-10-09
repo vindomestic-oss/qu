@@ -73,8 +73,16 @@ Open `http://localhost:4000`.
 - Restore without touching the live file: copy a backup next to it (e.g. `/var/data/restore-2026-10-20.db`), point `QUIZ_DB_PATH` at the copy and restart.
 - `server/.env` holds the signing secret for login tokens (`JWT_SECRET`) and, locally, the seed admin credentials. It's gitignored — don't delete/regenerate it while a quiz is actively running, or existing logins will be invalidated (harmless, just re-login).
 
+## Grading answers
+
+- Open answers are graded in the grading panel at `/grade/<sessionId>` ("Grading panel" in the quiz editor's Live Session block, on the results page and in the session history). Answers become gradable once the participant has pressed "Finish and submit", or when the session ends.
+- "Grader access" creates a code, link and QR for one session (valid 1, 7 or 30 days after the quiz ends, revocable at any time). Graders open `/g/<code>` or type the code on `/grade`, enter their name and can only read and grade that session; they see participants as numbers, never by name. Never show this QR on the projector: the code reveals the correct answers.
+- The seeded Chidon quizzes carry model answers for all their open questions (`server/src/db/chidonAnswerKey.ts`; existing databases are filled on the next start).
+- Environment: `PUBLIC_BASE_URL` (the address grader links point to; set in `render.yaml`, unset locally, where the request's host is used) and `TRUST_PROXY_HOPS` (default `0`; proxy hops in front of the app, used for the rate limit on grader codes).
+- `seed-chidon-quiz.mjs` in the repository root is legacy (it seeds through the API, without model answers); the server's own seed (`npm run seed`) creates the Chidon quizzes.
+
 ## Notes on scale/behavior
 
 - Built for casual/classroom-scale use (~100 participants), one quiz session active per quiz at a time.
 - Session timing is server-enforced and synced across all participants via Socket.IO; ending the quiz (by admin, or automatically when time runs out) is authoritative even if a participant's own clock drifts.
-- Text-answer questions require manual grading by the admin after the session ends (session results page); single/multiple-choice are auto-graded on submission.
+- Text-answer questions are graded by hand in the grading panel (see above); single/multiple-choice are auto-graded on submission and can be overridden there.

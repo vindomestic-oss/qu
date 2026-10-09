@@ -3,9 +3,17 @@ import { db } from '../db';
 import { requireAdmin, AuthedRequest } from '../middleware/jwt';
 import { finalizeSession, getSession, SessionRow } from '../lib/sessions';
 import { clearSessionTimer, scheduleSessionEnd } from '../lib/sessionTimers';
-import { ANSWERED_SQL, isValidPoints, roundPoints } from '../lib/grading';
+import { ANSWERED_SQL } from '../lib/grading';
 import { nowIso } from '../lib/time';
-import { broadcastLiveUpdate, broadcastSessionUpdate } from '../socket';
+import { broadcastLiveUpdate, broadcastSessionUpdate, disconnectGraderLink } from '../socket';
+import {
+  formatGraderCode,
+  generateGraderCode,
+  GRADER_LABEL_MAX,
+  GRADER_LINK_DAYS,
+  graderLinkExpiry,
+  hashGraderCode,
+} from '../lib/graderLinks';
 
 export const sessionsRouter = Router();
 sessionsRouter.use(requireAdmin);
@@ -199,38 +207,73 @@ sessionsRouter.get('/:id/results', (req, res) => {
   res.json({ session, quiz, questions: questionsOut, participants, answers });
 });
 
-// Replaced by the grading panel's API in S12.
-sessionsRouter.put('/:id/answers/:answerId/grade', (req: AuthedRequest, res) => {
+// --- Grader links (wish 8) ----------------------------------------------------------------------
+// Grading is done on /api/grading/:sessionId (routes/grading.ts); the old
+// PUT /api/sessions/:id/answers/:answerId/grade was removed with S12.
+
+const LINK_COLUMNS = 'id, label, created_at, expires_at, revoked_at, last_used_at';
+
+/** Where a grader link points: PUBLIC_BASE_URL on Render (TLS ends at the proxy), else this request's host. */
+function publicBaseUrl(req: { protocol: string; get(name: string): string | undefined }): string {
+  const configured = process.env.PUBLIC_BASE_URL?.trim().replace(/\/+$/, '');
+  return configured || `${req.protocol}://${req.get('host')}`;
+}
+
+// Creates a grader link. The plain code is in this response only; the database keeps its sha256.
+sessionsRouter.post('/:id/grader-links', (req: AuthedRequest, res) => {
   const session = getSession(Number(req.params.id));
   if (!session) return res.status(404).json({ error: 'Session not found' });
-
-  const answer = db.prepare('SELECT * FROM answers WHERE id = ? AND session_id = ?').get(
-    Number(req.params.answerId),
-    session.id,
-  ) as AnswerRow | undefined;
-  if (!answer) return res.status(404).json({ error: 'Answer not found in this session' });
-
-  const question = db.prepare('SELECT * FROM questions WHERE id = ?').get(answer.question_id) as
-    | QuestionRow
-    | undefined;
-  if (!question || question.type !== 'text') {
-    return res.status(400).json({ error: 'Only text answers can be graded manually' });
+  const { label, expires_in_days } = req.body ?? {};
+  if (label !== undefined && label !== null && typeof label !== 'string') {
+    return res.status(400).json({ error: 'label must be a string' });
+  }
+  const cleanLabel = typeof label === 'string' ? label.trim() : '';
+  if (cleanLabel.length > GRADER_LABEL_MAX) {
+    return res.status(400).json({ error: `label must be at most ${GRADER_LABEL_MAX} characters` });
+  }
+  const days = expires_in_days === undefined || expires_in_days === null ? 7 : expires_in_days;
+  if (!(GRADER_LINK_DAYS as readonly unknown[]).includes(days)) {
+    return res.status(400).json({ error: 'expires_in_days must be 1, 7 or 30' });
   }
 
-  const rawPoints = req.body?.points_awarded;
-  const parsedPoints = typeof rawPoints === 'string' && rawPoints.trim() ? Number(rawPoints) : rawPoints;
-  // Whole and half points only (decision Q-points-step).
-  if (!isValidPoints(parsedPoints, { allowZero: true }) || parsedPoints > question.points) {
-    return res.status(400).json({ error: `points_awarded must be a whole or half number between 0 and ${question.points}` });
+  const code = generateGraderCode();
+  const createdAt = nowIso();
+  const expiresAt = graderLinkExpiry(session.ends_at, days);
+  const id = Number(
+    db
+      .prepare(
+        'INSERT INTO grader_links (session_id, code_hash, label, created_by, created_at, expires_at) VALUES (?, ?, ?, ?, ?, ?)',
+      )
+      .run(session.id, hashGraderCode(code), cleanLabel || null, req.admin!.adminId, createdAt, expiresAt).lastInsertRowid,
+  );
+  res.setHeader('Cache-Control', 'no-store');
+  res.status(201).json({
+    link: { id, label: cleanLabel || null, created_at: createdAt, expires_at: expiresAt },
+    code: formatGraderCode(code),
+    url: `${publicBaseUrl(req)}/g/${code}`,
+  });
+});
+
+sessionsRouter.get('/:id/grader-links', (req, res) => {
+  const session = getSession(Number(req.params.id));
+  if (!session) return res.status(404).json({ error: 'Session not found' });
+  const links = db.prepare(`SELECT ${LINK_COLUMNS} FROM grader_links WHERE session_id = ? ORDER BY id DESC`).all(session.id);
+  res.json({ links });
+});
+
+// Revokes a link at once: every grading request reads the link row, and its open panels are disconnected.
+sessionsRouter.delete('/:id/grader-links/:linkId', async (req, res, next) => {
+  try {
+    const sessionId = Number(req.params.id);
+    const linkId = Number(req.params.linkId);
+    const link = db.prepare('SELECT id, revoked_at FROM grader_links WHERE id = ? AND session_id = ?').get(linkId, sessionId) as
+      | { id: number; revoked_at: string | null }
+      | undefined;
+    if (!link) return res.status(404).json({ error: 'Grader link not found in this session' });
+    if (!link.revoked_at) db.prepare('UPDATE grader_links SET revoked_at = ? WHERE id = ?').run(nowIso(), linkId);
+    await disconnectGraderLink(sessionId, linkId);
+    res.json({ link: db.prepare(`SELECT ${LINK_COLUMNS} FROM grader_links WHERE id = ?`).get(linkId) });
+  } catch (err) {
+    next(err);
   }
-  const pointsAwarded = roundPoints(parsedPoints);
-
-  const isCorrect = pointsAwarded >= question.points ? 1 : 0;
-  db.prepare(
-    `UPDATE answers SET points_awarded = ?, is_correct = ?, graded_at = ?, graded_by = ?, grade_source = 'human',
-       grade_version = grade_version + 1
-     WHERE id = ?`,
-  ).run(pointsAwarded, isCorrect, nowIso(), `admin:${req.admin!.username}`, answer.id);
-
-  res.json({ answer: { ...answer, points_awarded: pointsAwarded, is_correct: isCorrect } });
 });
