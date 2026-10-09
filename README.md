@@ -15,15 +15,19 @@ npm run install-all   # installs both server and client dependencies
 npm run seed          # creates the admin account
 ```
 
-The seed script creates an admin with username `admin` and a built-in local-development-only default password (see `server/src/db/seed.ts`), unless overridden — see below. **This only runs once**: if an admin already exists it does nothing, so to set a specific username/password up front, set env vars before seeding:
+The seed creates the admin from `ADMIN_USERNAME` (default `admin`) and `ADMIN_PASSWORD`. Locally, put both in `server/.env` (the seed loads that file); without `ADMIN_PASSWORD` it falls back to a local-development-only default and prints a warning.
+
+In production (on Render, or with `NODE_ENV=production`) the seed refuses to start unless `ADMIN_PASSWORD` is strong: 12+ characters and not the development default. Set it in the Render dashboard (service → Environment).
+
+To change the password, set a new `ADMIN_PASSWORD` and re-run `npm run seed` (on Render: redeploy). The seed updates the stored hash and signs out every admin login made before the change. The password is never written to the log.
+
+## Tests
 
 ```sh
-ADMIN_USERNAME=myname ADMIN_PASSWORD=mypassword npm run seed
+npm test --prefix server   # node:test: token checks on every admin route, socket rooms, seed password guard
 ```
 
-In production (on Render), `ADMIN_PASSWORD` must be set to a strong password (12+ characters, not the local default) or the server refuses to start.
-
-To change the password later, set a new `ADMIN_PASSWORD` and re-run `npm run seed` (or redeploy on Render) — it updates the existing admin's password instead of skipping.
+The tests use an in-memory database and never read `server/.env`. The browser test `e2e-test.mjs` runs against a local dev server (`E2E_BASE_URL`, `E2E_ADMIN_PASSWORD`; `PW_CHANNEL` picks the browser, default `msedge`, empty for Playwright's bundled Chromium).
 
 ## Running it
 
@@ -60,7 +64,7 @@ Open `http://localhost:4000`.
 
 ## Data & backups
 
-- All data lives in `server/quiz.db` (a single SQLite file) and uploaded question images in `server/uploads/`. Back up both together; they're not tied to any external service.
+- All data lives in `server/quiz.db` (a single SQLite file; `QUIZ_DB_PATH` moves it) and uploaded question images in `server/uploads/`. Back up both together; they're not tied to any external service.
 - `server/.env` holds the signing secret for login tokens (`JWT_SECRET`) and the seed admin credentials. It's already generated and gitignored — don't delete/regenerate it while a quiz is actively running, or existing logins will be invalidated (harmless, just re-login).
 
 ## Notes on scale/behavior

@@ -2,6 +2,8 @@ import Database from 'better-sqlite3';
 import { CONTENT_LANGS } from '../lib/languages';
 
 const ADDED_COLUMNS: Record<string, { name: string; type: string }[]> = {
+  // ISO time; admin tokens issued before it are rejected (set on creation and on every password change).
+  admins: [{ name: 'tokens_valid_after', type: 'TEXT' }],
   quizzes: [
     ...CONTENT_LANGS.map((lang) => ({ name: `title_${lang}`, type: 'TEXT' })),
     ...CONTENT_LANGS.map((lang) => ({ name: `description_${lang}`, type: 'TEXT' })),

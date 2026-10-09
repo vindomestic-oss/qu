@@ -14,5 +14,7 @@ export function getSocket(): Socket {
 export function joinSessionRoom(sessionId: number, as: 'admin' | 'participant'): void {
   const token = as === 'admin' ? getToken() : getParticipantToken();
   if (!token) return;
-  getSocket().emit('session:join', { sessionId, token });
+  getSocket().emit('session:join', { sessionId, token }, (r?: { ok: boolean; error?: string }) => {
+    if (!r?.ok) console.warn('session:join refused', r?.error);
+  });
 }

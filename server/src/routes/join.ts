@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { db } from '../db';
 import { refreshSessionStatus, SessionRow } from '../lib/sessions';
-import { signParticipantToken } from '../middleware/participantAuth';
+import { signParticipantToken } from '../middleware/jwt';
 import { broadcastLiveUpdate } from '../socket';
 
 export const joinRouter = Router();

@@ -1,16 +1,21 @@
 import { Router } from 'express';
 import { db } from '../db';
-import { requireParticipant, ParticipantRequest } from '../middleware/participantAuth';
+import { requireParticipant, ParticipantRequest } from '../middleware/jwt';
 import { refreshSessionStatus, SessionRow } from '../lib/sessions';
 import { gradeChoiceAnswer } from '../lib/grading';
 import { broadcastLiveUpdate } from '../socket';
 import { translationColumns } from '../lib/sqlTranslations';
 import { getOfferedLanguages } from '../lib/quizLanguages';
+import {
+  PARTICIPANT_CHOICE_COLUMNS,
+  PARTICIPANT_QUESTION_COLUMNS,
+  RESULTS_CHOICE_COLUMNS,
+} from '../lib/participantColumns';
 
 export const myRouter = Router();
 myRouter.use(requireParticipant);
 
-// Also carries text_de/text_ru/etc. translation columns via SELECT * (see lib/languages.ts).
+// Participant responses select PARTICIPANT_QUESTION_COLUMNS (which also carry text_de/text_ru/etc.).
 interface QuestionRow {
   id: number;
   quiz_id: number;
@@ -112,11 +117,10 @@ myRouter.get('/quiz', (req: ParticipantRequest, res) => {
   };
   const quiz = { ...quizRow, ...getOfferedLanguages(db, session.quiz_id, quizRow.base_language) };
   const questions = db
-    .prepare('SELECT * FROM questions WHERE quiz_id = ? ORDER BY sort_order')
+    .prepare(`SELECT ${PARTICIPANT_QUESTION_COLUMNS.join(', ')} FROM questions WHERE quiz_id = ? ORDER BY sort_order`)
     .all(session.quiz_id) as QuestionRow[];
-  const choiceColumns = ['id', 'question_id', 'text', ...translationColumns('text'), 'sort_order'];
   const choiceStmt = db.prepare(
-    `SELECT ${choiceColumns.join(', ')} FROM choices WHERE question_id = ? ORDER BY sort_order`,
+    `SELECT ${PARTICIPANT_CHOICE_COLUMNS.join(', ')} FROM choices WHERE question_id = ? ORDER BY sort_order`,
   );
 
   const myAnswers = db
@@ -231,9 +235,11 @@ myRouter.get('/results', (req: ParticipantRequest, res) => {
   const languageInfo = getOfferedLanguages(db, session.quiz_id, quizRow.base_language);
 
   const questions = db
-    .prepare('SELECT * FROM questions WHERE quiz_id = ? ORDER BY sort_order')
+    .prepare(`SELECT ${PARTICIPANT_QUESTION_COLUMNS.join(', ')} FROM questions WHERE quiz_id = ? ORDER BY sort_order`)
     .all(session.quiz_id) as QuestionRow[];
-  const choiceStmt = db.prepare('SELECT * FROM choices WHERE question_id = ? ORDER BY sort_order');
+  const choiceStmt = db.prepare(
+    `SELECT ${RESULTS_CHOICE_COLUMNS.join(', ')} FROM choices WHERE question_id = ? ORDER BY sort_order`,
+  );
   const answers = db
     .prepare('SELECT * FROM answers WHERE participant_id = ? AND session_id = ?')
     .all(req.participant!.participantId, session.id) as AnswerRow[];

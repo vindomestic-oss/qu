@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { db } from '../db';
-import { requireAdmin, AuthedRequest } from '../middleware/auth';
+import { requireAdmin, AuthedRequest } from '../middleware/jwt';
 import { parseQuestionInput, extractTranslations } from '../lib/questionInput';
 import { deleteImageFile } from '../lib/uploads';
 import { createUniqueJoinCode, refreshSessionStatus, SessionRow } from '../lib/sessions';

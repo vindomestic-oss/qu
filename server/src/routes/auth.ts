@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import { db } from '../db';
-import { signAdminToken, requireAdmin, AuthedRequest } from '../middleware/auth';
+import { signAdminToken, requireAdmin, AuthedRequest } from '../middleware/jwt';
 
 export const authRouter = Router();
 
@@ -24,7 +24,7 @@ authRouter.post('/login', (req, res) => {
     return res.status(401).json({ error: 'Invalid username or password' });
   }
 
-  const token = signAdminToken({ adminId: admin.id, username: admin.username });
+  const token = signAdminToken({ adminId: admin.id, username: admin.username, passwordHash: admin.password_hash });
   res.json({ token, username: admin.username });
 });
 
