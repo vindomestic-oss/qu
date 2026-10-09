@@ -4,14 +4,21 @@ import type { ResultsResponse } from '../../types';
 import { ApiError } from '../../api/client';
 import { useLanguage } from '../../i18n/LanguageContext';
 import { useContentLanguage } from '../../i18n/useContentLanguage';
-import { sanitizeOffered } from '../../i18n/contentLanguages';
+import { questionLanguages, sanitizeOffered } from '../../i18n/contentLanguages';
 import { resolveFieldWithLang } from '../../i18n/resolveText';
 import { dirOf } from '../../i18n/languageMeta';
 import { QuestionLanguageBar } from '../../components/participant/QuestionLanguageBar';
 import { Logo } from '../../components/Logo';
 
 export function Results() {
-  const { t } = useLanguage();
+  const { t, tCount, uiLanguage, isRtl } = useLanguage();
+  // UI words inside content-direction lists (Hebrew choices in an English page) keep their own
+  // language and direction, so "(your answer)" never reads backwards.
+  const uiText = (text: string) => (
+    <span lang={uiLanguage} dir={isRtl ? 'rtl' : 'ltr'}>
+      {text}
+    </span>
+  );
   const [results, setResults] = useState<ResultsResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const offered = useMemo(
@@ -62,7 +69,9 @@ export function Results() {
 
       {results.breakdown.map((item, i) => {
         const correctChoiceIds = new Set(item.question.choices.filter((c) => c.is_correct).map((c) => c.id));
-        const questionText = resolveFieldWithLang(item.question, 'text', contentLanguage, base);
+        // Same rule as /play: the whole question in the picked language, or wholly in the base.
+        const shownLang = questionLanguages(item.question, base).includes(contentLanguage) ? contentLanguage : base;
+        const questionText = resolveFieldWithLang(item.question, 'text', shownLang, base);
         return (
           <div
             key={item.question.id}
@@ -73,14 +82,14 @@ export function Results() {
               <span lang={questionText.lang} dir={dirOf(questionText.lang)}>
                 {questionText.text}
               </span>{' '}
-              {t('results.ptsSuffix', { points: item.question.points })}
+              {tCount('results.ptsSuffix', item.question.points)}
             </p>
             {item.question.type !== 'text' ? (
-              <ul dir={dirOf(contentLanguage)}>
+              <ul dir={dirOf(shownLang)}>
                 {item.question.choices.map((c) => {
                   const wasSelected = item.answer?.selected_choice_ids.includes(c.id) ?? false;
                   const isCorrectChoice = correctChoiceIds.has(c.id);
-                  const choiceText = resolveFieldWithLang(c, 'text', contentLanguage, base);
+                  const choiceText = resolveFieldWithLang(c, 'text', shownLang, base);
                   return (
                     <li
                       key={c.id}
@@ -89,8 +98,11 @@ export function Results() {
                         color: isCorrectChoice ? 'var(--success)' : wasSelected ? 'var(--danger)' : undefined,
                       }}
                     >
-                      <span lang={choiceText.lang}>{choiceText.text}</span> {wasSelected ? t('results.yourAnswer') : ''}{' '}
-                      {isCorrectChoice ? t('results.correct') : ''}
+                      <span lang={choiceText.lang} dir={dirOf(choiceText.lang)}>
+                        {choiceText.text}
+                      </span>
+                      {wasSelected && <> {uiText(t('results.yourAnswer'))}</>}
+                      {isCorrectChoice && <> {uiText(t('results.correct'))}</>}
                     </li>
                   );
                 })}
@@ -104,7 +116,7 @@ export function Results() {
             <p>
               {item.question.type === 'text' && item.answer && item.answer.points_awarded == null
                 ? t('results.pendingManualGrading')
-                : t('results.pointsOf', { awarded: item.answer?.points_awarded ?? 0, max: item.question.points })}
+                : tCount('results.pointsOf', item.question.points, { awarded: item.answer?.points_awarded ?? 0 })}
             </p>
           </div>
         );

@@ -9,9 +9,9 @@ import { useParticipant } from '../../auth/ParticipantContext';
 import { getSocket, joinRoom, leaveRoom } from '../../lib/socket';
 import { useLanguage } from '../../i18n/LanguageContext';
 import { useContentLanguage } from '../../i18n/useContentLanguage';
-import { sanitizeOffered, type QuizLang } from '../../i18n/contentLanguages';
+import { questionLanguages, sanitizeOffered, type QuizLang } from '../../i18n/contentLanguages';
 import { resolveFieldWithLang } from '../../i18n/resolveText';
-import { dirOf } from '../../i18n/languageMeta';
+import { LANGUAGE_META, dirOf } from '../../i18n/languageMeta';
 import { AnswerSaver, type Payload } from '../../lib/answerSaver';
 import { buildNavGroups } from '../../lib/navGroups';
 import { Countdown } from '../../components/participant/Countdown';
@@ -342,6 +342,21 @@ export function Play() {
   }, [questions, index]);
 
   const groups = useMemo(() => (questions ? buildNavGroups(questions, sections) : []), [questions, sections]);
+  // Stale data only (the offer rule normally prevents it): some question cannot be read in some
+  // offered language. Then the card head keeps the note's ⚠ slot for the whole quiz, so the note
+  // appearing on one question never moves the row.
+  const noteSlot = useMemo(
+    () =>
+      Boolean(
+        questions &&
+          offered &&
+          questions.some((q) => {
+            const readable = questionLanguages(q, base);
+            return offered.some((l) => !readable.includes(l));
+          }),
+      ),
+    [questions, offered, base],
+  );
 
   /** Sends every failed save again, then any newer typing. */
   function retryFailed() {
@@ -503,6 +518,16 @@ export function Play() {
 
   const question = questions[index];
   const languages = offered ?? [base];
+  // Wish 9: a question is shown in the picked language only when its text and every choice are
+  // translated, otherwise wholly in the base language, so one question never mixes languages. With
+  // the offer rule (declared and complete) this always is the pick; the ⚠ note covers stale data.
+  const readableIn = questionLanguages(question, base);
+  const shownLang = readableIn.includes(contentLanguage) ? contentLanguage : base;
+  const stackLangs = languages.filter((l) => readableIn.includes(l));
+  const langNote =
+    shownLang === contentLanguage
+      ? ''
+      : t('lang.shownInBase', { lang: LANGUAGE_META[contentLanguage].endonym, base: LANGUAGE_META[base].endonym });
   const isLast = index === questions.length - 1;
   const statusForQuestion = status?.questionId === question.id ? status : null;
   const isFlagged = flagged.has(question.id);
@@ -563,12 +588,19 @@ export function Play() {
               </span>
             </button>
             <span className="qcard-head__lang">
-              <QuestionLanguageBar idPrefix="qlang-play" languages={languages} value={contentLanguage} onChange={setContentLanguage} />
+              <QuestionLanguageBar
+                idPrefix="qlang-play"
+                languages={languages}
+                value={contentLanguage}
+                onChange={setContentLanguage}
+                note={noteSlot ? langNote : undefined}
+                noteKey={question.id}
+              />
             </span>
           </div>
           <div className="qcard-body" key={question.id}>
             <h2 tabIndex={-1} ref={headingRef} id={`question-${question.id}-text`}>
-              <LangStack row={question} field="text" languages={languages} active={contentLanguage} base={base} />
+              <LangStack row={question} field="text" languages={stackLangs} active={shownLang} base={base} />
             </h2>
             {question.image_path && (
               <div className="qcard-media">
@@ -578,7 +610,7 @@ export function Play() {
             {question.type !== 'text' ? (
               <div
                 className="choices"
-                dir={dirOf(contentLanguage)}
+                dir={dirOf(shownLang)}
                 role={question.type === 'single' ? 'radiogroup' : 'group'}
                 aria-labelledby={`question-${question.id}-text`}
               >
@@ -590,7 +622,7 @@ export function Play() {
                       checked={question.myAnswer?.selected_choice_ids.includes(c.id) ?? false}
                       onChange={(e) => handleChoiceChange(question, c.id, e.target.checked)}
                     />
-                    <LangStack row={c} field="text" languages={languages} active={contentLanguage} base={base} />
+                    <LangStack row={c} field="text" languages={stackLangs} active={shownLang} base={base} />
                   </label>
                 ))}
               </div>

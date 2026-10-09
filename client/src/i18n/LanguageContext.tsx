@@ -34,8 +34,8 @@ interface LanguageContextValue {
   setUiLanguage: (lang: UiLanguage) => void;
   isRtl: boolean;
   t: (key: string, vars?: Record<string, string | number>) => string;
-  /** Plural-aware lookup: `${baseKey}.${Intl plural category}`, falling back to `${baseKey}.other`; replaces {n}. */
-  tCount: (baseKey: string, n: number) => string;
+  /** Plural-aware lookup: `${baseKey}.${Intl plural category}`, falling back to `${baseKey}.other`; replaces {n} and any other vars. */
+  tCount: (baseKey: string, n: number, vars?: Record<string, string | number>) => string;
   /** True while a quiz is running: the interface-language menu is hidden (decision Q-ui-lang-after-join). */
   uiLanguageLocked: boolean;
   setUiLanguageLocked: (locked: boolean) => void;
@@ -76,7 +76,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       }
       return str;
     };
-    const tCount = (baseKey: string, n: number) => {
+    const tCount = (baseKey: string, n: number, vars?: Record<string, string | number>) => {
       let category = 'other';
       try {
         category = new Intl.PluralRules(activeLanguage).select(n);
@@ -84,7 +84,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
         // keep 'other'
       }
       const key = has(`${baseKey}.${category}`) ? `${baseKey}.${category}` : `${baseKey}.other`;
-      return t(key, { n });
+      return t(key, { ...vars, n });
     };
     return { uiLanguage, setUiLanguage, isRtl, t, tCount, uiLanguageLocked, setUiLanguageLocked };
   }, [activeLanguage, uiLanguage, setUiLanguage, isRtl, uiLanguageLocked]);

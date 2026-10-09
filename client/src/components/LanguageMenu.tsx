@@ -12,7 +12,7 @@ interface Props<L extends QuizLang> {
   icon?: 'globe' | 'none';
   /** Extra text after the current language, e.g. "12 languages". */
   countLabel?: string;
-  /** Id of a visible label; the trigger is then named "<label> <current language>". */
+  /** Id of a visible label; the trigger is then named "<label> <current language> <count>". */
   labelledBy?: string;
 }
 
@@ -121,7 +121,9 @@ export function LanguageMenu<L extends QuizLang>({ idPrefix, options, value, onC
         className="lang-menu__trigger"
         aria-expanded={open}
         aria-controls={`${idPrefix}-list`}
-        aria-labelledby={labelledBy ? `${labelledBy} ${idPrefix}-current` : undefined}
+        aria-labelledby={
+          labelledBy ? [labelledBy, `${idPrefix}-current`, countLabel ? `${idPrefix}-count` : ''].filter(Boolean).join(' ') : undefined
+        }
         onClick={() => setOpen((o) => !o)}
         onKeyDown={onTriggerKeyDown}
       >
@@ -140,7 +142,13 @@ export function LanguageMenu<L extends QuizLang>({ idPrefix, options, value, onC
           )}
         </span>
         <ChevronIcon />
-        {countLabel && <span className="lang-menu__count">· {countLabel}</span>}
+        {countLabel && (
+          // The visible count is part of the name (label in name); the dot is not read.
+          <span className="lang-menu__count">
+            <span aria-hidden="true">· </span>
+            <span id={`${idPrefix}-count`}>{countLabel}</span>
+          </span>
+        )}
       </button>
       <ul
         id={`${idPrefix}-list`}

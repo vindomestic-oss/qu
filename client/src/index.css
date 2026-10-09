@@ -392,16 +392,22 @@ label {
   color: inherit;
 }
 
-/* Question-language control (wish 2; wish 9 finalises its place in the card head). */
+/* Question-language control (wishes 2 and 9): "Question language: Deutsch" (1 language), two pill
+   chips (2), or the menu with a count (3 or more). Never overflow: hidden here: it would clip the list. */
 .qlang {
+  position: relative; /* anchors the fallback note's bubble */
   display: inline-flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
+  min-inline-size: 0;
 }
 .qlang__label {
   font-size: 14px;
   color: var(--text-muted);
+}
+.qlang__label::after {
+  content: ':';
 }
 .qlang__static {
   font-weight: 600;
@@ -409,10 +415,19 @@ label {
 .qlang--center {
   justify-content: center;
 }
+.qlang__chips {
+  display: inline-flex;
+  flex-wrap: nowrap;
+  gap: 8px;
+  min-inline-size: 0;
+}
+/* Same font-weight in both states, so pressing a chip never changes its width. */
 .qlang .toggle-chip {
   min-height: 44px;
   padding-block: 0;
   padding-inline: 14px;
+  border-radius: 999px;
+  white-space: nowrap;
 }
 /* Only the unpressed chip is restyled here; the pressed one keeps the .toggle-chip selected colours. */
 .qlang .toggle-chip:not([aria-pressed='true']) {
@@ -423,9 +438,54 @@ label {
 .qlang .toggle-chip:not([aria-pressed='true']):hover:not(:disabled) {
   background: var(--surface-hover);
 }
+/* Defensive "No Deutsch translation, shown in English" (stale data only). Its slot has a fixed size
+   and is reserved for the whole quiz, hidden while there is nothing to say, so the note never moves
+   the row. The ⚠ button is named by the sentence; the bubble with the sentence lies over the card. */
 .qlang__note {
-  font-size: 14px;
-  color: var(--text-muted);
+  flex: none;
+  display: inline-flex;
+}
+.qlang__note-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 32px;
+  min-height: 44px;
+  padding: 0;
+  background: transparent;
+  color: var(--warning);
+  border: 1px solid transparent;
+  border-radius: 6px;
+}
+.qlang__note-btn:hover:not(:disabled) {
+  background: var(--surface-alt);
+  border-color: transparent;
+}
+@media (pointer: coarse) {
+  .qlang__note-btn {
+    inline-size: 44px;
+  }
+}
+.qlang__note[data-empty] .qlang__note-btn {
+  visibility: hidden;
+}
+.qlang__tip {
+  position: absolute;
+  inset-block-start: calc(100% + 4px);
+  inset-inline-end: 0;
+  z-index: 50;
+  inline-size: max-content;
+  max-inline-size: min(22rem, calc(100vw - 48px));
+  padding: 8px 12px;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+  font-size: 15px;
+  line-height: 1.35;
+  white-space: normal;
+  text-align: start;
 }
 
 /* Read by screen readers, not shown. */
