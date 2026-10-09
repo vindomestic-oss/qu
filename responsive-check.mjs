@@ -134,11 +134,10 @@ async function main() {
   // Check touch target sizes for radio inputs
   const radioBox = await part.locator('input[type="radio"]').first().boundingBox();
   log('touch-target', `radio input size: ${JSON.stringify(radioBox)}`);
-  // This quiz has a single question, so it's also the last one: the action button reads
-  // "Finish" (disabled until answered), not "Next" — match either, since the point here is
-  // just the touch-target size of whichever primary action button is in that slot.
-  const buttonBox = await part.getByRole('button', { name: /^(next|finish)$/i }).boundingBox();
-  log('touch-target', `Next/Finish button size: ${JSON.stringify(buttonBox)}`);
+  // This quiz has a single question, so it's also the last one: the primary button in the bar
+  // reads "Review" (opens the overview with Finish) instead of "Next". Same button either way.
+  const buttonBox = await part.getByTestId('nav-next').boundingBox();
+  log('touch-target', `Next/Review button size: ${JSON.stringify(buttonBox)}`);
 
   await browser.close();
   log('done', `Responsive check completed. Screenshots in ${SHOT_DIR}`);
