@@ -574,7 +574,7 @@ export function Play() {
               <span className="is-hidden" aria-hidden="true">
                 {t('play.questionOf', { n: questions.length, total: questions.length })}
               </span>
-              <RubricBadge groups={groups} index={index} contentLanguage={contentLanguage} base={base} />
+              <RubricBadge groups={groups} index={index} languages={languages} contentLanguage={contentLanguage} base={base} />
             </span>
             <button
               type="button"
