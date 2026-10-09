@@ -7,6 +7,8 @@ export interface QuizMeta extends WithTranslations<'title'>, WithTranslations<'d
   title: string;
   description: string | null;
   time_limit_seconds: number;
+  /** Wish 7 (S14): free-text answers may be pre-checked by an AI: show the notice, limit to 300 characters. */
+  ai_grading_enabled?: boolean;
 }
 
 export function joinSession(joinCode: string, displayName: string, rejoinSecret?: string) {
@@ -20,7 +22,7 @@ export function getMySession() {
   return participantApi<{
     session: QuizSession;
     participant: { participantId: number; sessionId: number; displayName: string; submitted_at: string | null };
-    quiz: ({ id: number } & QuizLanguageInfo) | null;
+    quiz: ({ id: number; ai_grading_enabled?: boolean } & QuizLanguageInfo) | null;
   }>('/my/session');
 }
 

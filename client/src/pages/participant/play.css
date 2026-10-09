@@ -851,3 +851,32 @@ html[dir='rtl'] .play-title__text {
     }
   }
 }
+
+/* Wish 7 (S14), quizzes with AI suggestions only: the participant notice (waiting screen and above the
+   first free-text question) and the character counter under the answer field (always one line, so
+   the card never changes height while typing). */
+.ai-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--selected-border);
+  background: var(--surface-alt);
+  color: var(--text);
+  font-size: 15px;
+  line-height: 1.4;
+  text-align: start;
+}
+.ai-notice svg {
+  flex-shrink: 0;
+  margin-block-start: 2px;
+}
+.text-answer__count {
+  margin: 4px 0 0;
+  min-block-size: 1.4em;
+  font-size: 14px;
+  color: var(--text-muted);
+  text-align: end;
+}

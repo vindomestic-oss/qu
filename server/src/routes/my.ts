@@ -9,6 +9,8 @@ import { translationColumns } from '../lib/sqlTranslations';
 import { getQuizLanguageInfo } from '../lib/quizLanguages';
 import { normalizeForMatch } from '../lib/aiGrading/normalize';
 import { autoCheckParticipant } from '../lib/autoCheck';
+import { aiAfterSubmit } from '../lib/aiGradingService';
+import { TEXT_ANSWER_MAX_CHARS_AI } from '../lib/aiGrading/types';
 import {
   PARTICIPANT_CHOICE_COLUMNS,
   PARTICIPANT_QUESTION_COLUMNS,
@@ -59,6 +61,12 @@ function getSessionForParticipant(req: ParticipantRequest): SessionRow | null {
   return refreshSessionStatus(row);
 }
 
+/** Wish 7 (S14): free-text answers of this quiz may be pre-checked by an AI (the participant notice and the 300-character limit). */
+function quizUsesAi(quizId: number): boolean {
+  const row = db.prepare('SELECT ai_grading_enabled FROM quizzes WHERE id = ?').get(quizId) as { ai_grading_enabled: number } | undefined;
+  return row?.ai_grading_enabled === 1;
+}
+
 function getSubmittedAt(participantId: number): string | null {
   const row = db.prepare('SELECT submitted_at FROM participants WHERE id = ?').get(participantId) as
     | { submitted_at: string | null }
@@ -83,7 +91,13 @@ myRouter.get('/session', (req: ParticipantRequest, res) => {
     participant: { ...req.participant, submitted_at: getSubmittedAt(req.participant!.participantId) },
     quiz:
       quizRow && languageInfo
-        ? { id: quizRow.id, base_language: languageInfo.base_language, offered_languages: languageInfo.offered }
+        ? {
+            id: quizRow.id,
+            base_language: languageInfo.base_language,
+            offered_languages: languageInfo.offered,
+            // Only whether to show the AI notice; never anything about suggestions.
+            ai_grading_enabled: quizUsesAi(quizRow.id),
+          }
         : null,
   });
 });
@@ -111,6 +125,8 @@ myRouter.post('/submit', (req: ParticipantRequest, res) => {
     broadcastGradingChanged(session.id, { kind: 'submit', participantId });
     // Wish 7 (S13): answers that match the model answer are credited now (staff room only).
     autoCheckParticipant(session.id, participantId);
+    // Wish 7 (S14): the rest wait for an AI suggestion, only if the server and the quiz allow it.
+    aiAfterSubmit(participantId);
   }
 
   res.json({ submitted_at: getSubmittedAt(participantId) });
@@ -141,7 +157,13 @@ myRouter.get('/quiz', (req: ParticipantRequest, res) => {
   const languageInfo = getQuizLanguageInfo(db, quizRow);
   // The declared list and missing counts are editor data: participants get only the offered list.
   const { content_languages: _declared, ...quizFields } = quizRow;
-  const quiz = { ...quizFields, base_language: languageInfo.base_language, offered_languages: languageInfo.offered };
+  const quiz = {
+    ...quizFields,
+    base_language: languageInfo.base_language,
+    offered_languages: languageInfo.offered,
+    // Wish 7 (S14): show the AI notice and limit text answers to 300 characters.
+    ai_grading_enabled: quizUsesAi(session.quiz_id),
+  };
   // Rubrics label the question strip; their order decides the colour (position modulo 6).
   const sections = db
     .prepare(`SELECT ${PARTICIPANT_SECTION_COLUMNS.join(', ')} FROM quiz_sections WHERE quiz_id = ? ORDER BY sort_order, id`)
@@ -207,6 +229,11 @@ myRouter.post('/answers/:questionId', (req: ParticipantRequest, res) => {
       return res.status(400).json({ error: 'text_answer must be a string' });
     }
     const trimmed = text_answer.trim();
+    // Wish 7 (S14): in a quiz with AI suggestions an answer has at most 300 characters (a long
+    // answer is the usual vehicle of prompt injection); other quizzes are unchanged.
+    if ([...trimmed].length > TEXT_ANSWER_MAX_CHARS_AI && quizUsesAi(session.quiz_id)) {
+      return res.status(400).json({ error: 'answer_too_long', code: 'ANSWER_TOO_LONG', max: TEXT_ANSWER_MAX_CHARS_AI });
+    }
     // An unchanged re-save (e.g. a blur without edits) writes nothing, so an existing grade survives.
     const stored = db
       .prepare('SELECT text_answer FROM answers WHERE participant_id = ? AND question_id = ?')
@@ -233,6 +260,8 @@ myRouter.post('/answers/:questionId', (req: ParticipantRequest, res) => {
          graded_by = NULL,
          graded_by_link_id = NULL,
          grade_version = grade_version + 1,
+         ai_status = NULL, ai_source = NULL, ai_verdict = NULL, ai_confidence = NULL, ai_rationale = NULL,
+         ai_flagged = 0, ai_run_id = NULL, ai_claim = NULL, ai_error = NULL,
          submitted_at = excluded.submitted_at`,
     ).run(session.id, questionId, participantId, trimmed, answerNorm, isCorrect, pointsAwarded, gradeSource);
     broadcastLiveUpdate(session.id);

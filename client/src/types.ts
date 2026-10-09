@@ -53,6 +53,8 @@ export interface Quiz extends WithTranslations<'title'>, WithTranslations<'descr
   default_points?: number;
   /** Sum of the questions' points (editor payload). */
   total_points?: number;
+  /** Wish 7 (S14): 1 = free-text answers may get AI suggestions (also needs the server switch). */
+  ai_grading_enabled?: number;
   /** The quiz's pending or running session, if any (list endpoint only). */
   open_session?: { id: number; status: 'pending' | 'active'; join_code: string; ends_at: string | null; joining_locked: number } | null;
 }
@@ -235,6 +237,8 @@ export interface GradingQuizMeta {
   total_points: number;
   base_language: QuizLang;
   offered_languages: QuizLang[];
+  /** Wish 7 (S14): the quiz's AI switch. */
+  ai_grading_enabled?: boolean;
 }
 
 export interface GradingSummary {
@@ -319,7 +323,18 @@ export interface AnswerGrade {
   grade_version: number;
 }
 
-export interface GradingAnswer extends AnswerGrade {
+/** The AI suggestion of a text answer (wish 7, S14); it never sets points. */
+export interface AiSuggestionFields {
+  ai_status: 'queued' | 'running' | 'done' | 'failed' | 'skipped' | null;
+  ai_source: 'model' | 'cache' | null;
+  ai_verdict: 'correct' | 'partially_correct' | 'incorrect' | 'unclear' | null;
+  ai_confidence: 'high' | 'medium' | 'low' | null;
+  ai_rationale: string | null;
+  ai_flagged: boolean;
+  ai_error: string | null;
+}
+
+export interface GradingAnswer extends AnswerGrade, Partial<AiSuggestionFields> {
   text_answer?: string;
   selected_choice_ids?: number[];
   /** Text answers: the comparison form, for grouping identical answers only (never displayed). */
@@ -382,4 +397,44 @@ export interface GraderLink {
   expires_at: string;
   revoked_at: string | null;
   last_used_at: string | null;
+}
+
+// --- AI suggestions (wish 7, S14) -------------------------------------------------------------
+
+/** GET /api/grading/:sessionId/ai/status */
+export interface AiGradingStatus {
+  /** The quiz's own switch. */
+  enabled: boolean;
+  configured: boolean;
+  modelCallsEnabled: boolean;
+  disabledReason: string | null;
+  counts: {
+    queued: number;
+    running: number;
+    done: number;
+    failed: number;
+    skipped: number;
+    flagged: number;
+    ruleMatched: number;
+    awaitingDecision: number;
+    notChecked: number;
+  };
+  etaSeconds: number | null;
+  agreement: { agreed: number; total: number };
+  perQuestion: { questionId: number; queued: number; agreed: number; total: number; overrides: number; flaggedAmbiguous: boolean }[];
+}
+
+/** GET /api/ai-grading/config (admin; never the key) */
+export interface AiConfig {
+  enabled: boolean;
+  configured: boolean;
+  modelCallsEnabled: boolean;
+  disabledReason: string | null;
+  provider: string;
+  model: string;
+  promptVersion: string;
+  concurrency: number;
+  maxCallsPerDay: number;
+  callsLast24h: number;
+  killSwitch: { engaged: boolean; updated_at: string | null; updated_by: string | null };
 }

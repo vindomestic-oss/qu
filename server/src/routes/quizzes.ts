@@ -16,6 +16,7 @@ import { baseOf, declaredLanguagesOf, getQuizWithQuestions as loadQuiz } from '.
 import { createSection, parseSectionInput, reorderSections, SECTION_NOT_IN_QUIZ, sectionBelongsToQuiz } from '../lib/sections';
 import { isValidPoints, roundPoints } from '../lib/grading';
 import { nowIso } from '../lib/time';
+import { aiAfterQuizSwitch } from '../lib/aiGradingService';
 
 export const quizzesRouter = Router();
 
@@ -33,6 +34,13 @@ function parseDefaultPoints(v: unknown): number | undefined | null {
   return isValidPoints(n) ? roundPoints(n) : null;
 }
 const DEFAULT_POINTS_ERROR = 'default_points must be a positive whole or half number (0.5, 1, 1.5, …) of at most 100';
+
+/** Wish 7 (S14): the quiz's AI switch from a request body: undefined when absent (keep), null when invalid. */
+function parseAiSwitch(v: unknown): boolean | undefined | null {
+  if (v === undefined) return undefined;
+  return typeof v === 'boolean' ? v : null;
+}
+const AI_SWITCH_ERROR = 'ai_grading_enabled must be true or false';
 
 /** The stored declared list of a quiz, or the languages it has text in when nothing is stored yet. */
 function declaredLanguages(quizId: number, base: QuizLang, raw: unknown): QuizLang[] {
@@ -81,6 +89,8 @@ quizzesRouter.post('/', (req: AuthedRequest, res) => {
 
   const defaultPoints = parseDefaultPoints(req.body?.default_points);
   if (defaultPoints === null) return res.status(400).json({ error: DEFAULT_POINTS_ERROR });
+  const aiSwitch = parseAiSwitch(req.body?.ai_grading_enabled);
+  if (aiSwitch === null) return res.status(400).json({ error: AI_SWITCH_ERROR });
 
   const titleTranslations = extractTranslations(req.body, 'title');
   const descriptionTranslations = extractTranslations(req.body, 'description');
@@ -99,6 +109,7 @@ quizzesRouter.post('/', (req: AuthedRequest, res) => {
     'base_language',
     'content_languages',
     'default_points',
+    'ai_grading_enabled',
   ];
   const placeholders = columns.map(() => '?').join(', ');
 
@@ -114,6 +125,7 @@ quizzesRouter.post('/', (req: AuthedRequest, res) => {
       baseLanguage,
       JSON.stringify(contentLanguages ?? [baseLanguage]),
       defaultPoints ?? 1,
+      aiSwitch ? 1 : 0,
     );
 
   const quiz = getQuizWithQuestions(Number(result.lastInsertRowid));
@@ -128,8 +140,8 @@ quizzesRouter.get('/:id', (req, res) => {
 
 quizzesRouter.put('/:id', (req, res) => {
   const quizId = Number(req.params.id);
-  const existing = db.prepare('SELECT id, base_language, content_languages FROM quizzes WHERE id = ?').get(quizId) as
-    | { id: number; base_language: string; content_languages: string | null }
+  const existing = db.prepare('SELECT id, base_language, content_languages, ai_grading_enabled FROM quizzes WHERE id = ?').get(quizId) as
+    | { id: number; base_language: string; content_languages: string | null; ai_grading_enabled: number }
     | undefined;
   if (!existing) return res.status(404).json({ error: 'Quiz not found' });
 
@@ -149,6 +161,9 @@ quizzesRouter.put('/:id', (req, res) => {
   // Absent = keep the stored value (older editors do not send it).
   const defaultPoints = parseDefaultPoints(req.body?.default_points);
   if (defaultPoints === null) return res.status(400).json({ error: DEFAULT_POINTS_ERROR });
+  // Wish 7 (S14): absent = keep (older editors do not send it).
+  const aiSwitch = parseAiSwitch(req.body?.ai_grading_enabled);
+  if (aiSwitch === null) return res.status(400).json({ error: AI_SWITCH_ERROR });
 
   const titleTranslations = extractTranslations(req.body, 'title');
   const descriptionTranslations = extractTranslations(req.body, 'description');
@@ -172,6 +187,10 @@ quizzesRouter.put('/:id', (req, res) => {
     setClauses.push('default_points = ?');
     values.push(defaultPoints);
   }
+  if (aiSwitch !== undefined) {
+    setClauses.push('ai_grading_enabled = ?');
+    values.push(aiSwitch ? 1 : 0);
+  }
   const oldBase = baseOf(existing);
   db.transaction(() => {
     const declared = declaredLanguages(quizId, oldBase, existing.content_languages);
@@ -189,6 +208,8 @@ quizzesRouter.put('/:id', (req, res) => {
     db.prepare('UPDATE quizzes SET content_languages = ? WHERE id = ?').run(JSON.stringify(next ?? [baseLanguage]), quizId);
   })();
   invalidateQuizLanguages(quizId);
+  // Switched off: nothing of this quiz is sent any more, waiting answers leave the queue at once.
+  if (aiSwitch !== undefined && aiSwitch !== (existing.ai_grading_enabled === 1)) aiAfterQuizSwitch(quizId, aiSwitch);
 
   res.json({ quiz: getQuizWithQuestions(quizId) });
 });

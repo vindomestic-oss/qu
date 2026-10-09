@@ -16,6 +16,9 @@ import { debugRouter } from './routes/debug';
 import { requireStaffForSession } from './middleware/staffAuth';
 import { UPLOAD_DIR } from './middleware/upload';
 import { registerAutoCheck } from './lib/autoCheck';
+import { gradingAiRouter } from './routes/gradingAi';
+import { aiGradingRouter } from './routes/aiGrading';
+import { registerAiGrading } from './lib/aiGradingService';
 
 const CLIENT_DIST = path.join(__dirname, '..', '..', 'client', 'dist');
 
@@ -23,6 +26,8 @@ const CLIENT_DIST = path.join(__dirname, '..', '..', 'client', 'dist');
 export function createApp(): express.Express {
   // Wish 7 (S13): answers matching the model answer are credited when a session ends.
   registerAutoCheck();
+  // Wish 7 (S14): then the AI queue (off unless AI_GRADING_ENABLED and the quiz's switch say so).
+  registerAiGrading();
   const app = express();
   // Proxy hops in front of the app (Render: set after checking the real client IP with /api/debug/ip).
   // 0 = req.ip is the socket address, so a forged X-Forwarded-For cannot dodge the grader-code rate
@@ -61,8 +66,10 @@ export function createApp(): express.Express {
   app.use('/api/my', myRouter);
   app.use('/api/admin', adminRouter);
   app.use('/api/grader', graderRouter);
+  app.use('/api/grading/:sessionId/ai', requireStaffForSession, gradingAiRouter);
   app.use('/api/grading/:sessionId', requireStaffForSession, gradingRouter);
   app.use('/api/debug', debugRouter);
+  app.use('/api/ai-grading', aiGradingRouter);
 
   app.use('/api', (_req, res) => {
     res.status(404).json({ error: 'Not found' });

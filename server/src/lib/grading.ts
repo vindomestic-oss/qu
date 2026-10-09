@@ -76,6 +76,10 @@ export interface GradeInput {
   /** Display string for graded_by and grade_events.actor, e.g. 'admin:alex' or 'Rav K. (link #3)'. */
   actor: string;
   linkId: number | null;
+  /** Wish 7 (S14): 'ai' = the grader accepted the AI suggestion; absent = 'human'. */
+  source?: 'ai' | 'human';
+  /** The audit action of an accepted suggestion: 'confirm_ai' (one row, default) or 'bulk_confirm_ai'. */
+  aiAction?: 'confirm_ai' | 'bulk_confirm_ai';
 }
 
 export type GradeResult =
@@ -92,12 +96,19 @@ export type GradeResult =
  * the answer belongs to the session (404), 0 ≤ points ≤ the question's points in steps of 0.5 (400),
  * the participant has submitted (409 'not_submitted'). Writes a grade_events row ('manual').
  * Choice answers may be overridden too; is_correct comes from the request.
+ *
+ * AI suggestions (wish 7, S14): with source 'ai' the grade is stored as 'ai_confirmed' (action
+ * 'confirm_ai', or 'bulk_confirm_ai') only when it equals a confident, unflagged "correct" suggestion
+ * (full points, is_correct); anything else is a person's grade ('human'): 'override_ai' when it
+ * contradicts a finished suggestion (correct but less than full points, or incorrect but points
+ * above 0), else 'manual'. The event carries the suggestion's ai_run_id. The AI never writes points.
  */
 export function gradeAnswer(db: Db, sessionId: number, input: GradeInput): GradeResult {
   return db.transaction((): GradeResult => {
     const row = db
       .prepare(
-        `SELECT a.id, a.question_id, a.participant_id, a.points_awarded, a.is_correct, q.points AS max_points, p.submitted_at
+        `SELECT a.id, a.question_id, a.participant_id, a.points_awarded, a.is_correct, q.points AS max_points, p.submitted_at,
+           a.ai_status, a.ai_verdict, a.ai_confidence, a.ai_flagged, a.ai_run_id
          FROM answers a
          JOIN questions q ON q.id = a.question_id
          JOIN participants p ON p.id = a.participant_id
@@ -112,6 +123,11 @@ export function gradeAnswer(db: Db, sessionId: number, input: GradeInput): Grade
           is_correct: number | null;
           max_points: number;
           submitted_at: string | null;
+          ai_status: string | null;
+          ai_verdict: string | null;
+          ai_confidence: string | null;
+          ai_flagged: number;
+          ai_run_id: number | null;
         }
       | undefined;
     if (!row) return { ok: false, status: 404, error: 'not_found' };
@@ -122,13 +138,15 @@ export function gradeAnswer(db: Db, sessionId: number, input: GradeInput): Grade
 
     const points = roundPoints(input.points);
     const now = new Date().toISOString();
+    const ai = aiDecision(row, input, points);
     const changed = db
       .prepare(
         `UPDATE answers SET is_correct = ?, points_awarded = ?, graded_at = ?, graded_by = ?, graded_by_link_id = ?,
-           grade_source = 'human', grade_version = grade_version + 1
+           grade_source = ?, grade_version = grade_version + 1
          WHERE id = ? AND session_id = ? AND grade_version = ?`,
       )
-      .run(input.isCorrect ? 1 : 0, points, now, input.actor, input.linkId, row.id, sessionId, input.expectedVersion).changes;
+      .run(input.isCorrect ? 1 : 0, points, now, input.actor, input.linkId, ai.gradeSource, row.id, sessionId, input.expectedVersion)
+      .changes;
     const answer = db.prepare(`SELECT ${ANSWER_GRADE_COLUMNS} FROM answers WHERE id = ?`).get(row.id) as AnswerGrade;
     if (changed === 0) return { ok: false, status: 409, error: 'conflict', current: answer };
 
@@ -138,18 +156,48 @@ export function gradeAnswer(db: Db, sessionId: number, input: GradeInput): Grade
       questionId: row.question_id,
       participantId: row.participant_id,
       actor: input.actor,
-      action: 'manual',
+      action: ai.action,
       oldPoints: row.points_awarded,
       newPoints: points,
       oldIsCorrect: row.is_correct,
       isCorrect: input.isCorrect ? 1 : 0,
-      gradeSource: 'human',
+      gradeSource: ai.gradeSource,
+      aiRunId: ai.runId,
     });
     return { ok: true, answer };
   })();
 }
 
-export type GradeEventAction = 'manual' | 'regrade_points' | 'rule_match' | 'rule_revert' | 'accept_variant';
+/** A finished, confident, unflagged "correct" suggestion: the only kind a grader can accept as is. */
+export function isConfidentCorrect(a: { ai_status: string | null; ai_verdict: string | null; ai_confidence: string | null; ai_flagged: number }) {
+  return a.ai_status === 'done' && a.ai_verdict === 'correct' && a.ai_confidence === 'high' && a.ai_flagged === 0;
+}
+
+/** How a grade relates to the answer's AI suggestion (see gradeAnswer). */
+function aiDecision(
+  row: { max_points: number; ai_status: string | null; ai_verdict: string | null; ai_confidence: string | null; ai_flagged: number; ai_run_id: number | null },
+  input: GradeInput,
+  points: number,
+): { gradeSource: 'human' | 'ai_confirmed'; action: GradeEventAction; runId: number | null } {
+  const suggested = row.ai_status === 'done';
+  const runId = suggested ? row.ai_run_id : null;
+  const full = Math.abs(points - row.max_points) < 1e-9;
+  if (input.source === 'ai' && isConfidentCorrect(row) && input.isCorrect && full) {
+    return { gradeSource: 'ai_confirmed', action: input.aiAction ?? 'confirm_ai', runId };
+  }
+  const contradicts = suggested && ((row.ai_verdict === 'correct' && points < row.max_points - 1e-9) || (row.ai_verdict === 'incorrect' && points > 0));
+  return { gradeSource: 'human', action: contradicts ? 'override_ai' : 'manual', runId };
+}
+
+export type GradeEventAction =
+  | 'manual'
+  | 'regrade_points'
+  | 'rule_match'
+  | 'rule_revert'
+  | 'accept_variant'
+  | 'confirm_ai'
+  | 'bulk_confirm_ai'
+  | 'override_ai';
 
 export interface GradeEventInput {
   answerId: number;
@@ -166,14 +214,17 @@ export interface GradeEventInput {
   oldIsCorrect: number | null;
   isCorrect: number | null;
   gradeSource: string | null;
+  /** Wish 7 (S14): the AI suggestion the answer had when it was graded ('confirm_ai',
+   *  'bulk_confirm_ai', 'override_ai', or 'manual' with a suggestion present). */
+  aiRunId?: number | null;
 }
 
 /** One row of the append-only audit; call it in the transaction of the change it records. */
 export function insertGradeEvent(db: Db, e: GradeEventInput): void {
   db.prepare(
     `INSERT INTO grade_events (answer_id, session_id, question_id, participant_id, actor, action, old_points, new_points,
-       old_is_correct, is_correct, grade_source, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       old_is_correct, is_correct, grade_source, ai_run_id, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   ).run(
     e.answerId,
     e.sessionId,
@@ -186,6 +237,7 @@ export function insertGradeEvent(db: Db, e: GradeEventInput): void {
     e.oldIsCorrect,
     e.isCorrect,
     e.gradeSource,
+    e.aiRunId ?? null,
     new Date().toISOString(),
   );
 }

@@ -9,6 +9,8 @@ export interface QuizMetaInput extends Partial<WithTranslationInputs<'title'>>, 
   base_language?: QuizLang;
   /** Points a new question starts with; omitted = keep. */
   default_points?: number;
+  /** Wish 7 (S14): AI suggestions for free-text answers; omitted = keep. */
+  ai_grading_enabled?: boolean;
 }
 
 export function listQuizzes() {

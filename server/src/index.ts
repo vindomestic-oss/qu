@@ -6,6 +6,7 @@ import { initSocket } from './socket';
 import { scheduleBackups } from './lib/backup';
 import { recoverActiveSessions, startSessionSweep } from './lib/sessionTimers';
 import { joinLimiterActive } from './routes/join';
+import { startAiGrading } from './lib/aiGradingService';
 
 const app = createApp();
 // One line for the Render log: is the join limiter on, and with how many trusted proxy hops?
@@ -20,6 +21,8 @@ initSocket(httpServer);
 // After initSocket, so sessions that end right away still reach open screens.
 recoverActiveSessions();
 startSessionSweep();
+// Wish 7 (S14): the AI worker (makes no call unless AI_GRADING_ENABLED and a quiz's switch allow it).
+startAiGrading();
 
 const PORT = process.env.PORT ? Number(process.env.PORT) : 4000;
 httpServer.listen(PORT, () => {

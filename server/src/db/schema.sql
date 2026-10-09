@@ -142,3 +142,42 @@ CREATE TABLE IF NOT EXISTS grade_events (
 );
 CREATE INDEX IF NOT EXISTS idx_grade_events_answer ON grade_events(answer_id);
 CREATE INDEX IF NOT EXISTS idx_grade_events_session ON grade_events(session_id);
+
+-- AI suggestions for free-text answers (wish 7, S14). One row per provider call (also failed
+-- ones), reused as a cache for the same normalized answer, key and prompt. No participant id, name,
+-- session id or answer text: only hashes. Purged after 180 days (lib/aiGrading/retention.ts).
+-- model = the model that served the request; requested_model = the one configured.
+CREATE TABLE IF NOT EXISTS ai_grading_runs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  question_id INTEGER NOT NULL REFERENCES questions(id) ON DELETE CASCADE,
+  answer_norm_hash TEXT NOT NULL,
+  reference_hash TEXT NOT NULL,
+  provider TEXT,
+  requested_model TEXT,
+  model TEXT,
+  prompt_version TEXT,
+  verdict TEXT,
+  confidence TEXT,
+  rationale TEXT,
+  answer_language TEXT,
+  injection_suspected INTEGER,
+  guard_hit INTEGER,
+  stop_reason TEXT,
+  request_id TEXT,
+  input_tokens INTEGER,
+  output_tokens INTEGER,
+  latency_ms INTEGER,
+  error TEXT,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_ai_runs_cache ON ai_grading_runs(question_id, answer_norm_hash, reference_hash, prompt_version, requested_model);
+CREATE INDEX IF NOT EXISTS idx_ai_runs_created ON ai_grading_runs(created_at);
+
+-- Runtime switches of the AI suggestions that must survive a restart (wish 7, S14), e.g. the
+-- admin's kill switch: name 'kill_switch', value '1' = no provider calls at all.
+CREATE TABLE IF NOT EXISTS ai_grading_settings (
+  name TEXT PRIMARY KEY,
+  value TEXT,
+  updated_at TEXT NOT NULL,
+  updated_by TEXT
+);

@@ -14,6 +14,12 @@ import { StatusTag } from '../../components/grader/StatusTag';
 import { QuestionLanguageBar } from '../../components/participant/QuestionLanguageBar';
 import { formatPoints, gradedByViewer, offersAcceptVariant, participantLabel } from '../../components/grader/format';
 import { AcceptVariantSlot, PrecedentHint } from '../../components/grader/AnswerHints';
+import { AiSuggestionBadge } from '../../components/grader/AiSuggestionBadge';
+import { isAiAcceptable } from '../../components/grader/aiSuggestion';
+import { AiAcceptButton } from '../../components/grader/AiAccept';
+import { useAiAcceptKey } from '../../lib/useAiAcceptKey';
+import { useAiBlindMode } from '../../lib/useAiBlindMode';
+import { runAi } from '../../api/aiGrading';
 import type { AnswerGrade, ParticipantReviewResponse } from '../../types';
 import '../../components/grader/grader.css';
 
@@ -29,6 +35,10 @@ export function ParticipantReview() {
   const load = useCallback(() => getParticipantReview(id, pid), [id, pid]);
   const { data, error, reload, setData } = useLoader<ParticipantReviewResponse>(load);
   const { contentLanguage, base, setContentLanguage } = useContentLanguage(data?.quiz.offered_languages ?? null);
+  // Wish 7 (S14): the same AI suggestion per answer as in the whole-quiz review.
+  const [blind] = useAiBlindMode();
+  const ai = data?.quiz.ai_grading_enabled === true;
+  useAiAcceptKey(ai && !blind);
 
   useEffect(() => {
     reload();
@@ -178,6 +188,28 @@ export function ParticipantReview() {
                   </p>
                   {/* Wish 7: earlier grades of the same answer in other runs. */}
                   <PrecedentHint precedent={answer.answer_norm ? q.precedents?.[answer.answer_norm] : undefined} />
+                  {ai && data.gradable && (
+                    <AiSuggestionBadge
+                      answer={answer}
+                      hidden={blind && answer.points_awarded == null}
+                      onRetry={
+                        data.viewer?.kind === 'admin'
+                          ? () => void runAi(id, { questionId: q.id, includeFailed: true }).catch(() => {})
+                          : undefined
+                      }
+                    />
+                  )}
+                  {ai && data.gradable && (
+                    <div className="answer-row__tools">
+                      <AiAcceptButton
+                        sessionId={id}
+                        members={[answer]}
+                        maxPoints={q.points}
+                        offered={!blind && isAiAcceptable(answer)}
+                        onGrades={(grades) => grades.forEach(mergeGrade)}
+                      />
+                    </div>
+                  )}
                 </>
               ) : (
                 <p className="answer-row__text">

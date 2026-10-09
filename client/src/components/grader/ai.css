@@ -1,0 +1,293 @@
+/* AI suggestions in the grading panel (wish 7, layer B, S14). Theme tokens from index.css only
+   (light and dark come from the tokens); logical properties, so Hebrew mirrors. Every state has an
+   icon AND words (WCAG 1.4.1). Slots keep their size while suggestions arrive, so rows never move
+   under the grader's finger. */
+
+/* --- One answer's suggestion ------------------------------------------------------------------
+   The same block in every state: a 32 px status line (one line, ellipsis) and a 44 px row for the
+   two-line rationale, its More/Less, or Retry. Nothing in it changes height when a suggestion
+   arrives or a grade is given. */
+.ai-suggestion {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-block-start: 6px;
+  min-inline-size: 0;
+}
+.ai-suggestion__line {
+  display: flex;
+  align-items: center;
+  block-size: 32px;
+  min-inline-size: 0;
+}
+/* One line; the full text stays in the DOM (screen readers) and in the tooltip. */
+.ai-chip,
+.ai-muted {
+  display: inline-block;
+  max-inline-size: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 14px;
+  line-height: 1.35;
+}
+.ai-chip {
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-weight: 600;
+}
+.ai-chip .grade-icon,
+.ai-muted .grade-icon {
+  vertical-align: -2px;
+  margin-inline-end: 4px;
+}
+.ai-chip__src {
+  font-weight: 800;
+}
+.ai-chip__conf {
+  font-weight: 500;
+}
+.ai-chip--correct {
+  background: var(--success-bg);
+  color: var(--on-success-bg);
+}
+.ai-chip--partially_correct {
+  background: var(--warning-bg);
+  color: var(--on-warning-bg);
+}
+.ai-chip--incorrect {
+  background: var(--danger-bg);
+  color: var(--on-danger-bg);
+}
+/* Unsure: the page's own surface with an accent border (same in both themes). */
+.ai-chip--unclear {
+  background: var(--surface-alt);
+  color: var(--text);
+  border-color: var(--selected-border);
+}
+.ai-chip--flagged {
+  background: var(--warning-bg);
+  color: var(--on-warning-bg);
+  border-color: var(--on-warning-bg);
+  font-weight: 700;
+}
+.ai-chip--error {
+  background: var(--danger-bg);
+  color: var(--on-danger-bg);
+}
+.ai-chip--pending {
+  background: var(--surface-alt);
+  color: var(--text-muted);
+  border-color: var(--border-subtle);
+}
+.ai-muted {
+  color: var(--text-muted);
+}
+.ai-suggestion__why {
+  display: flex;
+  align-items: flex-start;
+  gap: 4px 8px;
+  min-block-size: 44px;
+  min-inline-size: 0;
+}
+.ai-rationale {
+  flex: 1 1 auto;
+  min-inline-size: 0;
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--text-muted);
+  overflow-wrap: anywhere;
+}
+.ai-rationale--clamped {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+}
+.ai-link-button,
+.ai-link-button:hover:not(:disabled) {
+  flex: 0 0 auto;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 8px;
+  border: 0;
+  background: transparent;
+  color: var(--link);
+  font-size: 14px;
+  text-decoration: underline;
+}
+.ai-spin {
+  animation: ai-spin 1.6s linear infinite;
+}
+@keyframes ai-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ai-spin {
+    animation: none;
+  }
+}
+
+/* --- Accept (one row or one group) ------------------------------------------------------------ */
+.ai-accept-slot {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  min-height: 44px;
+}
+.ai-accept-slot__unused {
+  visibility: hidden;
+}
+.ai-accept {
+  min-height: 44px;
+}
+.ai-accept__key {
+  margin-inline-start: 6px;
+  padding: 0 6px;
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* --- Per question: accept all confident-correct ------------------------------------------------ */
+.ai-question {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  min-height: 44px;
+  margin: 4px 0 0;
+}
+.ai-question__status:empty {
+  display: none;
+}
+.ai-accept-all {
+  min-height: 44px;
+}
+.ai-question__status:focus {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+/* Always in the row (hidden while not needed), so it never pushes the answers down when it appears. */
+.ai-question__warn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding: 4px 10px;
+  border-radius: 8px;
+  background: var(--warning-bg);
+  color: var(--on-warning-bg);
+  font-size: 14px;
+}
+.ai-dialog {
+  inline-size: min(560px, calc(100vw - 32px));
+  max-block-size: calc(100dvh - 32px);
+  padding: 20px;
+  border: 1px solid var(--border-strong);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--text);
+}
+.ai-dialog::backdrop {
+  background: color-mix(in srgb, var(--text-dark) 55%, transparent);
+}
+.ai-dialog h2 {
+  margin: 0 0 8px;
+  font-size: 20px;
+}
+.ai-dialog__list {
+  margin: 12px 0;
+  padding-inline-start: 20px;
+  max-block-size: 40vh;
+  overflow: auto;
+}
+.ai-dialog__list li {
+  padding-block: 2px;
+  overflow-wrap: anywhere;
+}
+.ai-dialog__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* --- The AI bar (whole quiz, overview) ----------------------------------------------------------
+   Four fixed rows: head (title, progress), time left or "off", counts, actions. Nothing appears or
+   disappears inside it while the queue runs, so the answer list below keeps its place. */
+.ai-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 12px 0;
+  padding: 10px 14px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  background: var(--surface-alt);
+  color: var(--text);
+}
+.ai-bar__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+}
+.ai-bar__title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+}
+.ai-bar__progress {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.ai-bar__idle {
+  visibility: hidden;
+}
+.ai-bar__meta {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-muted);
+}
+/* One line, always present (empty when there is nothing to say). */
+.ai-bar__line {
+  min-block-size: 1.45em;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.ai-bar__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+}
+.ai-bar__run-status {
+  display: inline-flex;
+  min-block-size: 32px;
+  align-items: center;
+}
+.ai-blind {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  font-size: 15px;
+  cursor: pointer;
+}
+.ai-blind input {
+  inline-size: 20px;
+  block-size: 20px;
+}
+.ai-question__warn.is-hidden {
+  visibility: hidden;
+}

@@ -1,0 +1,237 @@
+{"key": "5786", "question_index": 0, "answer": "a farmer", "human_points": 1, "lang": "en", "tag": "exact"}
+{"key": "5786", "question_index": 0, "answer": "He worked the land", "human_points": 1, "lang": "en", "tag": "paraphrase"}
+{"key": "5786", "question_index": 0, "answer": "Ackerbauer", "human_points": 1, "lang": "de", "tag": "translation"}
+{"key": "5786", "question_index": 0, "answer": "земледелец", "human_points": 1, "lang": "ru", "tag": "translation"}
+{"key": "5786", "question_index": 0, "answer": "עובד אדמה", "human_points": 1, "lang": "he", "tag": "translation"}
+{"key": "5786", "question_index": 0, "answer": "shepherd", "human_points": 0, "lang": "en", "tag": "wrong"}
+{"key": "5786", "question_index": 0, "answer": "farmar", "human_points": 1, "lang": "en", "tag": "typo"}
+{"key": "5786", "question_index": 1, "answer": "Ismael", "human_points": 1, "lang": "de", "tag": "spelling"}
+{"key": "5786", "question_index": 1, "answer": "Измаил", "human_points": 1, "lang": "ru", "tag": "translation"}
+{"key": "5786", "question_index": 1, "answer": "ישמעאל", "human_points": 1, "lang": "he", "tag": "translation"}
+{"key": "5786", "question_index": 1, "answer": "Yitzhak", "human_points": 0, "lang": "en", "tag": "wrong"}
+{"key": "5786", "question_index": 1, "answer": "Isaac", "human_points": 0, "lang": "en", "tag": "wrong"}
+{"key": "5786", "question_index": 1, "answer": "I don't know", "human_points": 0, "lang": "en", "tag": "dont_know"}
+{"key": "5786", "question_index": 2, "answer": "shepherd", "human_points": 1, "lang": "en", "tag": "variant"}
+{"key": "5786", "question_index": 2, "answer": "Hirten", "human_points": 1, "lang": "de", "tag": "translation"}
+{"key": "5786", "question_index": 2, "answer": "пастухи", "human_points": 1, "lang": "ru", "tag": "translation"}
+{"key": "5786", "question_index": 2, "answer": "רועי צאן", "human_points": 1, "lang": "he", "tag": "translation"}
+{"key": "5786", "question_index": 2, "answer": "cattlemen", "human_points": 1, "lang": "en", "tag": "synonym"}
+{"key": "5786", "question_index": 2, "answer": "farmers", "human_points": 0, "lang": "en", "tag": "wrong"}
+{"key": "5786", "question_index": 3, "answer": "darknes", "human_points": 1, "lang": "en", "tag": "typo"}
+{"key": "5786", "question_index": 3, "answer": "Finsternis", "human_points": 1, "lang": "de", "tag": "translation"}
+{"key": "5786", "question_index": 3, "answer": "тьма", "human_points": 1, "lang": "ru", "tag": "translation"}
+{"key": "5786", "question_index": 3, "answer": "חושך", "human_points": 1, "lang": "he", "tag": "translation"}
+{"key": "5786", "question_index": 3, "answer": "locusts", "human_points": 0, "lang": "en", "tag": "wrong"}
+{"key": "5786", "question_index": 3, "answer": "death of the firstborn", "human_points": 0, "lang": "en", "tag": "wrong"}
+{"key": "5786", "question_index": 4, "answer": "Josua", "human_points": 1, "lang": "de", "tag": "translation"}
+{"key": "5786", "question_index": 4, "answer": "Иисус Навин", "human_points": 1, "lang": "ru", "tag": "translation"}
+{"key": "5786", "question_index": 4, "answer": "יהושע", "human_points": 1, "lang": "he", "tag": "translation"}
+{"key": "5786", "question_index": 4, "answer": "Joshua son of Nun", "human_points": 1, "lang": "en", "tag": "extra_words"}
+{"key": "5786", "question_index": 4, "answer": "Moshe", "human_points": 0, "lang": "en", "tag": "wrong_role"}
+{"key": "5786", "question_index": 4, "answer": "Kalev", "human_points": 0, "lang": "en", "tag": "wrong"}
+{"key": "5786", "question_index": 5, "answer": "Gibeoniter", "human_points": 1, "lang": "de", "tag": "translation"}
+{"key": "5786", "question_index": 5, "answer": "гаваонитяне", "human_points": 1, "lang": "ru", "tag": "translation"}
+{"key": "5786", "question_index": 5, "answer": "הגבעונים", "human_points": 1, "lang": "he", "tag": "translation"}
+{"key": "5786", "question_index": 5, "answer": "the people of Givon", "human_points": 1, "lang": "en", "tag": "paraphrase"}
+{"key": "5786", "question_index": 5, "answer": "Philistines", "human_points": 0, "lang": "en", "tag": "wrong"}
+{"key": "5786", "question_index": 5, "answer": "Amalekites", "human_points": 0, "lang": "en", "tag": "wrong"}
+{"key": "5786", "question_index": 6, "answer": "Simson", "human_points": 1, "lang": "de", "tag": "translation"}
+{"key": "5786", "question_index": 6, "answer": "Самсон", "human_points": 1, "lang": "ru", "tag": "translation"}
+{"key": "5786", "question_index": 6, "answer": "שמשון", "human_points": 1, "lang": "he", "tag": "translation"}
+{"key": "5786", "question_index": 6, "answer": "Shimshon HaGibor", "human_points": 1, "lang": "en", "tag": "extra_words"}
+{"key": "5786", "question_index": 6, "answer": "David", "human_points": 0, "lang": "en", "tag": "wrong"}
+{"key": "5786", "question_index": 6, "answer": "ne znayu", "human_points": 0, "lang": "ru", "tag": "dont_know"}
+{"key": "5786", "question_index": 7, "answer": "Goliath zu David", "human_points": 1, "lang": "de", "tag": "translation"}
+{"key": "5786", "question_index": 7, "answer": "Голиаф Давиду", "human_points": 1, "lang": "ru", "tag": "translation"}
+{"key": "5786", "question_index": 7, "answer": "גלית לדוד", "human_points": 1, "lang": "he", "tag": "translation"}
+{"key": "5786", "question_index": 7, "answer": "Goliath", "human_points": 0.5, "lang": "en", "tag": "partial"}
+{"key": "5786", "question_index": 7, "answer": "David to Goliath", "human_points": 0, "lang": "en", "tag": "reversed"}
+{"key": "5786", "question_index": 7, "answer": "Golyat to Dovid", "human_points": 1, "lang": "en", "tag": "spelling"}
+{"key": "5786", "question_index": 8, "answer": "Jonatan zu David", "human_points": 1, "lang": "de", "tag": "translation"}
+{"key": "5786", "question_index": 8, "answer": "Ионафан Давиду", "human_points": 1, "lang": "ru", "tag": "translation"}
+{"key": "5786", "question_index": 8, "answer": "יהונתן לדוד", "human_points": 1, "lang": "he", "tag": "translation"}
+{"key": "5786", "question_index": 8, "answer": "Yonatan", "human_points": 0.5, "lang": "en", "tag": "partial"}
+{"key": "5786", "question_index": 8, "answer": "Shaul to David", "human_points": 0, "lang": "en", "tag": "wrong"}
+{"key": "5786", "question_index": 8, "answer": "Jonathan told David", "human_points": 1, "lang": "en", "tag": "paraphrase"}
+{"key": "5786", "question_index": 9, "answer": "famine", "human_points": 1, "lang": "en", "tag": "short"}
+{"key": "5786", "question_index": 9, "answer": "wegen der Hungersnot", "human_points": 1, "lang": "de", "tag": "translation"}
+{"key": "5786", "question_index": 9, "answer": "из-за голода", "human_points": 1, "lang": "ru", "tag": "translation"}
+{"key": "5786", "question_index": 9, "answer": "בגלל הרעב", "human_points": 1, "lang": "he", "tag": "translation"}
+{"key": "5786", "question_index": 9, "answer": "there was no food in the land", "human_points": 1, "lang": "en", "tag": "paraphrase"}
+{"key": "5786", "question_index": 9, "answer": "because of a war", "human_points": 0, "lang": "en", "tag": "wrong"}
+{"key": "5786", "question_index": 10, "answer": "Terach, the father of Avraham", "human_points": 1, "lang": "en", "tag": "extra_words"}
+{"key": "5786", "question_index": 10, "answer": "Фарра", "human_points": 1, "lang": "ru", "tag": "translation"}
+{"key": "5786", "question_index": 10, "answer": "תרח", "human_points": 1, "lang": "he", "tag": "translation"}
+{"key": "5786", "question_index": 10, "answer": "Avraham", "human_points": 0, "lang": "en", "tag": "wrong"}
+{"key": "5786", "question_index": 10, "answer": "Nachor", "human_points": 0, "lang": "en", "tag": "wrong"}
+{"key": "5786", "question_index": 11, "answer": "Sara und Lot", "human_points": 1, "lang": "de", "tag": "translation"}
+{"key": "5786", "question_index": 11, "answer": "Сара и Лот", "human_points": 1, "lang": "ru", "tag": "translation"}
+{"key": "5786", "question_index": 11, "answer": "שרה ולוט", "human_points": 1, "lang": "he", "tag": "translation"}
+{"key": "5786", "question_index": 11, "answer": "Lot", "human_points": 0.5, "lang": "en", "tag": "partial"}
+{"key": "5786", "question_index": 11, "answer": "Sarah", "human_points": 0.5, "lang": "en", "tag": "partial"}
+{"key": "5786", "question_index": 11, "answer": "Yitzhak and Rivka", "human_points": 0, "lang": "en", "tag": "wrong"}
+{"key": "5786", "question_index": 12, "answer": "Abraham's wells", "human_points": 1, "lang": "en", "tag": "extra_words"}
+{"key": "5786", "question_index": 12, "answer": "Авраама", "human_points": 1, "lang": "ru", "tag": "translation"}
+{"key": "5786", "question_index": 12, "answer": "אברהם", "human_points": 1, "lang": "he", "tag": "translation"}
+{"key": "5786", "question_index": 12, "answer": "Yaakov", "human_points": 0, "lang": "en", "tag": "wrong"}
+{"key": "5786", "question_index": 12, "answer": "Lot", "human_points": 0, "lang": "en", "tag": "wrong"}
+{"key": "5786", "question_index": 13, "answer": "Abimelech, King of Gerar", "human_points": 1, "lang": "en", "tag": "extra_words"}
+{"key": "5786", "question_index": 13, "answer": "Авимелех", "human_points": 1, "lang": "ru", "tag": "translation"}
+{"key": "5786", "question_index": 13, "answer": "אבימלך", "human_points": 1, "lang": "he", "tag": "translation"}
+{"key": "5786", "question_index": 13, "answer": "Pharaoh", "human_points": 0, "lang": "en", "tag": "wrong"}
+{"key": "5786", "question_index": 13, "answer": "Ahimelech", "human_points": 0, "lang": "en", "tag": "trap_near_miss"}
+{"key": "5786", "question_index": 13, "answer": "Pichol", "human_points": 0, "lang": "en", "tag": "wrong"}
+{"key": "5786", "question_index": 14, "answer": "Israel", "human_points": 1, "lang": "en", "tag": "exact"}
+{"key": "5786", "question_index": 14, "answer": "Израиль", "human_points": 1, "lang": "ru", "tag": "translation"}
+{"key": "5786", "question_index": 14, "answer": "ישראל", "human_points": 1, "lang": "he", "tag": "translation"}
+{"key": "5786", "question_index": 14, "answer": "Yeshurun", "human_points": 0, "lang": "en", "tag": "wrong"}
+{"key": "5786", "question_index": 14, "answer": "Esav", "human_points": 0, "lang": "en", "tag": "wrong"}
+{"key": "5786", "question_index": 15, "answer": "Penuel", "human_points": 1, "lang": "en", "tag": "variant"}
+{"key": "5786", "question_index": 15, "answer": "Пенуэл", "human_points": 1, "lang": "ru", "tag": "translation"}
+{"key": "5786", "question_index": 15, "answer": "פניאל", "human_points": 1, "lang": "he", "tag": "translation"}
+{"key": "5786", "question_index": 15, "answer": "Beit El", "human_points": 0, "lang": "en", "tag": "wrong"}
+{"key": "5786", "question_index": 15, "answer": "Machanayim", "human_points": 0, "lang": "en", "tag": "wrong"}
+{"key": "5786", "question_index": 16, "answer": "Jehoschua", "human_points": 1, "lang": "de", "tag": "spelling"}
+{"key": "5786", "question_index": 16, "answer": "Иисус Навин", "human_points": 1, "lang": "ru", "tag": "translation"}
+{"key": "5786", "question_index": 16, "answer": "יהושע בן נון", "human_points": 1, "lang": "he", "tag": "translation"}
+{"key": "5786", "question_index": 16, "answer": "Moshe", "human_points": 0, "lang": "en", "tag": "wrong"}
+{"key": "5786", "question_index": 16, "answer": "Aharon and Chur", "human_points": 0, "lang": "en", "tag": "wrong"}
+{"key": "5786", "question_index": 17, "answer": "King Agag", "human_points": 1, "lang": "en", "tag": "extra_words"}
+{"key": "5786", "question_index": 17, "answer": "Агаг", "human_points": 1, "lang": "ru", "tag": "translation"}
+{"key": "5786", "question_index": 17, "answer": "אגג", "human_points": 1, "lang": "he", "tag": "translation"}
+{"key": "5786", "question_index": 17, "answer": "Haman", "human_points": 0, "lang": "en", "tag": "wrong"}
+{"key": "5786", "question_index": 17, "answer": "Amalek", "human_points": 0, "lang": "en", "tag": "wrong"}
+{"key": "5786", "question_index": 18, "answer": "Hakhel - reading the Torah to all the people", "human_points": 1, "lang": "en", "tag": "paraphrase"}
+{"key": "5786", "question_index": 18, "answer": "die Tora lesen", "human_points": 1, "lang": "de", "tag": "translation"}
+{"key": "5786", "question_index": 18, "answer": "читать Тору", "human_points": 1, "lang": "ru", "tag": "translation"}
+{"key": "5786", "question_index": 18, "answer": "לקרוא בתורה", "human_points": 1, "lang": "he", "tag": "translation"}
+{"key": "5786", "question_index": 18, "answer": "build sukkot", "human_points": 0, "lang": "en", "tag": "wrong"}
+{"key": "5786", "question_index": 18, "answer": "pray", "human_points": 0, "lang": "en", "tag": "wrong"}
+{"key": "5786", "question_index": 19, "answer": "Hor Hahar", "human_points": 1, "lang": "en", "tag": "exact"}
+{"key": "5786", "question_index": 19, "answer": "auf dem Berg Hor", "human_points": 1, "lang": "de", "tag": "translation"}
+{"key": "5786", "question_index": 19, "answer": "на горе Ор", "human_points": 1, "lang": "ru", "tag": "translation"}
+{"key": "5786", "question_index": 19, "answer": "הר ההר", "human_points": 1, "lang": "he", "tag": "translation"}
+{"key": "5786", "question_index": 19, "answer": "Mount Nevo", "human_points": 0, "lang": "en", "tag": "wrong"}
+{"key": "5786", "question_index": 19, "answer": "Mount Sinai", "human_points": 0, "lang": "en", "tag": "wrong"}
+{"key": "5786", "question_index": 20, "answer": "Kiryat Arba", "human_points": 1, "lang": "en", "tag": "synonym"}
+{"key": "5786", "question_index": 20, "answer": "Хеврон", "human_points": 1, "lang": "ru", "tag": "translation"}
+{"key": "5786", "question_index": 20, "answer": "חברון", "human_points": 1, "lang": "he", "tag": "translation"}
+{"key": "5786", "question_index": 20, "answer": "Jerusalem", "human_points": 0, "lang": "en", "tag": "wrong"}
+{"key": "5786", "question_index": 20, "answer": "Shechem", "human_points": 0, "lang": "en", "tag": "wrong"}
+{"key": "5786", "question_index": 21, "answer": "Otniel", "human_points": 1, "lang": "en", "tag": "short"}
+{"key": "5786", "question_index": 21, "answer": "Otniel ben Kenas", "human_points": 1, "lang": "de", "tag": "typo"}
+{"key": "5786", "question_index": 21, "answer": "Гофониил", "human_points": 1, "lang": "ru", "tag": "translation"}
+{"key": "5786", "question_index": 21, "answer": "עתניאל בן קנז", "human_points": 1, "lang": "he", "tag": "translation"}
+{"key": "5786", "question_index": 21, "answer": "Kalev", "human_points": 0, "lang": "en", "tag": "wrong"}
+{"key": "5786", "question_index": 21, "answer": "Ehud", "human_points": 0, "lang": "en", "tag": "wrong"}
+{"key": "5786", "question_index": 22, "answer": "Deborah and Yael", "human_points": 1, "lang": "en", "tag": "spelling"}
+{"key": "5786", "question_index": 22, "answer": "Девора и Иаиль", "human_points": 1, "lang": "ru", "tag": "translation"}
+{"key": "5786", "question_index": 22, "answer": "דבורה ויעל", "human_points": 1, "lang": "he", "tag": "translation"}
+{"key": "5786", "question_index": 22, "answer": "Yael", "human_points": 0.5, "lang": "en", "tag": "partial"}
+{"key": "5786", "question_index": 22, "answer": "Devorah", "human_points": 0.5, "lang": "en", "tag": "partial"}
+{"key": "5786", "question_index": 22, "answer": "Rachel and Leah", "human_points": 0, "lang": "en", "tag": "wrong"}
+{"key": "5786", "question_index": 23, "answer": "Milch", "human_points": 1, "lang": "de", "tag": "translation"}
+{"key": "5786", "question_index": 23, "answer": "молоко", "human_points": 1, "lang": "ru", "tag": "translation"}
+{"key": "5786", "question_index": 23, "answer": "חלב", "human_points": 1, "lang": "he", "tag": "translation"}
+{"key": "5786", "question_index": 23, "answer": "wine", "human_points": 0, "lang": "en", "tag": "wrong"}
+{"key": "5786", "question_index": 23, "answer": "water", "human_points": 0, "lang": "en", "tag": "wrong_detail"}
+{"key": "5786", "question_index": 24, "answer": "Saul und Jonatan", "human_points": 1, "lang": "de", "tag": "translation"}
+{"key": "5786", "question_index": 24, "answer": "Саул и Ионафан", "human_points": 1, "lang": "ru", "tag": "translation"}
+{"key": "5786", "question_index": 24, "answer": "שאול ויונתן", "human_points": 1, "lang": "he", "tag": "translation"}
+{"key": "5786", "question_index": 24, "answer": "King Shaul", "human_points": 0.5, "lang": "en", "tag": "partial"}
+{"key": "5786", "question_index": 24, "answer": "David and Yonatan", "human_points": 0.5, "lang": "en", "tag": "partial"}
+{"key": "5786", "question_index": 24, "answer": "Shmuel and David", "human_points": 0, "lang": "en", "tag": "wrong"}
+{"key": "5786", "question_index": 25, "answer": "food", "human_points": 1, "lang": "en", "tag": "synonym"}
+{"key": "5786", "question_index": 25, "answer": "Brot", "human_points": 1, "lang": "de", "tag": "translation"}
+{"key": "5786", "question_index": 25, "answer": "хлеб", "human_points": 1, "lang": "ru", "tag": "translation"}
+{"key": "5786", "question_index": 25, "answer": "לחם", "human_points": 1, "lang": "he", "tag": "translation"}
+{"key": "5786", "question_index": 25, "answer": "honey", "human_points": 0, "lang": "en", "tag": "wrong_detail"}
+{"key": "5786", "question_index": 25, "answer": "meat", "human_points": 0, "lang": "en", "tag": "wrong"}
+{"key": "5786", "question_index": 26, "answer": "the prophet Samuel", "human_points": 1, "lang": "en", "tag": "extra_words"}
+{"key": "5786", "question_index": 26, "answer": "Самуил", "human_points": 1, "lang": "ru", "tag": "translation"}
+{"key": "5786", "question_index": 26, "answer": "שמואל", "human_points": 1, "lang": "he", "tag": "translation"}
+{"key": "5786", "question_index": 26, "answer": "David", "human_points": 0, "lang": "en", "tag": "wrong"}
+{"key": "5786", "question_index": 26, "answer": "Shaul", "human_points": 0, "lang": "en", "tag": "wrong"}
+{"key": "5786", "question_index": 27, "answer": "Jonathan, Abinadab and Malchishua", "human_points": 1, "lang": "en", "tag": "spelling"}
+{"key": "5786", "question_index": 27, "answer": "Ионафан, Аминадав и Мелхисуа", "human_points": 1, "lang": "ru", "tag": "translation"}
+{"key": "5786", "question_index": 27, "answer": "יהונתן, אבינדב ומלכישוע", "human_points": 1, "lang": "he", "tag": "translation"}
+{"key": "5786", "question_index": 27, "answer": "Yonatan", "human_points": 0.5, "lang": "en", "tag": "partial"}
+{"key": "5786", "question_index": 27, "answer": "Avner", "human_points": 0, "lang": "en", "tag": "wrong"}
+{"key": "5786", "question_index": 28, "answer": "Mordechai saved the king's life", "human_points": 1, "lang": "en", "tag": "paraphrase"}
+{"key": "5786", "question_index": 28, "answer": "er hat den König vor einem Mordanschlag gerettet", "human_points": 1, "lang": "de", "tag": "translation"}
+{"key": "5786", "question_index": 28, "answer": "Мардохей раскрыл заговор против царя", "human_points": 1, "lang": "ru", "tag": "translation"}
+{"key": "5786", "question_index": 28, "answer": "מרדכי הציל את המלך", "human_points": 1, "lang": "he", "tag": "translation"}
+{"key": "5786", "question_index": 28, "answer": "because he was Jewish", "human_points": 0, "lang": "en", "tag": "wrong"}
+{"key": "5786", "question_index": 28, "answer": "he refused to bow to Haman", "human_points": 0, "lang": "en", "tag": "wrong"}
+{"key": "5786", "question_index": 29, "answer": "Ahasverus zu Haman", "human_points": 1, "lang": "de", "tag": "translation"}
+{"key": "5786", "question_index": 29, "answer": "Артаксеркс Аману", "human_points": 1, "lang": "ru", "tag": "translation"}
+{"key": "5786", "question_index": 29, "answer": "אחשורוש להמן", "human_points": 1, "lang": "he", "tag": "translation"}
+{"key": "5786", "question_index": 29, "answer": "the king", "human_points": 0.5, "lang": "en", "tag": "partial"}
+{"key": "5786", "question_index": 29, "answer": "Haman to Esther", "human_points": 0, "lang": "en", "tag": "wrong"}
+{"key": "5786", "question_index": 29, "answer": "Achashverosh", "human_points": 0.5, "lang": "en", "tag": "partial"}
+{"key": "5787a", "question_index": 0, "answer": "eine rippe", "human_points": 1, "lang": "de", "tag": "exact"}
+{"key": "5787a", "question_index": 0, "answer": "die Rippe von Adam", "human_points": 1, "lang": "de", "tag": "extra_words"}
+{"key": "5787a", "question_index": 0, "answer": "ребро", "human_points": 1, "lang": "ru", "tag": "translation"}
+{"key": "5787a", "question_index": 0, "answer": "Erde", "human_points": 0, "lang": "de", "tag": "wrong"}
+{"key": "5787a", "question_index": 1, "answer": "Kajin", "human_points": 1, "lang": "de", "tag": "spelling"}
+{"key": "5787a", "question_index": 1, "answer": "Каин", "human_points": 1, "lang": "ru", "tag": "translation"}
+{"key": "5787a", "question_index": 1, "answer": "Abel", "human_points": 0, "lang": "de", "tag": "wrong"}
+{"key": "5787a", "question_index": 2, "answer": "die Sonne, der Mond und 11 Sterne", "human_points": 1, "lang": "de", "tag": "digits"}
+{"key": "5787a", "question_index": 2, "answer": "elf Sterne", "human_points": 0.5, "lang": "de", "tag": "partial"}
+{"key": "5787a", "question_index": 2, "answer": "Garben", "human_points": 0, "lang": "de", "tag": "wrong"}
+{"key": "5787a", "question_index": 2, "answer": "солнце, луна и одиннадцать звезд", "human_points": 1, "lang": "ru", "tag": "translation"}
+{"key": "5787a", "question_index": 3, "answer": "Laban", "human_points": 1, "lang": "de", "tag": "exact"}
+{"key": "5787a", "question_index": 3, "answer": "Лаван", "human_points": 1, "lang": "ru", "tag": "translation"}
+{"key": "5787a", "question_index": 3, "answer": "Esau", "human_points": 0, "lang": "de", "tag": "wrong"}
+{"key": "5787a", "question_index": 4, "answer": "Linsensuppe", "human_points": 1, "lang": "de", "tag": "synonym"}
+{"key": "5787a", "question_index": 4, "answer": "rote Linsen", "human_points": 1, "lang": "de", "tag": "short"}
+{"key": "5787a", "question_index": 4, "answer": "чечевичная похлёбка", "human_points": 1, "lang": "ru", "tag": "translation"}
+{"key": "5787a", "question_index": 4, "answer": "Fleisch", "human_points": 0, "lang": "de", "tag": "wrong"}
+{"key": "5787a", "question_index": 5, "answer": "Rahel", "human_points": 1, "lang": "de", "tag": "exact"}
+{"key": "5787a", "question_index": 5, "answer": "Рахиль", "human_points": 1, "lang": "ru", "tag": "translation"}
+{"key": "5787a", "question_index": 5, "answer": "Lea", "human_points": 0, "lang": "de", "tag": "wrong"}
+{"key": "5787a", "question_index": 6, "answer": "Juda", "human_points": 1, "lang": "de", "tag": "exact"}
+{"key": "5787a", "question_index": 6, "answer": "Иуда", "human_points": 1, "lang": "ru", "tag": "translation"}
+{"key": "5787a", "question_index": 6, "answer": "Reuven", "human_points": 0, "lang": "de", "tag": "wrong"}
+{"key": "5787a", "question_index": 7, "answer": "Aegypten", "human_points": 1, "lang": "de", "tag": "exact"}
+{"key": "5787a", "question_index": 7, "answer": "Египет", "human_points": 1, "lang": "ru", "tag": "translation"}
+{"key": "5787a", "question_index": 7, "answer": "Kanaan", "human_points": 0, "lang": "de", "tag": "wrong"}
+{"key": "5787a", "question_index": 8, "answer": "Benjamin", "human_points": 1, "lang": "de", "tag": "exact"}
+{"key": "5787a", "question_index": 8, "answer": "Вениамин", "human_points": 1, "lang": "ru", "tag": "translation"}
+{"key": "5787a", "question_index": 8, "answer": "Josef", "human_points": 0, "lang": "de", "tag": "wrong"}
+{"key": "5787a", "question_index": 9, "answer": "Goschen", "human_points": 1, "lang": "de", "tag": "short"}
+{"key": "5787a", "question_index": 9, "answer": "Гесем", "human_points": 1, "lang": "ru", "tag": "translation"}
+{"key": "5787a", "question_index": 9, "answer": "Kairo", "human_points": 0, "lang": "de", "tag": "wrong"}
+{"key": "5787f", "question_index": 0, "answer": "Eliezer", "human_points": 1, "lang": "de", "tag": "exact"}
+{"key": "5787f", "question_index": 0, "answer": "Елиезер", "human_points": 1, "lang": "ru", "tag": "translation"}
+{"key": "5787f", "question_index": 0, "answer": "Lot", "human_points": 0, "lang": "de", "tag": "wrong"}
+{"key": "5787f", "question_index": 1, "answer": "Ziegen und Schafe", "human_points": 1, "lang": "de", "tag": "partial_list"}
+{"key": "5787f", "question_index": 1, "answer": "стада скота", "human_points": 1, "lang": "ru", "tag": "translation"}
+{"key": "5787f", "question_index": 1, "answer": "Gold und Silber", "human_points": 0, "lang": "de", "tag": "wrong"}
+{"key": "5787f", "question_index": 2, "answer": "Zipora", "human_points": 1, "lang": "de", "tag": "exact"}
+{"key": "5787f", "question_index": 2, "answer": "Сепфора", "human_points": 1, "lang": "ru", "tag": "translation"}
+{"key": "5787f", "question_index": 2, "answer": "Mirjam", "human_points": 0, "lang": "de", "tag": "wrong"}
+{"key": "5787f", "question_index": 3, "answer": "Pharao", "human_points": 1, "lang": "de", "tag": "exact"}
+{"key": "5787f", "question_index": 3, "answer": "фараон", "human_points": 1, "lang": "ru", "tag": "translation"}
+{"key": "5787f", "question_index": 3, "answer": "Mosche", "human_points": 0, "lang": "de", "tag": "wrong"}
+{"key": "5787f", "question_index": 4, "answer": "Aaron und Hur", "human_points": 1, "lang": "de", "tag": "exact"}
+{"key": "5787f", "question_index": 4, "answer": "Aharon", "human_points": 0.5, "lang": "de", "tag": "partial"}
+{"key": "5787f", "question_index": 4, "answer": "Аарон и Ор", "human_points": 1, "lang": "ru", "tag": "translation"}
+{"key": "5787f", "question_index": 4, "answer": "Jehoschua", "human_points": 0, "lang": "de", "tag": "wrong"}
+{"key": "5787f", "question_index": 5, "answer": "Aussatz", "human_points": 1, "lang": "de", "tag": "short"}
+{"key": "5787f", "question_index": 5, "answer": "проказа", "human_points": 1, "lang": "ru", "tag": "translation"}
+{"key": "5787f", "question_index": 5, "answer": "Blindheit", "human_points": 0, "lang": "de", "tag": "wrong"}
+{"key": "5787f", "question_index": 6, "answer": "Josua und Kaleb", "human_points": 1, "lang": "de", "tag": "exact"}
+{"key": "5787f", "question_index": 6, "answer": "Kalev", "human_points": 0.5, "lang": "de", "tag": "partial"}
+{"key": "5787f", "question_index": 6, "answer": "Иисус Навин и Халев", "human_points": 1, "lang": "ru", "tag": "translation"}
+{"key": "5787f", "question_index": 6, "answer": "Mosche und Aharon", "human_points": 0, "lang": "de", "tag": "wrong"}
+{"key": "5787f", "question_index": 7, "answer": "Heuschrecken", "human_points": 1, "lang": "de", "tag": "short"}
+{"key": "5787f", "question_index": 7, "answer": "саранча", "human_points": 1, "lang": "ru", "tag": "translation"}
+{"key": "5787f", "question_index": 7, "answer": "Ameisen", "human_points": 0, "lang": "de", "tag": "wrong"}
+{"key": "5787f", "question_index": 8, "answer": "Wachteln", "human_points": 1, "lang": "de", "tag": "short"}
+{"key": "5787f", "question_index": 8, "answer": "перепела", "human_points": 1, "lang": "ru", "tag": "translation"}
+{"key": "5787f", "question_index": 8, "answer": "Tauben", "human_points": 0, "lang": "de", "tag": "wrong"}
+{"key": "5787f", "question_index": 9, "answer": "siebzig", "human_points": 1, "lang": "de", "tag": "exact"}
+{"key": "5787f", "question_index": 9, "answer": "70 Älteste", "human_points": 1, "lang": "de", "tag": "extra_words"}
+{"key": "5787f", "question_index": 9, "answer": "семьдесят", "human_points": 1, "lang": "ru", "tag": "translation"}
+{"key": "5787f", "question_index": 9, "answer": "zwölf", "human_points": 0, "lang": "de", "tag": "wrong"}

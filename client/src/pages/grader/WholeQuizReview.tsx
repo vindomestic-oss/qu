@@ -12,8 +12,15 @@ import { AnswerGroupRow } from '../../components/grader/AnswerGroupRow';
 import { AcceptVariantSlot, PrecedentHint } from '../../components/grader/AnswerHints';
 import { CheckIcon } from '../../components/grader/icons';
 import { gradedByViewer, offersAcceptVariant } from '../../components/grader/format';
+import { AiGradingBar } from '../../components/grader/AiGradingBar';
+import { AiSuggestionBadge } from '../../components/grader/AiSuggestionBadge';
+import { groupSuggestion, isAiAcceptable } from '../../components/grader/aiSuggestion';
+import { AiAcceptAll, AiAcceptButton } from '../../components/grader/AiAccept';
+import { useAiAcceptKey } from '../../lib/useAiAcceptKey';
+import { useAiBlindMode } from '../../lib/useAiBlindMode';
+import { runAi } from '../../api/aiGrading';
 import { QuestionLanguageBar } from '../../components/participant/QuestionLanguageBar';
-import type { AnswerGrade, GradingAnswer, GradingQuestion, WholeQuizQuestion, WholeQuizResponse } from '../../types';
+import type { AiGradingStatus, AnswerGrade, GradingAnswer, GradingQuestion, WholeQuizQuestion, WholeQuizResponse } from '../../types';
 import '../../components/grader/grader.css';
 
 type Filter = 'needs_review' | 'all';
@@ -117,6 +124,10 @@ export function WholeQuizReview() {
   const [error, setError] = useState(false);
   const [openChoices, setOpenChoices] = useState<Set<number>>(new Set());
   const { contentLanguage, base, setContentLanguage } = useContentLanguage(snapshot?.quiz.offered_languages ?? null);
+  // Wish 7 (S14): AI suggestions, the blind mode and the per-question "check the key" hints.
+  const [blind, setBlind] = useAiBlindMode();
+  const [aiStatus, setAiStatus] = useState<AiGradingStatus | null>(null);
+  useAiAcceptKey(snapshot?.quiz.ai_grading_enabled === true && !blind);
 
   const snapshotRef = useRef<Snapshot | null>(null);
   const rowsRef = useRef(rows);
@@ -299,10 +310,10 @@ export function WholeQuizReview() {
 
   const onEvent = useCallback(
     (e: GradingEvent) => {
-      // Grades by people, regrades and the reference check (wish 7) carry the answers they changed.
+      // Grades by people, regrades, the reference check and AI suggestions (wish 7) carry the answers they changed.
       if (
         e.type === 'grading' &&
-        (e.kind === 'grade' || e.kind === 'regrade' || e.kind === 'rule') &&
+        (e.kind === 'grade' || e.kind === 'regrade' || e.kind === 'rule' || e.kind === 'ai') &&
         e.answerIds.length > 0 &&
         e.answerIds.length <= ID_BATCH_MAX
       ) {
@@ -347,6 +358,8 @@ export function WholeQuizReview() {
   };
   const pct = progress.total > 0 ? Math.round((progress.graded / progress.total) * 100) : 100;
   const languages = snapshot.quiz.offered_languages;
+  const ai = snapshot.quiz.ai_grading_enabled === true;
+  const retryAi = (questionId: number) => void runAi(id, { questionId, includeFailed: true }).catch(() => {});
   const questionNumber = new Map<number, number>();
   snapshot.questions.forEach((q) => questionNumber.set(q.question.id, q.question.sort_order + 1));
 
@@ -411,6 +424,17 @@ export function WholeQuizReview() {
           <QuestionLanguageBar languages={languages} value={contentLanguage} onChange={setContentLanguage} idPrefix="grade-qlang" />
         </div>
       )}
+      <AiGradingBar
+        sessionId={id}
+        quizAiEnabled={ai}
+        canRun={snapshot.viewer?.kind === 'admin'}
+        blind={blind}
+        onBlindChange={setBlind}
+        onStatus={(s, polled) => {
+          setAiStatus(s);
+          if (polled) scheduleFull();
+        }}
+      />
 
       {snapshot.questions.length === 0 && (
         <div className="grade-empty">
@@ -447,6 +471,25 @@ export function WholeQuizReview() {
             />
           );
         };
+        /** Wish 7 (S14): the AI suggestion of a row or group (hidden in blind mode until graded). */
+        const aiFor = (members: Row[]) =>
+          ai ? (
+            <AiSuggestionBadge
+              answer={groupSuggestion(members)}
+              hidden={blind && members.some((m) => m.points_awarded == null)}
+              onRetry={isAdmin ? () => retryAi(q.id) : undefined}
+            />
+          ) : null;
+        const aiAcceptFor = (members: Row[]) =>
+          ai ? (
+            <AiAcceptButton
+              sessionId={id}
+              members={members}
+              maxPoints={q.points}
+              offered={!blind && members.some(isAiAcceptable)}
+              onGrades={(grades) => mergeGrades(grades)}
+            />
+          ) : null;
         const textRow = (row: Row, withHints: boolean) => (
           <AnswerGradeRow
             key={row.id}
@@ -461,8 +504,15 @@ export function WholeQuizReview() {
               {row.text_answer}
             </p>
             {withHints && hintFor([row])}
+            {withHints && aiFor([row])}
+            {withHints && ai && <div className="answer-row__tools">{aiAcceptFor([row])}</div>}
           </AnswerGradeRow>
         );
+        // "Accept all confident-correct": the acceptable rows, grouped like the list.
+        const acceptGroups = groups
+          .map((groupIds) => groupIds.map((x) => rows.get(x)).filter((r): r is Row => Boolean(r) && isAiAcceptable(r!)))
+          .filter((members) => members.length > 0)
+          .map((members) => ({ text: members[0].text_answer ?? '', members }));
         const ruleMatched = Math.max(0, ruleBase + countRule(ids, rows));
         return (
           <QuestionReviewCard
@@ -516,6 +566,16 @@ export function WholeQuizReview() {
                 {open ? t('grader.quiz.hideAnswers') : t('grader.quiz.showAnswers', { n: rowList.length })}
               </button>
             )}
+            {isText && ai && (
+              <AiAcceptAll
+                sessionId={id}
+                questionId={q.id}
+                maxPoints={q.points}
+                groups={blind ? [] : acceptGroups}
+                ambiguous={Boolean(aiStatus?.perQuestion.find((x) => x.questionId === q.id)?.flaggedAmbiguous)}
+                onGrades={(grades) => mergeGrades(grades)}
+              />
+            )}
             {isText && rowList.length === 0 && <p className="grade-muted">{t('grader.quiz.noRows')}</p>}
             {isText &&
               groups.map((groupIds) => {
@@ -536,6 +596,14 @@ export function WholeQuizReview() {
                     label={members[0].text_answer ?? ''}
                     hints={hintFor(members)}
                     actions={acceptFor(members)}
+                    ai={
+                      ai ? (
+                        <>
+                          {aiFor(members)}
+                          <div className="answer-row__tools">{aiAcceptFor(members)}</div>
+                        </>
+                      ) : undefined
+                    }
                     onGrade={(grades) => mergeGrades(grades)}
                     renderMember={(m) => textRow(m, false)}
                   />
