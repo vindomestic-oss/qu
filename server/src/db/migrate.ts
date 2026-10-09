@@ -1,5 +1,6 @@
 import Database from 'better-sqlite3';
-import { CONTENT_LANGS } from '../lib/languages';
+import { CONTENT_LANGS, isQuizLang } from '../lib/languages';
+import { computeUsedLanguages } from '../lib/quizLanguages';
 import { CHIDON_5787_ANFAENGER_TITLE, CHIDON_5787_FORTGESCHRITTENE_TITLE } from './quizTitles';
 
 const ADDED_COLUMNS: Record<string, { name: string; type: string }[]> = {
@@ -9,6 +10,9 @@ const ADDED_COLUMNS: Record<string, { name: string; type: string }[]> = {
     ...CONTENT_LANGS.map((lang) => ({ name: `title_${lang}`, type: 'TEXT' })),
     ...CONTENT_LANGS.map((lang) => ({ name: `description_${lang}`, type: 'TEXT' })),
     { name: 'base_language', type: "TEXT NOT NULL DEFAULT 'en'" },
+    // JSON array of the languages the author declared (base first, then display order); NULL until
+    // backfilled below. Participants are offered only declared languages that are complete.
+    { name: 'content_languages', type: 'TEXT' },
   ],
   questions: CONTENT_LANGS.map((lang) => ({ name: `text_${lang}`, type: 'TEXT' })),
   choices: CONTENT_LANGS.map((lang) => ({ name: `text_${lang}`, type: 'TEXT' })),
@@ -99,4 +103,21 @@ export function runMigrations(db: Database.Database) {
       AND (text_answer IS NULL OR trim(text_answer) = '')
       AND question_id IN (SELECT id FROM questions WHERE type = 'text')
   `);
+
+  // Declared languages of existing quizzes = the languages they already have text in. Runs after the
+  // base_language backfill (the base decides which columns count); guarded by IS NULL, so later
+  // boots change nothing and a list the author edited is never overwritten.
+  const undeclared = db.prepare('SELECT id, base_language FROM quizzes WHERE content_languages IS NULL').all() as {
+    id: number;
+    base_language: string;
+  }[];
+  if (undeclared.length > 0) {
+    const setDeclared = db.prepare('UPDATE quizzes SET content_languages = ? WHERE id = ?');
+    db.transaction(() => {
+      for (const q of undeclared) {
+        const base = isQuizLang(q.base_language) ? q.base_language : 'en';
+        setDeclared.run(JSON.stringify(computeUsedLanguages(db, q.id, base)), q.id);
+      }
+    })();
+  }
 }

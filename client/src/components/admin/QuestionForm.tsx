@@ -1,16 +1,36 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import type { Question, QuestionInput, QuestionType } from '../../types';
-import { flattenTranslations, unflattenTranslations, type ContentLangCode } from '../../i18n/contentLanguages';
-import { TranslationFields } from './TranslationFields';
+import { ApiError } from '../../api/client';
+import {
+  flattenTranslations,
+  questionLangStatus,
+  translationLangs,
+  unflattenTranslations,
+  type ContentLangCode,
+  type QuizLang,
+} from '../../i18n/contentLanguages';
+import { LanguagePairTabs } from './LanguagePairTabs';
+import { PairField } from './PairField';
 
 interface Props {
   initial?: Question;
   onSubmit: (input: QuestionInput) => Promise<void>;
   onCancel: () => void;
+  /** The quiz's base language: the main fields are written in it. */
+  baseLang: QuizLang;
+  /** The quiz's declared languages (base first). */
+  quizLanguages: QuizLang[];
+  /** The open language pair, shared by every form of the editor; null = base only. */
+  activeLang: ContentLangCode | null;
+  onActiveLangChange: (lang: ContentLangCode | null) => void;
+  /** Declares a new language for the whole quiz (saved at once). */
+  onAddLanguage: (lang: ContentLangCode) => Promise<void>;
 }
 
 interface ChoiceState {
+  /** The saved choice this row edits; sent back so answers keep pointing at it. */
+  id?: number;
   text: string;
   translations: Record<ContentLangCode, string>;
   is_correct: boolean;
@@ -24,9 +44,12 @@ function emptyChoices(): ChoiceState[] {
   return [emptyChoice(), emptyChoice()];
 }
 
-export function QuestionForm({ initial, onSubmit, onCancel }: Props) {
+const hasText = (v: string | undefined) => typeof v === 'string' && v.trim() !== '';
+
+export function QuestionForm({ initial, onSubmit, onCancel, baseLang, quizLanguages, activeLang, onActiveLangChange, onAddLanguage }: Props) {
   const [type, setType] = useState<QuestionType>(initial?.type ?? 'single');
   const [text, setText] = useState(initial?.text ?? '');
+  // All 14 translations stay in state (and in the payload) even while hidden: a save never erases them.
   const [textTranslations, setTextTranslations] = useState<Record<ContentLangCode, string>>(
     unflattenTranslations('text', initial),
   );
@@ -34,6 +57,7 @@ export function QuestionForm({ initial, onSubmit, onCancel }: Props) {
   const [choices, setChoices] = useState<ChoiceState[]>(
     initial && initial.choices.length > 0
       ? initial.choices.map((c) => ({
+          id: c.id,
           text: c.text,
           translations: unflattenTranslations('text', c),
           is_correct: Boolean(c.is_correct),
@@ -42,6 +66,24 @@ export function QuestionForm({ initial, onSubmit, onCancel }: Props) {
   );
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  // Live form state in the row shape the status helpers read.
+  const formRow = {
+    type,
+    text,
+    ...flattenTranslations('text', textTranslations),
+    choices: choices.map((c) => ({ text: c.text, ...flattenTranslations('text', c.translations) })),
+  };
+  const candidates = translationLangs(baseLang);
+  // Declared languages plus any language this form already has text in (e.g. after a "×").
+  const tabLanguages = candidates.filter(
+    (l) =>
+      quizLanguages.includes(l) ||
+      hasText(textTranslations[l]) ||
+      (type !== 'text' && choices.some((c) => hasText(c.translations[l]))),
+  );
+  const shownLang = activeLang && tabLanguages.includes(activeLang) ? activeLang : null;
+  const addable = candidates.filter((l) => !quizLanguages.includes(l));
 
   function handleTypeChange(next: QuestionType) {
     setType(next);
@@ -91,13 +133,18 @@ export function QuestionForm({ initial, onSubmit, onCancel }: Props) {
           type === 'text'
             ? []
             : choices.map((c) => ({
+                ...(c.id !== undefined ? { id: c.id } : {}),
                 text: c.text,
                 ...flattenTranslations('text', c.translations),
                 is_correct: c.is_correct,
               })),
       });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save question');
+      if (err instanceof ApiError && err.status === 409 && err.message === 'has_answers') {
+        setError('This question already has answers, so it cannot switch between a text answer and choices. Create a new question instead.');
+      } else {
+        setError(err instanceof Error ? err.message : 'Failed to save question');
+      }
     } finally {
       setSubmitting(false);
     }
@@ -110,6 +157,17 @@ export function QuestionForm({ initial, onSubmit, onCancel }: Props) {
       onSubmit={handleSubmit}
       style={{ border: '1px solid var(--border)', padding: 16, marginTop: 12, display: 'flex', flexDirection: 'column', gap: 10 }}
     >
+      <LanguagePairTabs
+        base={baseLang}
+        languages={tabLanguages}
+        declared={quizLanguages}
+        active={shownLang}
+        onSelect={onActiveLangChange}
+        statusOf={(l) => questionLangStatus(formRow, l, baseLang)}
+        addable={addable}
+        onAdd={onAddLanguage}
+      />
+
       <label>
         Type
         <select value={type} onChange={(e) => handleTypeChange(e.target.value as QuestionType)} style={{ display: 'block' }}>
@@ -119,17 +177,26 @@ export function QuestionForm({ initial, onSubmit, onCancel }: Props) {
         </select>
       </label>
 
-      <label>
-        Question text
-        <textarea value={text} onChange={(e) => setText(e.target.value)} required style={{ display: 'block', width: '100%' }} />
-      </label>
-      <TranslationFields values={textTranslations} onChange={(lang, value) => setTextTranslations((prev) => ({ ...prev, [lang]: value }))} />
+      <PairField
+        multiline
+        required
+        label="Question text"
+        baseLang={baseLang}
+        baseValue={text}
+        onBaseChange={setText}
+        translations={textTranslations}
+        onTranslationChange={(lang, value) => setTextTranslations((prev) => ({ ...prev, [lang]: value }))}
+        activeLang={shownLang}
+      />
 
       <label>
         Points
         <input
           type="number"
-          min={1}
+          min={0.5}
+          max={100}
+          step={0.5}
+          inputMode="decimal"
           value={points}
           onChange={(e) => setPoints(Number(e.target.value))}
           required
@@ -141,29 +208,35 @@ export function QuestionForm({ initial, onSubmit, onCancel }: Props) {
         <div>
           <div>Choices ({type === 'single' ? 'mark one correct' : 'mark one or more correct'})</div>
           {choices.map((c, i) => (
-            <div key={i} style={{ border: '1px solid var(--border-subtle)', padding: 8, marginTop: 4 }}>
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <div key={c.id ?? `new-${i}`} style={{ border: '1px solid var(--border-subtle)', padding: 8, marginTop: 4 }}>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
                 <input
                   type={type === 'single' ? 'radio' : 'checkbox'}
                   name="correct"
+                  aria-label={`Choice ${i + 1} is correct`}
                   checked={c.is_correct}
                   onChange={(e) => setCorrect(i, e.target.checked)}
+                  style={{ marginTop: 10, flexShrink: 0 }}
                 />
-                <input
-                  value={c.text}
-                  onChange={(e) => updateChoiceText(i, e.target.value)}
-                  placeholder={`Choice ${i + 1}`}
-                  required
-                  style={{ flex: 1 }}
-                />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <PairField
+                    hideLabel
+                    required
+                    label={`Choice ${i + 1}`}
+                    basePlaceholder={`Choice ${i + 1}`}
+                    baseLang={baseLang}
+                    baseValue={c.text}
+                    onBaseChange={(value) => updateChoiceText(i, value)}
+                    translations={c.translations}
+                    onTranslationChange={(lang, value) => updateChoiceTranslation(i, lang, value)}
+                    activeLang={shownLang}
+                  />
+                </div>
                 {choices.length > 2 && (
                   <button type="button" onClick={() => removeChoice(i)}>
                     Remove
                   </button>
                 )}
-              </div>
-              <div style={{ marginLeft: 24 }}>
-                <TranslationFields values={c.translations} onChange={(lang, value) => updateChoiceTranslation(i, lang, value)} />
               </div>
             </div>
           ))}

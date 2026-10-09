@@ -13,3 +13,13 @@ export function isQuizLang(value: unknown): value is QuizLang {
 /** Order of every language list sent to clients: the 4 UI languages, then the rest alphabetically
  *  by endonym (Latin script before Cyrillic). Clients render lists as received. */
 export const LANGUAGE_DISPLAY_ORDER: readonly QuizLang[] = ['en', 'de', 'he', 'ru', 'cs', 'es', 'fr', 'it', 'lv', 'lt', 'hu', 'pl', 'fi', 'bg', 'uk'];
+
+export function isContentLang(value: unknown): value is ContentLang {
+  return typeof value === 'string' && (CONTENT_LANGS as readonly string[]).includes(value);
+}
+
+/** Languages a quiz with this base can be translated into. There are no `*_en` columns, so English
+ *  is never a translation; a non-English base's own `*_<base>` columns are ignored. */
+export function translationLangs(base: QuizLang): ContentLang[] {
+  return CONTENT_LANGS.filter((l) => l !== base);
+}

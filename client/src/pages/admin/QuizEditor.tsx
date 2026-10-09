@@ -7,6 +7,7 @@ import {
   deleteQuestionImage,
   getQuiz,
   reorderQuestions,
+  setQuizLanguages,
   updateQuestion,
   updateQuiz,
   uploadQuestionImage,
@@ -16,10 +17,38 @@ import type { Quiz, Question, QuestionInput, QuizSession } from '../../types';
 import { ApiError } from '../../api/client';
 import { QuestionForm } from '../../components/admin/QuestionForm';
 import { SessionPanel } from '../../components/admin/SessionPanel';
-import { TranslationFields } from '../../components/admin/TranslationFields';
-import { flattenTranslations, unflattenTranslations, QUIZ_LANGS, type ContentLangCode, type QuizLang } from '../../i18n/contentLanguages';
+import { LanguagePairTabs } from '../../components/admin/LanguagePairTabs';
+import { PairField } from '../../components/admin/PairField';
+import { QuizLanguagesBar } from '../../components/admin/QuizLanguagesBar';
+import {
+  flattenTranslations,
+  isContentLang,
+  metaLangStatus,
+  questionLangStatus,
+  translationLangs,
+  unflattenTranslations,
+  QUIZ_LANGS,
+  type ContentLangCode,
+  type QuizLang,
+} from '../../i18n/contentLanguages';
 import { LANGUAGE_META } from '../../i18n/languageMeta';
 import { formatJoinCode } from '../../lib/joinLink';
+
+// The open language pair is remembered per browser tab, so the next question opens with it too.
+const PAIR_STORAGE_KEY = 'quiz_editor_pair_lang';
+
+function readStoredPair(): ContentLangCode | null {
+  try {
+    const v = sessionStorage.getItem(PAIR_STORAGE_KEY);
+    return isContentLang(v) ? v : null;
+  } catch {
+    return null;
+  }
+}
+
+const BASE_CHANGE_NOTE = 'The main language says which language the main fields are written in. No text is moved or translated.';
+
+const hasText = (v: string | undefined) => typeof v === 'string' && v.trim() !== '';
 
 export function QuizEditor() {
   const { id } = useParams();
@@ -43,6 +72,41 @@ export function QuizEditor() {
   const [savingMeta, setSavingMeta] = useState(false);
 
   const [formMode, setFormMode] = useState<'none' | 'create' | number>('none');
+  const [storedPair, setStoredPair] = useState<ContentLangCode | null>(readStoredPair);
+
+  function setPairLang(lang: ContentLangCode | null) {
+    setStoredPair(lang);
+    try {
+      if (lang) sessionStorage.setItem(PAIR_STORAGE_KEY, lang);
+      else sessionStorage.removeItem(PAIR_STORAGE_KEY);
+    } catch {
+      // storage blocked: the pair applies until reload
+    }
+  }
+
+  // Adding or removing a language saves at once and only replaces `quiz`: unsaved title,
+  // description and question edits stay as they are (no refresh()).
+  async function handleAddLanguage(lang: ContentLangCode) {
+    if (!quiz) return;
+    const { quiz: updated } = await setQuizLanguages(quizId, [...quiz.content_languages, lang]);
+    setQuiz(updated);
+    setPairLang(lang);
+  }
+
+  async function handleRemoveLanguage(lang: ContentLangCode) {
+    if (!quiz) return;
+    const { quiz: updated } = await setQuizLanguages(
+      quizId,
+      quiz.content_languages.filter((l) => l !== lang),
+    );
+    setQuiz(updated);
+  }
+
+  function handleBaseLanguageChange(next: QuizLang) {
+    if (next === baseLanguage) return;
+    if (!confirm(BASE_CHANGE_NOTE)) return;
+    setBaseLanguage(next);
+  }
 
   async function refresh() {
     try {
@@ -148,33 +212,80 @@ export function QuizEditor() {
   if (!quiz) return <p style={{ margin: 40, color: 'var(--danger)' }}>{error ?? 'Quiz not found'}</p>;
 
   const questions = [...(quiz.questions ?? [])].sort((a, b) => a.sort_order - b.sort_order);
+  // Everything language-related follows the SAVED base and declared list, not unsaved form state.
+  const base = quiz.base_language;
+  const declared = quiz.content_languages ?? [base];
+  const candidates = translationLangs(base);
+  const pairLang = storedPair && candidates.includes(storedPair) ? storedPair : null;
+  const addable = candidates.filter((l) => !declared.includes(l));
+  const declaredTranslations = candidates.filter((l) => declared.includes(l));
+  const metaValues: Record<string, unknown> = {
+    title,
+    description,
+    ...flattenTranslations('title', titleTranslations),
+    ...flattenTranslations('description', descriptionTranslations),
+  };
+  const metaTabLanguages = candidates.filter(
+    (l) => declared.includes(l) || hasText(titleTranslations[l]) || hasText(descriptionTranslations[l]),
+  );
+  const metaPairLang = pairLang && metaTabLanguages.includes(pairLang) ? pairLang : null;
+  const questionFormProps = {
+    baseLang: base,
+    quizLanguages: declared,
+    activeLang: pairLang,
+    onActiveLangChange: setPairLang,
+    onAddLanguage: handleAddLanguage,
+  };
 
   return (
     <div style={{ maxWidth: 720, margin: '16px auto' }}>
       <Link to="/admin">&larr; Back to quizzes</Link>
       <h1>{quiz.title}</h1>
+      <QuizLanguagesBar
+        base={base}
+        declared={declared}
+        offered={quiz.offered_languages ?? [base]}
+        questions={questions}
+        addable={addable}
+        onAdd={handleAddLanguage}
+        onRemove={handleRemoveLanguage}
+      />
       {error && <p style={{ color: 'var(--danger)' }}>{error}</p>}
 
-      <form onSubmit={handleSaveMeta} style={{ display: 'flex', flexDirection: 'column', gap: 8, maxWidth: 400 }}>
-        <label>
-          Title
-          <input value={title} onChange={(e) => setTitle(e.target.value)} required style={{ display: 'block', width: '100%' }} />
-        </label>
-        <TranslationFields
-          values={titleTranslations}
-          onChange={(lang, value) => setTitleTranslations((prev) => ({ ...prev, [lang]: value }))}
+      <form
+        aria-label="Quiz details"
+        onSubmit={handleSaveMeta}
+        style={{ display: 'flex', flexDirection: 'column', gap: 8 }}
+      >
+        <LanguagePairTabs
+          base={base}
+          languages={metaTabLanguages}
+          declared={declared}
+          active={metaPairLang}
+          onSelect={setPairLang}
+          statusOf={(l) => metaLangStatus(metaValues, l)}
+          addable={addable}
+          onAdd={handleAddLanguage}
         />
-        <label>
-          Description
-          <textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            style={{ display: 'block', width: '100%' }}
-          />
-        </label>
-        <TranslationFields
-          values={descriptionTranslations}
-          onChange={(lang, value) => setDescriptionTranslations((prev) => ({ ...prev, [lang]: value }))}
+        <PairField
+          required
+          label="Title"
+          baseLang={base}
+          baseValue={title}
+          onBaseChange={setTitle}
+          translations={titleTranslations}
+          onTranslationChange={(lang, value) => setTitleTranslations((prev) => ({ ...prev, [lang]: value }))}
+          activeLang={metaPairLang}
+        />
+        <PairField
+          multiline
+          label="Description"
+          baseLang={base}
+          baseValue={description}
+          onBaseChange={setDescription}
+          translations={descriptionTranslations}
+          onTranslationChange={(lang, value) => setDescriptionTranslations((prev) => ({ ...prev, [lang]: value }))}
+          activeLang={metaPairLang}
         />
         <label>
           Time limit (minutes)
@@ -184,14 +295,14 @@ export function QuizEditor() {
             value={timeLimitMinutes}
             onChange={(e) => setTimeLimitMinutes(Number(e.target.value))}
             required
-            style={{ display: 'block', width: '100%' }}
+            style={{ display: 'block', width: 160 }}
           />
         </label>
         <label>
           Main language of the texts
           <select
             value={baseLanguage}
-            onChange={(e) => setBaseLanguage(e.target.value as QuizLang)}
+            onChange={(e) => handleBaseLanguageChange(e.target.value as QuizLang)}
             style={{ display: 'block' }}
           >
             {QUIZ_LANGS.map((code) => (
@@ -237,13 +348,17 @@ export function QuizEditor() {
               initial={q}
               onSubmit={(input) => handleUpdateQuestion(q.id, input)}
               onCancel={() => setFormMode('none')}
+              {...questionFormProps}
             />
           ) : (
             <>
               <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
-                <strong style={{ flex: '1 1 260px', textAlign: 'left' }}>
-                  {i + 1}. [{q.type}] {q.text} ({q.points} pt{q.points !== 1 ? 's' : ''})
-                </strong>
+                <div style={{ flex: '1 1 260px', textAlign: 'start' }}>
+                  <strong style={{ display: 'block' }}>
+                    {i + 1}. [{q.type}] <span lang={base}>{q.text}</span> ({q.points} pt{q.points !== 1 ? 's' : ''})
+                  </strong>
+                  <MissingTranslations languages={declaredTranslations.filter((l) => questionLangStatus(q, l, base) !== 'full')} />
+                </div>
                 <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', flexShrink: 0 }}>
                   <button onClick={() => handleMove(q, -1)} disabled={i === 0}>
                     ↑
@@ -289,10 +404,26 @@ export function QuizEditor() {
       ))}
 
       {formMode === 'create' ? (
-        <QuestionForm onSubmit={handleCreateQuestion} onCancel={() => setFormMode('none')} />
+        <QuestionForm onSubmit={handleCreateQuestion} onCancel={() => setFormMode('none')} {...questionFormProps} />
       ) : (
         <button onClick={() => setFormMode('create')}>Add question</button>
       )}
     </div>
+  );
+}
+
+/** "⚠ Missing translation: Lietuvių, Latviešu" under a question of the list. */
+function MissingTranslations({ languages }: { languages: ContentLangCode[] }) {
+  if (languages.length === 0) return null;
+  return (
+    <small className="q-missing">
+      <span aria-hidden="true">⚠ </span>Missing translation:{' '}
+      {languages.map((l, i) => (
+        <span key={l}>
+          {i > 0 && ', '}
+          <bdi lang={l}>{LANGUAGE_META[l].endonym}</bdi>
+        </span>
+      ))}
+    </small>
   );
 }

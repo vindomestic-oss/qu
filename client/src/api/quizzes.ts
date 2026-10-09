@@ -25,6 +25,11 @@ export function updateQuiz(id: number, input: QuizMetaInput) {
   return api<{ quiz: Quiz }>(`/quizzes/${id}`, { method: 'PUT', body: JSON.stringify(input) });
 }
 
+/** Declares the quiz's languages ("+ Add language" / "×"). Never changes any text. */
+export function setQuizLanguages(quizId: number, content_languages: QuizLang[]) {
+  return api<{ quiz: Quiz }>(`/quizzes/${quizId}/languages`, { method: 'PUT', body: JSON.stringify({ content_languages }) });
+}
+
 export function deleteQuiz(id: number) {
   return api<void>(`/quizzes/${id}`, { method: 'DELETE' });
 }

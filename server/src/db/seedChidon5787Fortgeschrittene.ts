@@ -1,4 +1,5 @@
 import { db } from './index';
+import { computeUsedLanguages } from '../lib/quizLanguages';
 import { CHIDON_5787_FORTGESCHRITTENE_TITLE } from './quizTitles';
 
 const QUIZ_TITLE = CHIDON_5787_FORTGESCHRITTENE_TITLE;
@@ -93,6 +94,12 @@ export function seedChidon5787Fortgeschrittene() {
         insertChoice.run(questionId, c.text, c.isCorrect ? 1 : 0, ci);
       });
     });
+
+    // Declared languages = the languages this seed actually filled in (no hard-coded list).
+    db.prepare('UPDATE quizzes SET content_languages = ? WHERE id = ?').run(
+      JSON.stringify(computeUsedLanguages(db, quizId, 'de')),
+      quizId,
+    );
 
     return quizId;
   });

@@ -32,6 +32,7 @@ const EXPECTED_ADMIN_ROUTES = [
   'POST /api/quizzes',
   'GET /api/quizzes/:id',
   'PUT /api/quizzes/:id',
+  'PUT /api/quizzes/:id/languages',
   'DELETE /api/quizzes/:id',
   'POST /api/quizzes/:id/questions',
   'PUT /api/quizzes/:id/questions/reorder',

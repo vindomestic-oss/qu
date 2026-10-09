@@ -196,6 +196,7 @@ export function SessionResults() {
                                 type="number"
                                 min={0}
                                 max={q.points}
+                                step={0.5}
                                 value={currentValue}
                                 onChange={(e) => setGradeInputs((prev) => ({ ...prev, [a.id]: e.target.value }))}
                                 style={{ width: 60 }}

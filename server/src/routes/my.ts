@@ -67,8 +67,9 @@ myRouter.get('/session', (req: ParticipantRequest, res) => {
   const session = getSessionForParticipant(req);
   if (!session) return res.status(404).json({ error: 'Session not found' });
 
-  const quizRow = db.prepare('SELECT id, base_language FROM quizzes WHERE id = ?').get(session.quiz_id) as
-    | { id: number; base_language: string }
+  // content_languages feeds the offered list only; it is never sent to participants.
+  const quizRow = db.prepare('SELECT id, base_language, content_languages FROM quizzes WHERE id = ?').get(session.quiz_id) as
+    | { id: number; base_language: string; content_languages: string | null }
     | undefined;
   const languageInfo = quizRow ? getQuizLanguageInfo(db, quizRow) : null;
 
@@ -123,13 +124,17 @@ myRouter.get('/quiz', (req: ParticipantRequest, res) => {
     ...translationColumns('description'),
     'time_limit_seconds',
     'base_language',
+    'content_languages',
   ];
   const quizRow = db.prepare(`SELECT ${quizColumns.join(', ')} FROM quizzes WHERE id = ?`).get(session.quiz_id) as {
     id: number;
     base_language: string;
+    content_languages: string | null;
   };
   const languageInfo = getQuizLanguageInfo(db, quizRow);
-  const quiz = { ...quizRow, base_language: languageInfo.base_language, offered_languages: languageInfo.offered };
+  // The declared list and missing counts are editor data: participants get only the offered list.
+  const { content_languages: _declared, ...quizFields } = quizRow;
+  const quiz = { ...quizFields, base_language: languageInfo.base_language, offered_languages: languageInfo.offered };
   const questions = db
     .prepare(`SELECT ${PARTICIPANT_QUESTION_COLUMNS.join(', ')} FROM questions WHERE quiz_id = ? ORDER BY sort_order`)
     .all(session.quiz_id) as QuestionRow[];
@@ -261,9 +266,10 @@ myRouter.get('/results', (req: ParticipantRequest, res) => {
     return res.status(400).json({ error: 'Results are only available after the session ends' });
   }
 
-  const quizRow = db.prepare('SELECT id, base_language FROM quizzes WHERE id = ?').get(session.quiz_id) as {
+  const quizRow = db.prepare('SELECT id, base_language, content_languages FROM quizzes WHERE id = ?').get(session.quiz_id) as {
     id: number;
     base_language: string;
+    content_languages: string | null;
   };
   const { base_language, offered } = getQuizLanguageInfo(db, quizRow);
 

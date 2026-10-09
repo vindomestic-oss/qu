@@ -1,10 +1,13 @@
 import { CONTENT_LANGS, ContentLang } from './languages';
+import { isValidPoints, roundPoints } from './grading';
 
 export type QuestionType = 'single' | 'multiple' | 'text';
 
 export type Translations = Partial<Record<ContentLang, string | null>>;
 
 export interface ChoiceInput {
+  /** Id of an existing choice of this question (kept, updated in place); null = a new choice. */
+  id: number | null;
   text: string;
   translations: Translations;
   is_correct: boolean;
@@ -22,7 +25,11 @@ export function optionalText(v: unknown): string | null {
   return typeof v === 'string' && v.trim() ? v.trim() : null;
 }
 
-/** Extracts `${prefix}_de`, `${prefix}_ru`, etc. from a flat request body into a translations map. */
+/**
+ * Extracts `${prefix}_de`, `${prefix}_ru`, etc. from a flat request body into a translations map.
+ * An absent key becomes NULL, so clients must always send all 14 `${prefix}_${lang}` keys, including
+ * languages the editor currently hides; otherwise a save would erase those translations.
+ */
 export function extractTranslations(body: any, prefix: string): Translations {
   const translations: Translations = {};
   for (const lang of CONTENT_LANGS) {
@@ -40,10 +47,11 @@ export function parseQuestionInput(body: any): QuestionInput | { error: string }
   if (typeof text !== 'string' || !text.trim()) {
     return { error: 'text is required' };
   }
-  const parsedPoints = Number(points);
-  if (!Number.isFinite(parsedPoints) || parsedPoints <= 0) {
-    return { error: 'points must be a positive number' };
+  const rawPoints = typeof points === 'string' && points.trim() ? Number(points) : points;
+  if (!isValidPoints(rawPoints)) {
+    return { error: 'points must be a positive whole or half number (0.5, 1, 1.5, …) of at most 100' };
   }
+  const parsedPoints = roundPoints(rawPoints);
 
   const translations = extractTranslations(body, 'text');
 
@@ -55,11 +63,20 @@ export function parseQuestionInput(body: any): QuestionInput | { error: string }
     return { error: 'single/multiple questions need at least 2 choices' };
   }
   const parsedChoices: ChoiceInput[] = [];
+  const seenIds = new Set<number>();
   for (const c of choices) {
     if (typeof c?.text !== 'string' || !c.text.trim()) {
       return { error: 'each choice needs non-empty text' };
     }
+    let id: number | null = null;
+    if (c.id !== undefined && c.id !== null) {
+      if (!Number.isSafeInteger(c.id) || c.id <= 0) return { error: 'choice id must be a positive integer' };
+      if (seenIds.has(c.id)) return { error: 'duplicate choice id' };
+      seenIds.add(c.id);
+      id = c.id;
+    }
     parsedChoices.push({
+      id,
       text: c.text.trim(),
       translations: extractTranslations(c, 'text'),
       is_correct: Boolean(c.is_correct),

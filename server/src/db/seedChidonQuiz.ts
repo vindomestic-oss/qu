@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { db } from './index';
+import { computeUsedLanguages } from '../lib/quizLanguages';
 import { translationColumns, translationValues } from '../lib/sqlTranslations';
 import type { Translations } from '../lib/questionInput';
 import { UPLOAD_DIR } from '../middleware/upload';
@@ -173,6 +174,12 @@ export function seedChidonQuiz() {
         );
       });
     });
+
+    // Declared languages = the languages this seed actually filled in (no hard-coded list).
+    db.prepare('UPDATE quizzes SET content_languages = ? WHERE id = ?').run(
+      JSON.stringify(computeUsedLanguages(db, quizId, 'en')),
+      quizId,
+    );
 
     return quizId;
   });
