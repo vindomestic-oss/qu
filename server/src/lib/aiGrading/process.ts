@@ -47,8 +47,12 @@ const CANDIDATES = `SELECT a.id, a.session_id, a.question_id, a.participant_id, 
 const PENDING = `q.type = 'text' AND a.points_awarded IS NULL AND p.submitted_at IS NOT NULL AND coalesce(a.answer_norm, '') <> ''
   AND (coalesce(q.reference_answer, '') <> '' OR coalesce(q.accepted_answers, '') NOT IN ('', '[]'))`;
 
-/** Full points by the rule, only while the answer is still ungraded and unchanged since it was read. */
-function writeMatch(db: Db, r: CandidateRow): boolean {
+/**
+ * Full points by the rule, only while the answer is still ungraded and unchanged since it was read.
+ * graded_by is always 'auto'; `actor` is who caused the check, for the audit row ('auto' for submit
+ * and session end, "admin:<name> (key edit)" when an admin changed the key).
+ */
+function writeMatch(db: Db, r: CandidateRow, actor: string = RULE_ACTOR): boolean {
   const changed = db
     .prepare(
       `UPDATE answers SET points_awarded = ?, is_correct = 1, graded_at = ?, graded_by = ?, graded_by_link_id = NULL,
@@ -62,7 +66,7 @@ function writeMatch(db: Db, r: CandidateRow): boolean {
     sessionId: r.session_id,
     questionId: r.question_id,
     participantId: r.participant_id,
-    actor: RULE_ACTOR,
+    actor,
     action: 'rule_match',
     oldPoints: r.points_awarded,
     newPoints: r.max_points,
@@ -74,7 +78,7 @@ function writeMatch(db: Db, r: CandidateRow): boolean {
 }
 
 /** Back to "needs review": only a grade the rule itself wrote, unchanged since it was read. */
-function writeRevert(db: Db, r: CandidateRow): boolean {
+function writeRevert(db: Db, r: CandidateRow, actor: string): boolean {
   const changed = db
     .prepare(
       `UPDATE answers SET points_awarded = NULL, is_correct = NULL, graded_at = NULL, graded_by = NULL, graded_by_link_id = NULL,
@@ -88,7 +92,7 @@ function writeRevert(db: Db, r: CandidateRow): boolean {
     sessionId: r.session_id,
     questionId: r.question_id,
     participantId: r.participant_id,
-    actor: RULE_ACTOR,
+    actor,
     action: 'rule_revert',
     oldPoints: r.points_awarded,
     newPoints: null,
@@ -138,9 +142,10 @@ export function enqueueParticipant(db: Db, participantId: number): number[] {
  * ('rule_revert'), an ungraded submitted answer that now matches is credited ('rule_match'). Rule
  * grades that still match stay as they are (no audit noise, no version bump under a grader's
  * finger). Grades by people ('human', later 'ai_confirmed') and the automatic choice and blank
- * grades are never touched. Returns the changed answer ids per session, for grading:changed.
+ * grades are never touched. `actor` goes into the audit rows (e.g. "admin:alex (key edit)").
+ * Returns the changed answer ids per session, for grading:changed.
  */
-export function requeueQuestion(db: Db, questionId: number): Map<number, number[]> {
+export function requeueQuestion(db: Db, questionId: number, actor: string = RULE_ACTOR): Map<number, number[]> {
   return db.transaction(() => {
     const changed = new Map<number, number[]>();
     const question = db.prepare('SELECT type, reference_answer, accepted_answers FROM questions WHERE id = ?').get(questionId) as
@@ -155,9 +160,9 @@ export function requeueQuestion(db: Db, questionId: number): Map<number, number[
       const matches = matchesKeys(r.answer_norm, keys);
       let done = false;
       if (r.grade_source === 'rule') {
-        if (!matches) done = writeRevert(db, r);
+        if (!matches) done = writeRevert(db, r, actor);
       } else if (r.points_awarded === null && r.submitted && matches) {
-        done = writeMatch(db, r);
+        done = writeMatch(db, r, actor);
       }
       if (!done) continue;
       const ids = changed.get(r.session_id) ?? [];

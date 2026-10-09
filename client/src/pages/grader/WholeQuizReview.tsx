@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { getAnswerGrades, getWholeQuiz } from '../../api/grading';
 import { useLanguage } from '../../i18n/LanguageContext';
@@ -11,7 +11,7 @@ import { AnswerGradeRow } from '../../components/grader/AnswerGradeRow';
 import { AnswerGroupRow } from '../../components/grader/AnswerGroupRow';
 import { AcceptVariantSlot, PrecedentHint } from '../../components/grader/AnswerHints';
 import { CheckIcon } from '../../components/grader/icons';
-import { offersAcceptVariant } from '../../components/grader/format';
+import { gradedByViewer, offersAcceptVariant } from '../../components/grader/format';
 import { QuestionLanguageBar } from '../../components/participant/QuestionLanguageBar';
 import type { AnswerGrade, GradingAnswer, GradingQuestion, WholeQuizQuestion, WholeQuizResponse } from '../../types';
 import '../../components/grader/grader.css';
@@ -63,6 +63,24 @@ function countRule(ids: number[], rows: Map<number, Row>): number {
   return n;
 }
 
+/** The fields of a question's answer key (wish 7: they can change while the list is open). */
+const keyText = (q: GradingQuestion) => JSON.stringify([q.reference_answer, q.accepted_answers, q.grader_notes]);
+
+/**
+ * The element whose place on screen must not change when content above it changes: the focused
+ * control inside a question card, else the first answer row below the sticky bar.
+ */
+function captureAnchor(): { el: Element; top: number } | null {
+  const active = document.activeElement;
+  if (active && active !== document.body && active.closest('.review-card')) return { el: active, top: active.getBoundingClientRect().top };
+  const offset = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--grade-sticky-offset')) || 0;
+  for (const el of document.querySelectorAll('.review-card .answer-row')) {
+    const top = el.getBoundingClientRect().top;
+    if (top >= offset) return { el, top };
+  }
+  return null;
+}
+
 /** The question has a model answer or accepted answers, so the reference check applies to it. */
 const hasKey = (q: GradingQuestion) => Boolean(q.reference_answer?.trim()) || (q.accepted_answers?.length ?? 0) > 0;
 
@@ -107,6 +125,8 @@ export function WholeQuizReview() {
     rowsRef.current = rows;
   });
   const seq = useRef(0);
+  /** Set just before a key refresh re-renders the cards; restored after it (useLayoutEffect below). */
+  const anchorRef = useRef<{ el: Element; top: number } | null>(null);
 
   /** Merges newer grades into the shown rows (never older ones); returns the merged rows. */
   const mergeGrades = useCallback((grades: AnswerGrade[]) => {
@@ -181,6 +201,14 @@ export function WholeQuizReview() {
         const merged = mergeGrades(grades);
         setProgressBase({ graded: r.progress.graded - countGradedText(snap.questions, merged), total: r.progress.total });
         const statsById = new Map(r.questions.map((q) => [q.question.id, q.stats]));
+        // An admin may have changed a model answer or the accepted answers ('key' event): the cards
+        // show the new key, and the page keeps the focused control or the top row where it was.
+        const keyById = new Map(r.questions.map((q) => [q.question.id, q.question]));
+        const keyChanged = snap.questions.some((q) => {
+          const fresh = keyById.get(q.question.id);
+          return fresh !== undefined && keyText(fresh) !== keyText(q.question);
+        });
+        if (keyChanged) anchorRef.current = captureAnchor();
         setSnapshot((prev) =>
           prev
             ? {
@@ -188,7 +216,11 @@ export function WholeQuizReview() {
                 session: r.session,
                 questions: prev.questions.map((q) => {
                   const stats = statsById.get(q.question.id) ?? q.stats;
-                  return { ...q, stats, ruleBase: (stats.rule_matched ?? 0) - countRule(q.ids, merged) };
+                  const fresh = keyById.get(q.question.id);
+                  const question = fresh
+                    ? { ...q.question, reference_answer: fresh.reference_answer, accepted_answers: fresh.accepted_answers, grader_notes: fresh.grader_notes }
+                    : q.question;
+                  return { ...q, question, stats, ruleBase: (stats.rule_matched ?? 0) - countRule(q.ids, merged) };
                 }),
               }
             : prev,
@@ -202,6 +234,16 @@ export function WholeQuizReview() {
   useEffect(() => {
     loadSnapshot();
   }, [loadSnapshot]);
+
+  // Scroll anchoring of our own (iPad Safari has none): content above the anchor changed height.
+  useLayoutEffect(() => {
+    const anchor = anchorRef.current;
+    if (!anchor) return;
+    anchorRef.current = null;
+    if (!anchor.el.isConnected) return;
+    const delta = anchor.el.getBoundingClientRect().top - anchor.top;
+    if (Math.abs(delta) >= 1) window.scrollBy(0, delta);
+  }, [snapshot]);
 
   // The sticky bar must never cover a focused control or a jumped-to question (WCAG 2.4.11): the page
   // scrolls with a top padding of the bar's measured height + 8 px (html scroll-padding-top).
@@ -228,6 +270,8 @@ export function WholeQuizReview() {
     if (!snapshot || snapshot.filter !== filter || !location.hash || jumped.current === location.hash) return;
     jumped.current = location.hash;
     document.getElementById(location.hash.slice(1))?.scrollIntoView({ block: 'start' });
+    // Focus follows the jump (e.g. "Show all"): the question's heading, not the page body.
+    document.getElementById(`${location.hash.slice(1)}-title`)?.focus({ preventScroll: true });
   }, [snapshot, filter, location.hash]);
 
   // Live updates: grades by id (batched), everything else as a throttled in-place refresh.
@@ -390,9 +434,18 @@ export function WholeQuizReview() {
         );
         /** Admins: "Add to accepted answers" once a person credited the answer (its place is kept). */
         const acceptFor = (members: Row[]) => {
-          if (!isAdmin) return null;
-          const offered = members.find((m) => offersAcceptVariant(snapshot.viewer, m, q.points));
-          return <AcceptVariantSlot questionId={q.id} answerId={(offered ?? members[0]).id} offered={Boolean(offered)} />;
+          if (!isAdmin) return undefined;
+          const offered = members.filter((m) => offersAcceptVariant(snapshot.viewer, m, q.points));
+          const mine = offered.find((m) => gradedByViewer(snapshot.viewer, m));
+          return (
+            <AcceptVariantSlot
+              questionId={q.id}
+              answerId={(mine ?? offered[0] ?? members[0]).id}
+              offered={offered.length > 0}
+              mine={Boolean(mine)}
+              answerText={members[0].text_answer ?? ''}
+            />
+          );
         };
         const textRow = (row: Row, withHints: boolean) => (
           <AnswerGradeRow
@@ -402,12 +455,12 @@ export function WholeQuizReview() {
             maxPoints={q.points}
             heading={t('grader.row.answerOf', { n: row.label })}
             onGrade={(g) => mergeGrades([g])}
+            tools={withHints ? acceptFor([row]) : undefined}
           >
             <p className="answer-row__text" dir="auto">
               {row.text_answer}
             </p>
             {withHints && hintFor([row])}
-            {withHints && isAdmin && <div className="answer-row__tools">{acceptFor([row])}</div>}
           </AnswerGradeRow>
         );
         const ruleMatched = Math.max(0, ruleBase + countRule(ids, rows));
@@ -480,6 +533,7 @@ export function WholeQuizReview() {
                         {members[0].text_answer}
                       </p>
                     }
+                    label={members[0].text_answer ?? ''}
                     hints={hintFor(members)}
                     actions={acceptFor(members)}
                     onGrade={(grades) => mergeGrades(grades)}

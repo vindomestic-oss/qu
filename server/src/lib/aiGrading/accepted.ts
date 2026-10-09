@@ -1,4 +1,4 @@
-import { matchKey, normalizeForMatch } from './normalize';
+import { matchKey, normalizeForMatch, stripInvisible } from './normalize';
 
 // questions.accepted_answers (wish 7): a JSON array of accepted answers and spellings of a text
 // question, for graders and the reference check only (never sent to participants).
@@ -18,7 +18,8 @@ export function parseAccepted(raw: unknown): string[] {
 }
 
 /**
- * An accepted-answers list from a request: trimmed, blanks and entries without anything comparable
+ * An accepted-answers list from a request: invisible and bidi characters removed, trimmed, blanks
+ * and entries without anything comparable
  * (e.g. "?!") dropped, duplicates by normalizeForMatch dropped (the first spelling stays), then at
  * most 30 entries of at most 120 characters. `null` clears the list.
  */
@@ -30,7 +31,7 @@ export function cleanAccepted(v: unknown): string[] | { error: string } {
   const out: string[] = [];
   const seen = new Set<string>();
   for (const raw of v as string[]) {
-    const item = raw.trim();
+    const item = stripInvisible(raw).trim();
     const norm = normalizeForMatch(item);
     if (norm === '' || seen.has(norm)) continue;
     if ([...item].length > ACCEPTED_MAX_CHARS) {

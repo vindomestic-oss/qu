@@ -613,6 +613,13 @@ label {
 .accepted-chip__remove:hover:not(:disabled) {
   text-decoration: underline;
 }
+@media (pointer: coarse) {
+  .accepted-chip__remove,
+  .accepted-chip__remove:hover:not(:disabled) {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
 .accepted-field__add {
   display: flex;
   gap: 8px;

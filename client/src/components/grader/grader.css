@@ -633,40 +633,56 @@
 }
 
 /* --- Reference check (wish 7): rule label, precedent hints, groups of identical answers ---------- */
+/* One line in every panel language from 375 px on (the status line below the buttons is 44 px). */
 .rule-chip {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 2px 10px;
+  padding: 0 10px;
   border-radius: 999px;
   background: var(--success-bg);
   color: var(--on-success-bg);
   font-weight: 600;
 }
+/* Neutral chips (dark on light, light on dark like the rule chip): earlier grades, group count. */
 .answer-hint {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   margin: 6px 0 0;
   padding: 2px 10px;
+  border: 1px solid var(--border);
   border-radius: 8px;
   font-size: 14px;
-  background: var(--selected-bg);
-  color: var(--selected-text);
+  background: var(--surface-alt);
+  color: var(--text);
 }
 .answer-hint--disagree {
   background: var(--warning-bg);
   color: var(--on-warning-bg);
+  border-color: var(--on-warning-bg);
 }
-/* Under the answer: "Show the N answers" and the admin's "Add to accepted answers". The accept
-   button keeps its place (hidden, not removed) while it is not offered, so rows never grow when a
-   grade arrives. */
+/* "Show the N answers" and the admin's "Add to accepted answers": under the answer, beside the
+   grading controls (which span both rows), and below the controls on narrow screens, so they never
+   push the grading buttons. The accept button keeps its place (hidden) while it is not offered, so
+   rows never grow when a grade arrives; narrow screens drop the unused place (it is last there). */
 .answer-row__tools {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
-  margin-block-start: 6px;
+}
+.answer-row--tools > .answer-row__content {
+  grid-column: 1;
+  grid-row: 1;
+}
+.answer-row--tools > .answer-row__controls {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+}
+.answer-row--tools > .answer-row__tools {
+  grid-column: 1;
+  grid-row: 2;
 }
 .accept-slot {
   display: inline-flex;
@@ -678,15 +694,13 @@
 .accept-slot__unused {
   visibility: hidden;
 }
-.accept-slot__status:empty {
-  display: none;
-}
 .group-count {
   display: inline-block;
   padding: 1px 10px;
+  border: 1px solid var(--border);
   border-radius: 999px;
-  background: var(--selected-bg);
-  color: var(--selected-text);
+  background: var(--surface-alt);
+  color: var(--text);
   font-weight: 700;
 }
 /* The answers of an opened group, one by one, indented under it. */
@@ -941,6 +955,17 @@ html:has(.quiz-bar) {
 @media (max-width: 640px) {
   .answer-row {
     grid-template-columns: minmax(0, 1fr);
+  }
+  .answer-row--tools > .answer-row__content,
+  .answer-row--tools > .answer-row__controls,
+  .answer-row--tools > .answer-row__tools {
+    grid-column: 1;
+    grid-row: auto;
+  }
+  .accept-slot.is-unused,
+  .accept-slot.is-others,
+  .answer-row__tools:has(> .accept-slot:is(.is-unused, .is-others):only-child) {
+    display: none;
   }
   .grade-header__quiz {
     font-size: 19px;

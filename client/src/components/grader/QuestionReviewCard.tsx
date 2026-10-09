@@ -41,7 +41,8 @@ export function QuestionReviewCard({ question: q, number, lang, base, selectedId
   return (
     <article className="review-card" id={`q-${q.id}`} aria-labelledby={`q-${q.id}-title`}>
       <header className="review-card__head">
-        <span id={`q-${q.id}-title`} className="review-card__number">
+        {/* Focusable, so a jump to the question (e.g. "Show all") can move focus here. */}
+        <span id={`q-${q.id}-title`} className="review-card__number" tabIndex={-1}>
           {t('grader.question.number', { n: number })}
         </span>
         <span>{t(`grader.question.type.${q.type}`)}</span>

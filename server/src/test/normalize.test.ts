@@ -52,6 +52,28 @@ describe('normalizeForMatch', () => {
     same('\u2067ישמעאל\u2069', 'ישמעאל');
     same('Yish\u00ADmael', 'Yishmael');
     same('\uFEFFYishmael', 'Yishmael');
+    // Arabic letter mark, Hangul fillers, Mongolian vowel separator, tag characters.
+    same('Yish\u061Cmael', 'Yishmael');
+    same('Yishmael\u3164', 'Yishmael');
+    same('\u115F\u1160Yishmael\uFFA0', 'Yishmael');
+    same('Yish\u180Emael', 'Yishmael');
+    same('\u{E0041}\u{E0042}Yishmael\u{E007F}', 'Yishmael');
+    assert.equal(normalizeForMatch('\u{E0041}\u3164\u200B'), '');
+  });
+
+  test('digit groups stay apart in the match key (no merging across a space between digits)', () => {
+    differ('70', '7.0');
+    differ('70', '7 0');
+    differ('1/2 Schekel', '12 Schekel');
+    differ('Gen 1:12', 'Gen 11:2');
+    differ('2,21', '22,1');
+    differ('3,5', '35');
+    assert.equal(matchKey(normalizeForMatch('Bereschit 2,21-22')), 'bereschit2 21 22');
+    // Words still join: hyphen, space or nothing between letters, and between a word and a number.
+    sameKey('Ein-Dor', 'Eindor');
+    sameKey('Ein Dor', 'Eindor');
+    sameKey('70 Älteste', '70älteste');
+    sameKey('Psalm 23', 'Psalm23');
   });
 
   test("apostrophes, hyphens and a leading article: \"The Giv'onites\" = 'Givonites'", () => {
@@ -90,7 +112,7 @@ describe('normalizeForMatch', () => {
     const source = fs.readFileSync(path.join(__dirname, '..', 'lib', 'aiGrading', 'normalize.ts'), 'utf-8');
     const line = source.split('\n').find((l) => l.startsWith('export const INVISIBLE_CHARS_RE'));
     assert.ok(line, 'INVISIBLE_CHARS_RE is declared on one line');
-    assert.match(line!, /= \/\[(\\u[0-9A-F]{4}(-\\u[0-9A-F]{4})?)+\]\/g;$/);
+    assert.match(line!, /= \/\[(\\u([0-9A-F]{4}|\{[0-9A-F]{5}\})(-\\u([0-9A-F]{4}|\{[0-9A-F]{5}\}))?)+\]\/gu;$/);
     assert.ok(![...line!].some((c) => c.charCodeAt(0) > 0x7e), 'no literal non-ASCII character on that line');
     assert.ok(INVISIBLE_CHARS_RE.global);
   });
@@ -118,6 +140,8 @@ describe('accepted answers', () => {
   test('cleanAccepted trims, drops blanks and normalized duplicates, enforces 30 × 120', () => {
     assert.deepEqual(cleanAccepted([' Ishmael ', 'ishmael.', '', '?!', 'Ismael']), ['Ishmael', 'Ismael']);
     assert.deepEqual(cleanAccepted(null), []);
+    // Invisible and bidi characters are removed from what is stored.
+    assert.deepEqual(cleanAccepted(['\u202BIsh\u200Bmael\u202C']), ['Ishmael']);
     assert.ok('error' in (cleanAccepted('Ishmael') as object));
     assert.ok('error' in (cleanAccepted([5]) as object));
     assert.ok('error' in (cleanAccepted(['x'.repeat(121)]) as object));

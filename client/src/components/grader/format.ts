@@ -52,6 +52,11 @@ export function offersAcceptVariant(
   );
 }
 
+/** The grade was given by this viewer (graded_by is 'admin:<name>' for admins). */
+export function gradedByViewer(viewer: { kind: 'admin' | 'grader'; name: string } | null | undefined, answer: { graded_by: string | null }): boolean {
+  return viewer?.kind === 'admin' && answer.graded_by === `admin:${viewer.name}`;
+}
+
 /** The shared grade of a group of identical answers, or how far it is graded (wish 7). */
 export function groupGrade(members: { is_correct: number | null; points_awarded: number | null; grade_source: string | null }[]): {
   graded: number;

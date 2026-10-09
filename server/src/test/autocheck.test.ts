@@ -231,6 +231,11 @@ describe('a human grade always wins, and key changes re-check only rule grades',
         if (p.kind === 'rule') resolve(p);
       }),
     );
+    const keyChanged = new Promise<{ kind: string; questionId: number }>((resolve) =>
+      staff.on('grading:changed', (p: { kind: string; questionId: number }) => {
+        if (p.kind === 'key') resolve(p);
+      }),
+    );
 
     const variantBefore = row(kids.variant.id, fx.q[0]);
     const otherBefore = row(kids.other.id, fx.q[0]);
@@ -243,7 +248,15 @@ describe('a human grade always wins, and key changes re-check only rule grades',
     const variant = row(kids.variant.id, fx.q[0]);
     assert.deepEqual([variant.points_awarded, variant.grade_source, variant.graded_by], [null, null, null]);
     assert.equal(variant.grade_version, variantBefore.grade_version + 1);
-    assert.deepEqual(events(variant.id).map((e) => e.action), ['rule_match', 'rule_revert']);
+    assert.deepEqual(
+      events(variant.id).map((e) => [e.action, e.actor]),
+      [
+        ['rule_match', 'auto'],
+        ['rule_revert', 'admin:admin (key edit)'],
+      ],
+      'submit-time checks are by "auto"; re-checks name the admin who changed the key',
+    );
+    assert.equal(variant.graded_by, null);
     const other = row(kids.other.id, fx.q[0]);
     assert.deepEqual([other.points_awarded, other.grade_source], [1, 'rule']);
     const exact = row(kids.exact.id, fx.q[0]);
@@ -254,6 +267,10 @@ describe('a human grade always wins, and key changes re-check only rule grades',
 
     const event = await received;
     assert.deepEqual([...event.answerIds].sort((x, y) => x - y), [variant.id, other.id].sort((x, y) => x - y));
+    assert.deepEqual(await keyChanged, { kind: 'key', questionId: fx.q[0] }, 'open panels refresh the key they show');
+    const credited = row(kids.other.id, fx.q[0]);
+    assert.equal(credited.graded_by, 'auto', 'the grade itself is by the rule');
+    assert.equal(events(credited.id).at(-1)!.actor, 'admin:admin (key edit)');
     await new Promise((resolve) => setTimeout(resolve, 200));
     assert.deepEqual(leaked, [], 'participants never receive grading events');
   });
@@ -361,6 +378,7 @@ describe('POST /api/questions/:id/accepted-answers', () => {
       grade_source: 'human',
     });
     assert.deepEqual([row(k.sameOther.id, fx.q[0]).grade_source, row(k.sameOther.id, fx.q[0]).points_awarded], ['rule', 1]);
+    assert.equal(events(row(k.sameOther.id, fx.q[0]).id).at(-1)!.actor, 'admin:admin (key edit)');
     assert.deepEqual([row(k.sameHuman.id, fx.q[0]).grade_source, row(k.sameHuman.id, fx.q[0]).points_awarded], ['human', 0]);
     assert.equal(row(k.notSubmitted.id, fx.q[0]).points_awarded, null, 'still answering: checked at submit');
     assert.equal(row(k.graded.id, fx.q[0]).grade_source, 'human');
@@ -371,6 +389,14 @@ describe('POST /api/questions/:id/accepted-answers', () => {
 
     assert.equal((await request(base, 'POST', '/api/my/submit', k.notSubmitted.token)).status, 200);
     assert.equal(row(k.notSubmitted.id, fx.q[0]).grade_source, 'rule');
+    assert.equal(events(row(k.notSubmitted.id, fx.q[0]).id).at(-1)!.actor, 'auto', 'a check at submit is by "auto"');
+  });
+
+  test('invisible and bidi characters of the answer are not copied into the accepted answers', async () => {
+    const p = await kid(s1.joinCode, 'Bidi', { [fx.q[1]]: '\u202B Ka\u200Bjin\u200F \u202C' });
+    const r = await request(base, 'POST', `/api/questions/${fx.q[1]}/accepted-answers`, adminToken, { answerId: row(p.id, fx.q[1]).id });
+    assert.equal(r.status, 200, JSON.stringify(r.body));
+    assert.deepEqual(r.body.accepted_answers, ['Kajin']);
   });
 });
 

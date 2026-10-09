@@ -13,6 +13,15 @@ export function notifyRuleGrades(sessionId: number, answerIds: number[]): void {
   broadcastGradingChanged(sessionId, { kind: 'rule', answerIds });
 }
 
+/**
+ * The model answer or the accepted answers of a question changed: open grading screens of every run
+ * with answers to it refresh the answer key they show (no grade changed by this alone).
+ */
+export function notifyKeyChanged(questionId: number): void {
+  const sessions = db.prepare('SELECT DISTINCT session_id FROM answers WHERE question_id = ?').pluck().all(questionId) as number[];
+  for (const sessionId of sessions) broadcastGradingChanged(sessionId, { kind: 'key', questionId });
+}
+
 /** After a participant's submit has been committed. */
 export function autoCheckParticipant(sessionId: number, participantId: number): void {
   notifyRuleGrades(sessionId, enqueueParticipant(db, participantId));

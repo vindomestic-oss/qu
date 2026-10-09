@@ -35,9 +35,12 @@ interface Props {
   maxPoints: number;
   /** The answer text as shown for the whole group. */
   text: ReactNode;
+  /** The same as plain text, for the group's accessible name ("3 identical answers: ismael"). */
+  label: string;
   /** The precedent hint, under the text. */
   hints?: ReactNode;
-  /** The admin's "Add to accepted answers", next to "Show the N answers". */
+  /** The admin's "Add to accepted answers", next to "Show the N answers" (below the controls on
+   *  narrow screens, so it never pushes the grading buttons). */
   actions?: ReactNode;
   /** Saved grades, or the other graders' grades from conflicts, for the parent's list. */
   onGrade: (grades: AnswerGrade[]) => void;
@@ -56,8 +59,8 @@ const isHalfStep = (v: number) => Math.abs(v * 2 - Math.round(v * 2)) < 1e-9;
  * The group can be opened to grade its answers one by one. Its layout does not change when grades
  * arrive (fixed status line), so nothing moves under the grader's finger.
  */
-export function AnswerGroupRow({ sessionId, members, maxPoints, text, hints, actions, onGrade, renderMember }: Props) {
-  const { t, uiLanguage } = useLanguage();
+export function AnswerGroupRow({ sessionId, members, maxPoints, text, label, hints, actions, onGrade, renderMember }: Props) {
+  const { t, tCount, uiLanguage } = useLanguage();
   const id = useId();
   const inputRef = useRef<HTMLInputElement>(null);
   const correctRef = useRef<HTMLButtonElement>(null);
@@ -181,27 +184,19 @@ export function AnswerGroupRow({ sessionId, members, maxPoints, text, hints, act
 
   return (
     <div className="answer-group">
-      <div className="answer-row answer-row--group" role="group" aria-labelledby={`${id}-h`}>
+      <div className="answer-row answer-row--group answer-row--tools" role="group" aria-labelledby={`${id}-name`}>
         <div className="answer-row__content">
-          <div id={`${id}-h`} className="answer-row__heading">
+          {/* The group's name for screen readers: the count in words and the answer (not "×"). */}
+          <span id={`${id}-name`} className="visually-hidden">
+            {tCount('grader.group.label', n)}: <bdi>{label}</bdi>
+          </span>
+          <div className="answer-row__heading" aria-hidden="true">
             <span className="group-count">
               <Interpolate template={t('grader.group.heading')} values={{ count: <bdi dir="ltr">{`×${n}`}</bdi> }} />
             </span>
           </div>
           {text}
           {hints}
-          <div className="answer-row__tools">
-            <button
-              type="button"
-              className="small-button"
-              aria-expanded={open}
-              aria-controls={`${id}-members`}
-              onClick={() => setOpen((o) => !o)}
-            >
-              {open ? t('grader.group.hide') : t('grader.group.show', { n })}
-            </button>
-            {actions}
-          </div>
         </div>
 
         <div className="answer-row__controls">
@@ -250,7 +245,7 @@ export function AnswerGroupRow({ sessionId, members, maxPoints, text, hints, act
           <div id={`${id}-status`} className="answer-row__status">
             <span role="status" className="answer-row__live">
               {state.kind === 'conflict' && (
-                <span className="conflict-prompt__text">{t('grader.group.conflict', { n: state.ids.length })}</span>
+                <span className="conflict-prompt__text">{tCount('grader.group.conflict', state.ids.length)}</span>
               )}
               {state.kind === 'saving' && <span className="save-chip save-chip--saving">{t('grader.row.saving')}</span>}
               {savedShown && <span className="save-chip save-chip--saved">{t('grader.row.saved')}</span>}
@@ -299,12 +294,24 @@ export function AnswerGroupRow({ sessionId, members, maxPoints, text, hints, act
             )}
           </div>
         </div>
-      </div>
-      {open && (
-        <div id={`${id}-members`} className="answer-group__members">
-          {members.map(renderMember)}
+        <div className="answer-row__tools">
+          <button
+            type="button"
+            className="small-button"
+            aria-expanded={open}
+            aria-controls={`${id}-members`}
+            aria-label={`${open ? t('grader.group.hide') : t('grader.group.show', { n })}: ${label}`}
+            onClick={() => setOpen((o) => !o)}
+          >
+            {open ? t('grader.group.hide') : t('grader.group.show', { n })}
+          </button>
+          {actions}
         </div>
-      )}
+      </div>
+      {/* Always present (empty while closed), so aria-controls points at it. */}
+      <div id={`${id}-members`} className="answer-group__members" hidden={!open}>
+        {open && members.map(renderMember)}
+      </div>
     </div>
   );
 }

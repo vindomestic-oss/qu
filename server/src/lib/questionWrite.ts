@@ -192,7 +192,9 @@ export function updateQuestionWithChoices(
     const pointsChanged = !samePoints(question.points, parsed.points);
     if (pointsChanged || correctIds() !== correctBefore) regrade(db, questionId, question.points, parsed, isText, actor, result);
     // The reference check again (wish 7), after the points regrade so new grades use the new points.
-    if (result.gradingInputsChanged) result.ruleChangedBySession = requeueQuestion(db, questionId);
+    if (result.gradingInputsChanged) {
+      result.ruleChangedBySession = requeueQuestion(db, questionId, actor ? `${actor} (key edit)` : undefined);
+    }
     return result;
   });
   return run();

@@ -9,8 +9,8 @@ import { getQuizWithQuestions as loadQuiz } from '../lib/quizPayload';
 import { QuestionWriteError, updateQuestionWithChoices } from '../lib/questionWrite';
 import { broadcastGradingChanged, broadcastLiveUpdate } from '../socket';
 import { insertGradeEvent } from '../lib/grading';
-import { notifyRuleGrades } from '../lib/autoCheck';
-import { normalizeForMatch } from '../lib/aiGrading/normalize';
+import { notifyKeyChanged, notifyRuleGrades } from '../lib/autoCheck';
+import { normalizeForMatch, stripInvisible } from '../lib/aiGrading/normalize';
 import { requeueQuestion } from '../lib/aiGrading/process';
 import {
   ACCEPTED_MAX_CHARS,
@@ -62,14 +62,15 @@ questionsRouter.put('/:id', (req: AuthedRequest, res) => {
     broadcastGradingChanged(sessionId, { kind: 'regrade', answerIds });
   }
   for (const [sessionId, answerIds] of result.ruleChangedBySession) notifyRuleGrades(sessionId, answerIds);
+  if (result.gradingInputsChanged) notifyKeyChanged(question.id);
 
   res.json({ quiz: getQuizWithQuestions(question.quiz_id) });
 });
 
 /**
  * Wish 7 (S13): an admin adds a participant's answer to the question's accepted answers, e.g. after
- * a grader credited a spelling the key did not list. Body {answerId}. The answer's trimmed text is
- * appended unless the model answer or an accepted answer already matches it (then `added: false`);
+ * a grader credited a spelling the key did not list. Body {answerId}. The answer's text, trimmed and
+ * without invisible or bidi control characters, is appended unless the model answer or an accepted answer already matches it (then `added: false`);
  * 400 when the answer belongs to another question or is blank, or the list would exceed 30 entries
  * of 120 characters. One transaction: the list, a grade_events row 'accept_variant' on that answer
  * (its grade is unchanged) and the reference check of the question in every session (a human
@@ -103,7 +104,7 @@ questionsRouter.post('/:id/accepted-answers', (req: AuthedRequest, res) => {
         | undefined;
       if (!a) throw new QuestionWriteError(404, 'Answer not found');
       if (a.question_id !== q.id) throw new QuestionWriteError(400, 'The answer belongs to another question', 'wrong_question');
-      const value = (a.text_answer ?? '').trim();
+      const value = stripInvisible(a.text_answer ?? '').trim();
       const norm = normalizeForMatch(value);
       if (norm === '') throw new QuestionWriteError(400, 'The answer is blank', 'blank_answer');
       const list = parseAccepted(q.accepted_answers);
@@ -129,7 +130,7 @@ questionsRouter.post('/:id/accepted-answers', (req: AuthedRequest, res) => {
         isCorrect: a.is_correct,
         gradeSource: a.grade_source,
       });
-      return { added: true, list: next, changed: requeueQuestion(db, q.id) };
+      return { added: true, list: next, changed: requeueQuestion(db, q.id, `${actor} (key edit)`) };
     })();
   } catch (err) {
     if (err instanceof QuestionWriteError) return res.status(err.status).json(err.body);
@@ -140,6 +141,7 @@ questionsRouter.post('/:id/accepted-answers', (req: AuthedRequest, res) => {
     regraded += answerIds.length;
     notifyRuleGrades(sessionId, answerIds);
   }
+  if (out.added) notifyKeyChanged(Number(req.params.id));
   res.json({ accepted_answers: out.list, added: out.added, regraded });
 });
 
