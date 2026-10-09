@@ -491,6 +491,43 @@ label {
   color: var(--danger);
   font-size: 14px;
 }
+/* A choice in the question form: correct-answer input, base + translation fields, Remove. On phones
+   Remove moves under the fields so they keep their width. */
+.choice-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: start;
+}
+.choice-row__correct {
+  margin-top: 10px;
+}
+.question-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 16px;
+  border: 1px solid var(--border);
+}
+@media (max-width: 480px) {
+  .question-form {
+    padding: 10px;
+  }
+  .choice-row {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+  .choice-row__remove {
+    grid-column: 2;
+    justify-self: start;
+  }
+}
+/* The quiz editor page: 16 px side gutters on narrow screens, 720 px of content otherwise. */
+.editor-page {
+  max-width: 752px;
+  margin: 16px auto;
+  padding-inline: 16px;
+}
 .pair-field {
   display: flex;
   flex-direction: column;
@@ -515,6 +552,11 @@ label {
   display: block;
   font-size: 14px;
   font-weight: 600;
+}
+@media (max-width: 480px) {
+  .pair-field__translation {
+    margin-inline-start: 4px;
+  }
 }
 .quiz-langs {
   margin-block: 8px 20px;

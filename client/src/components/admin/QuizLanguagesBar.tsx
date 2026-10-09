@@ -1,4 +1,4 @@
-import { useId, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import type { Question } from '../../types';
 import { isContentLang, questionLangStatus, type ContentLangCode, type QuizLang } from '../../i18n/contentLanguages';
 import { LANGUAGE_META } from '../../i18n/languageMeta';
@@ -10,7 +10,7 @@ interface Props {
   offered: QuizLang[];
   questions: Question[];
   addable: ContentLangCode[];
-  onAdd: (lang: ContentLangCode) => Promise<void>;
+  onAdd: (lang: ContentLangCode, anchor?: HTMLElement) => Promise<void>;
   onRemove: (lang: ContentLangCode) => Promise<void>;
 }
 
@@ -22,10 +22,23 @@ interface Props {
  */
 export function QuizLanguagesBar({ base, declared, offered, questions, addable, onAdd, onRemove }: Props) {
   const headingId = useId();
+  const sectionRef = useRef<HTMLElement>(null);
+  // Position of a removed chip: once it is gone, focus moves to the chip now in that place.
+  const focusAfterRemove = useRef<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const total = questions.length;
   const translations = declared.filter(isContentLang).filter((l) => l !== base);
   const others = offered.filter((l) => l !== base).length;
+  const translationsKey = translations.join(',');
+
+  useEffect(() => {
+    const index = focusAfterRemove.current;
+    if (index === null || !sectionRef.current) return;
+    focusAfterRemove.current = null;
+    const removeButtons = sectionRef.current.querySelectorAll<HTMLButtonElement>('.lang-chip__remove');
+    const target = removeButtons[index] ?? sectionRef.current.querySelector<HTMLElement>('.add-lang select');
+    target?.focus({ preventScroll: true });
+  }, [translationsKey]);
 
   async function handleRemove(lang: ContentLangCode) {
     const name = LANGUAGE_META[lang].endonym;
@@ -34,14 +47,16 @@ export function QuizLanguagesBar({ base, declared, offered, questions, addable, 
     }
     setError(null);
     try {
+      focusAfterRemove.current = translations.indexOf(lang);
       await onRemove(lang);
     } catch (err) {
+      focusAfterRemove.current = null;
       setError(err instanceof Error && err.message ? err.message : `Could not remove ${name}`);
     }
   }
 
   return (
-    <section className="quiz-langs" aria-labelledby={headingId}>
+    <section ref={sectionRef} className="quiz-langs" aria-labelledby={headingId}>
       <h2 id={headingId} className="quiz-langs__title">
         Languages of this quiz
       </h2>

@@ -198,7 +198,36 @@ describe('declared languages follow quiz and question writes', () => {
     const same = await request(base, 'PUT', `/api/quizzes/${quizId}`, adminToken, { ...meta, base_language: 'de' });
     assert.deepEqual(same.body.quiz.content_languages, ['de', 'ru'], 'an unchanged base leaves the list alone');
     const back = await request(base, 'PUT', `/api/quizzes/${quizId}`, adminToken, { ...meta, base_language: 'en' });
+    // These PUTs send no title_de, so the German title is gone and Deutsch is not kept.
     assert.deepEqual(back.body.quiz.content_languages, ['en', 'ru']);
+  });
+
+  test('main language en -> de -> en keeps a complete German translation declared and offered (5786 round trip)', async () => {
+    const created = await request(base, 'POST', '/api/quizzes', adminToken, { title: 'Round trip', description: '', time_limit_seconds: 60 });
+    const quizId = created.body.quiz.id;
+    const q = await request(base, 'POST', `/api/quizzes/${quizId}/questions`, adminToken, {
+      type: 'single',
+      text: 'Q',
+      ...allTranslations({ de: 'F', ru: 'В' }),
+      points: 1,
+      choices: [
+        { text: 'a', ...allTranslations({ de: 'a', ru: 'а' }), is_correct: true },
+        { text: 'b', ...allTranslations({ de: 'b', ru: 'б' }), is_correct: false },
+      ],
+    });
+    assert.deepEqual(q.body.quiz.offered_languages, ['en', 'de', 'ru']);
+    const meta = { title: 'Round trip', description: '', time_limit_seconds: 60 };
+    const toGerman = await request(base, 'PUT', `/api/quizzes/${quizId}`, adminToken, { ...meta, base_language: 'de' });
+    assert.deepEqual(toGerman.body.quiz.content_languages, ['de', 'ru']);
+    const back = await request(base, 'PUT', `/api/quizzes/${quizId}`, adminToken, { ...meta, base_language: 'en' });
+    assert.deepEqual(back.body.quiz.content_languages, ['en', 'de', 'ru']);
+    assert.deepEqual(back.body.quiz.offered_languages, ['en', 'de', 'ru']);
+
+    // A German-only quiz (German in the base fields, nothing in text_de) switched to English does not declare Deutsch.
+    const german = await request(base, 'POST', '/api/quizzes', adminToken, { ...meta, title: 'Nur Deutsch', base_language: 'de' });
+    await request(base, 'POST', `/api/quizzes/${german.body.quiz.id}/questions`, adminToken, { type: 'text', text: 'Frage', points: 1 });
+    const english = await request(base, 'PUT', `/api/quizzes/${german.body.quiz.id}`, adminToken, { ...meta, title: 'Nur Deutsch', base_language: 'en' });
+    assert.deepEqual(english.body.quiz.content_languages, ['en']);
   });
 });
 
@@ -287,6 +316,35 @@ describe('editing a question during a live session', () => {
     assert.equal(toText.status, 409);
     assert.deepEqual(toText.body, { error: 'has_answers' });
     assert.equal((db.prepare('SELECT type FROM questions WHERE id = ?').get(fx.singleQuestionId) as { type: string }).type, 'single');
+  });
+
+  test('an editor without choice ids cannot wipe the answer key of an answered question (ended session)', async () => {
+    const ended = createQuizFixture(adminId, 'Ended edit quiz');
+    assert.equal((await request(base, 'PUT', `/api/sessions/${ended.sessionId}/start`, adminToken)).status, 200);
+    const tokens = [];
+    for (const name of ['R1', 'R2', 'R3']) {
+      const t = (await join(base, ended.joinCode, name)).body.token;
+      assert.equal((await request(base, 'POST', `/api/my/answers/${ended.singleQuestionId}`, t, { selected_choice_ids: [ended.correctChoiceId] })).status, 200);
+      tokens.push(t);
+    }
+    assert.equal((await request(base, 'PUT', `/api/sessions/${ended.sessionId}/end`, adminToken)).status, 200);
+    const grades = () =>
+      db.prepare('SELECT selected_choice_ids, is_correct, points_awarded, grade_version FROM answers WHERE question_id = ? ORDER BY id').all(ended.singleQuestionId);
+    const before = { grades: grades(), choices: db.prepare('SELECT * FROM choices WHERE question_id = ?').all(ended.singleQuestionId) };
+
+    const stale = await request(base, 'PUT', `/api/questions/${ended.singleQuestionId}`, adminToken, {
+      type: 'single',
+      text: '2 + 2 = ? (typo fixed)',
+      points: 1,
+      choices: [
+        { text: '3', is_correct: false },
+        { text: '4', is_correct: true },
+      ],
+    });
+    assert.equal(stale.status, 409);
+    assert.deepEqual(stale.body, { error: 'stale_editor' });
+    assert.deepEqual({ grades: grades(), choices: db.prepare('SELECT * FROM choices WHERE question_id = ?').all(ended.singleQuestionId) }, before);
+    assert.ok((grades() as { points_awarded: number }[]).every((g) => g.points_awarded === 1));
   });
 
   test('half points are accepted, other fractions are a 400', async () => {

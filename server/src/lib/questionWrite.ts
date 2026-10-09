@@ -53,9 +53,12 @@ function parseSelected(raw: string | null): number[] {
  *
  * Throws QuestionWriteError: 404 when the question does not exist; 400 when a sent id belongs to
  * another question; 409 `has_answers` when the type changes between text and choice while answers
- * exist. When the points or the set of correct choices change, the question's answers are re-graded
- * in the same transaction (wish 8): automatic grades are recomputed, human grades that had full
- * points are raised to the new maximum, and other human grades are clamped to it.
+ * exist; 409 `stale_editor` when a choice question with answers gets choices none of which has an id
+ * (an editor from before stable ids would otherwise replace every choice the answers point at).
+ * When the points or the set of correct choices change, the question's answers are re-graded in the
+ * same transaction (wish 8): automatic grades are recomputed, except answers that selected a choice
+ * which no longer exists (kept as graded); human grades that had full points move to the new
+ * maximum, other human grades are clamped to it, and a grade at the maximum counts as correct.
  */
 export function updateQuestionWithChoices(
   db: Database.Database,
@@ -70,8 +73,12 @@ export function updateQuestionWithChoices(
 
     const wasText = question.type === 'text';
     const isText = parsed.type === 'text';
-    if (wasText !== isText && db.prepare('SELECT 1 FROM answers WHERE question_id = ? LIMIT 1').get(questionId)) {
+    const hasAnswers = Boolean(db.prepare('SELECT 1 FROM answers WHERE question_id = ? LIMIT 1').get(questionId));
+    if (wasText !== isText && hasAnswers) {
       throw new QuestionWriteError(409, 'has_answers');
+    }
+    if (!wasText && !isText && hasAnswers && parsed.choices.every((c) => c.id === null)) {
+      throw new QuestionWriteError(409, 'stale_editor');
     }
 
     const correctIds = () =>
@@ -127,6 +134,7 @@ export function updateQuestionWithChoices(
     const choices = isText
       ? []
       : (db.prepare('SELECT id, is_correct FROM choices WHERE question_id = ?').all(questionId) as { id: number; is_correct: number }[]);
+    const choiceIds = new Set(choices.map((c) => c.id));
     const answers = db
       .prepare(
         'SELECT id, session_id, selected_choice_ids, is_correct, points_awarded, grade_source FROM answers WHERE question_id = ?',
@@ -139,19 +147,20 @@ export function updateQuestionWithChoices(
       let next: { isCorrect: number | null; points: number | null } | null = null;
       if (a.grade_source === 'auto_choice' || a.grade_source === 'rule') {
         if (!isText) {
-          const g = gradeChoiceAnswer(choices, parseSelected(a.selected_choice_ids), parsed.points);
+          const selected = parseSelected(a.selected_choice_ids);
+          // An answer whose choice was deleted cannot be graded against the new key: keep its grade.
+          if (selected.some((id) => !choiceIds.has(id))) continue;
+          const g = gradeChoiceAnswer(choices, selected, parsed.points);
           next = { isCorrect: g.isCorrect ? 1 : 0, points: g.pointsAwarded };
         } else if (a.points_awarded !== null) {
           next = { isCorrect: a.is_correct, points: a.is_correct === 1 ? parsed.points : 0 };
         }
       } else if (a.grade_source !== 'auto_blank' && a.points_awarded !== null) {
         // Human (or later AI-confirmed) grades: a full-points correct grade follows the new maximum,
-        // any other grade is only clamped to it.
-        if (a.is_correct === 1 && samePoints(a.points_awarded, question.points)) {
-          next = { isCorrect: 1, points: parsed.points };
-        } else if (a.points_awarded > parsed.points) {
-          next = { isCorrect: a.is_correct, points: parsed.points };
-        }
+        // any other grade is only clamped to it. A grade at the maximum is correct, as in the grade route.
+        const wasFull = a.is_correct === 1 && samePoints(a.points_awarded, question.points);
+        const points = wasFull ? parsed.points : Math.min(a.points_awarded, parsed.points);
+        next = { isCorrect: points >= parsed.points - 1e-9 ? 1 : a.is_correct, points };
       }
       if (!next || (next.isCorrect === a.is_correct && samePoints(next.points, a.points_awarded))) continue;
       setGrade.run(next.isCorrect, next.points, a.id);

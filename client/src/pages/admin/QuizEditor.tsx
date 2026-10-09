@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import {
@@ -46,7 +46,8 @@ function readStoredPair(): ContentLangCode | null {
   }
 }
 
-const BASE_CHANGE_NOTE = 'The main language says which language the main fields are written in. No text is moved or translated.';
+const BASE_CHANGE_NOTE =
+  'The main language says which language the main fields are written in. No text is moved or translated. Click Save quiz details to apply.';
 
 const hasText = (v: string | undefined) => typeof v === 'string' && v.trim() !== '';
 
@@ -73,8 +74,27 @@ export function QuizEditor() {
 
   const [formMode, setFormMode] = useState<'none' | 'create' | number>('none');
   const [storedPair, setStoredPair] = useState<ContentLangCode | null>(readStoredPair);
+  // The clicked pair button and its position on screen. A pair change opens or closes fields in every
+  // form, also above the click; without scroll anchoring (iPad Safari) the page would jump.
+  const scrollAnchor = useRef<{ el: HTMLElement; top: number } | null>(null);
 
-  function setPairLang(lang: ContentLangCode | null) {
+  useLayoutEffect(() => {
+    const anchor = scrollAnchor.current;
+    if (!anchor) return;
+    scrollAnchor.current = null;
+    if (!anchor.el.isConnected) return;
+    const shift = anchor.el.getBoundingClientRect().top - anchor.top;
+    if (Math.abs(shift) >= 1) window.scrollBy(0, shift);
+  });
+
+  function setPairLang(lang: ContentLangCode | null, anchor?: HTMLElement) {
+    if (anchor) {
+      scrollAnchor.current = { el: anchor, top: anchor.getBoundingClientRect().top };
+      // Nothing re-renders when the pair did not change: drop the anchor after this frame.
+      requestAnimationFrame(() => {
+        if (scrollAnchor.current?.el === anchor) scrollAnchor.current = null;
+      });
+    }
     setStoredPair(lang);
     try {
       if (lang) sessionStorage.setItem(PAIR_STORAGE_KEY, lang);
@@ -86,11 +106,11 @@ export function QuizEditor() {
 
   // Adding or removing a language saves at once and only replaces `quiz`: unsaved title,
   // description and question edits stay as they are (no refresh()).
-  async function handleAddLanguage(lang: ContentLangCode) {
+  async function handleAddLanguage(lang: ContentLangCode, anchor?: HTMLElement) {
     if (!quiz) return;
     const { quiz: updated } = await setQuizLanguages(quizId, [...quiz.content_languages, lang]);
     setQuiz(updated);
-    setPairLang(lang);
+    setPairLang(lang, anchor);
   }
 
   async function handleRemoveLanguage(lang: ContentLangCode) {
@@ -238,7 +258,7 @@ export function QuizEditor() {
   };
 
   return (
-    <div style={{ maxWidth: 720, margin: '16px auto' }}>
+    <div className="editor-page">
       <Link to="/admin">&larr; Back to quizzes</Link>
       <h1>{quiz.title}</h1>
       <QuizLanguagesBar
@@ -250,7 +270,11 @@ export function QuizEditor() {
         onAdd={handleAddLanguage}
         onRemove={handleRemoveLanguage}
       />
-      {error && <p style={{ color: 'var(--danger)' }}>{error}</p>}
+      {error && (
+        <p role="alert" style={{ color: 'var(--danger)' }}>
+          {error}
+        </p>
+      )}
 
       <form
         aria-label="Quiz details"

@@ -18,6 +18,12 @@ interface Props {
   basePlaceholder?: string;
 }
 
+/** First-strong isolate (U+2068 … U+2069): the base text keeps its own direction as a placeholder
+ *  inside a field of the other direction ("What is…?" instead of "?What is…" in a Hebrew field). */
+function isolate(text: string): string {
+  return `\u2068${text}\u2069`;
+}
+
 /**
  * A text in the quiz's base language with, directly below it, its translation into the open pair's
  * language: labelled with that language's own name, written in its direction, and showing the base
@@ -58,7 +64,8 @@ export function PairField({
       {activeLang && (
         <label className="pair-field__translation">
           <span className="pair-field__lang" dir={dirOf(activeLang)}>
-            {hideLabel && <span className="visually-hidden">{label}, </span>}
+            {/* Accessible name "Title, עברית": the language alone is ambiguous with several fields. */}
+            <span className="visually-hidden">{label}, </span>
             <span lang={activeLang}>{LANGUAGE_META[activeLang].endonym}</span>
           </span>
           <Field
@@ -66,7 +73,7 @@ export function PairField({
             dir={dirOf(activeLang)}
             value={translations[activeLang] ?? ''}
             onChange={(e) => onTranslationChange(activeLang, e.target.value)}
-            placeholder={baseValue}
+            placeholder={baseValue ? isolate(baseValue) : undefined}
           />
         </label>
       )}

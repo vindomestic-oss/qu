@@ -1,4 +1,4 @@
-import { useId, useState } from 'react';
+import { useId, useRef, useState } from 'react';
 import { CONTENT_LANG_LABELS, type ContentLangCode, type LangStatus, type QuizLang } from '../../i18n/contentLanguages';
 import { dirOf, LANGUAGE_META } from '../../i18n/languageMeta';
 
@@ -10,25 +10,35 @@ const GLYPH: Record<LangStatus, { glyph: string; text: string }> = {
 
 interface AddLanguageSelectProps {
   addable: ContentLangCode[];
-  onAdd: (lang: ContentLangCode) => Promise<void>;
+  /** Declares the language (saved at once). `anchor` is the clicked button, for keeping the scroll position. */
+  onAdd: (lang: ContentLangCode, anchor?: HTMLElement) => Promise<void>;
   /** Called after a successful add (e.g. to open the new language's pair). */
   onAdded?: (lang: ContentLangCode) => void;
 }
 
-/** "+ Add language": a native select of the languages the quiz does not declare yet. Adding saves at once. */
+/**
+ * "+ Add language": a native select of the languages the quiz does not declare yet and an explicit
+ * "Add" button. Choosing in the select never saves by itself (arrow keys on a closed select fire
+ * change events in some browsers, WCAG 3.2.2); "Add" saves at once.
+ */
 export function AddLanguageSelect({ addable, onAdd, onAdded }: AddLanguageSelectProps) {
+  const [picked, setPicked] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const selectRef = useRef<HTMLSelectElement>(null);
   if (addable.length === 0) return null;
+  const lang = addable.find((l) => l === picked) ?? null;
 
-  async function handleChange(value: string) {
-    const lang = addable.find((l) => l === value);
+  async function handleAdd(anchor: HTMLElement) {
     if (!lang) return;
     setBusy(true);
     setError(null);
     try {
-      await onAdd(lang);
+      await onAdd(lang, anchor);
+      setPicked('');
       onAdded?.(lang);
+      // The button is disabled again now; keep keyboard focus in this control.
+      selectRef.current?.focus({ preventScroll: true });
     } catch (err) {
       setError(err instanceof Error && err.message ? err.message : 'Could not add the language');
     } finally {
@@ -38,7 +48,7 @@ export function AddLanguageSelect({ addable, onAdd, onAdded }: AddLanguageSelect
 
   return (
     <span className="add-lang">
-      <select aria-label="Add language" value="" disabled={busy} onChange={(e) => handleChange(e.target.value)}>
+      <select ref={selectRef} aria-label="Add language" value={lang ?? ''} onChange={(e) => setPicked(e.target.value)}>
         <option value="">+ Add language</option>
         {addable.map((l) => (
           <option key={l} value={l}>
@@ -46,6 +56,9 @@ export function AddLanguageSelect({ addable, onAdd, onAdded }: AddLanguageSelect
           </option>
         ))}
       </select>
+      <button type="button" disabled={!lang || busy} onClick={(e) => handleAdd(e.currentTarget)}>
+        {busy ? 'Adding…' : 'Add'}
+      </button>
       {error && (
         <span role="alert" className="add-lang__error">
           {error}
@@ -63,10 +76,11 @@ interface Props {
   declared: QuizLang[];
   /** The open pair, or null for "{base} only". */
   active: ContentLangCode | null;
-  onSelect: (lang: ContentLangCode | null) => void;
+  /** `anchor` is the clicked button: the editor keeps it in place while fields open or close above it. */
+  onSelect: (lang: ContentLangCode | null, anchor?: HTMLElement) => void;
   statusOf?: (lang: ContentLangCode) => LangStatus;
   addable: ContentLangCode[];
-  onAdd: (lang: ContentLangCode) => Promise<void>;
+  onAdd: (lang: ContentLangCode, anchor?: HTMLElement) => Promise<void>;
 }
 
 /**
@@ -81,7 +95,7 @@ export function LanguagePairTabs({ base, languages, declared, active, onSelect, 
       <span id={labelId} className="pair-tabs__label">
         Translation:
       </span>
-      <button type="button" className="toggle-chip" aria-pressed={active === null} onClick={() => onSelect(null)}>
+      <button type="button" className="toggle-chip" aria-pressed={active === null} onClick={(e) => onSelect(null, e.currentTarget)}>
         <bdi lang={base} dir={dirOf(base)}>
           {LANGUAGE_META[base].endonym}
         </bdi>{' '}
@@ -97,7 +111,7 @@ export function LanguagePairTabs({ base, languages, declared, active, onSelect, 
             className={undeclared ? 'toggle-chip is-undeclared' : 'toggle-chip'}
             aria-pressed={active === l}
             title={undeclared ? 'Not offered to participants' : undefined}
-            onClick={() => onSelect(l)}
+            onClick={(e) => onSelect(l, e.currentTarget)}
           >
             <bdi lang={l} dir={dirOf(l)}>
               {LANGUAGE_META[l].endonym}
@@ -114,7 +128,7 @@ export function LanguagePairTabs({ base, languages, declared, active, onSelect, 
           </button>
         );
       })}
-      <AddLanguageSelect addable={addable} onAdd={onAdd} onAdded={onSelect} />
+      <AddLanguageSelect addable={addable} onAdd={onAdd} onAdded={(l) => onSelect(l)} />
     </div>
   );
 }

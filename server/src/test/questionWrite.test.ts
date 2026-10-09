@@ -51,16 +51,24 @@ function addChoiceQuestion(type: 'single' | 'multiple' = 'single', points = 1) {
   return { questionId, ids };
 }
 
-function addAnswer(questionId: number, fields: Record<string, unknown>): number {
+function addAnswer(questionId: number, fields: Record<string, unknown>, inSession = sessionId): number {
   participantSeq += 1;
   const participantId = Number(
-    db.prepare('INSERT INTO participants (session_id, display_name) VALUES (?, ?)').run(sessionId, `P${participantSeq}`).lastInsertRowid,
+    db.prepare('INSERT INTO participants (session_id, display_name) VALUES (?, ?)').run(inSession, `P${participantSeq}`).lastInsertRowid,
   );
   const cols = ['session_id', 'question_id', 'participant_id', ...Object.keys(fields)];
   return Number(
     db
       .prepare(`INSERT INTO answers (${cols.join(', ')}) VALUES (${cols.map(() => '?').join(', ')})`)
-      .run(sessionId, questionId, participantId, ...Object.values(fields)).lastInsertRowid,
+      .run(inSession, questionId, participantId, ...Object.values(fields)).lastInsertRowid,
+  );
+}
+
+/** An ended earlier run of the same quiz (its answers are history that edits must not spoil). */
+function endedSession(): number {
+  return Number(
+    db.prepare("INSERT INTO sessions (quiz_id, join_code, status) VALUES (?, ?, 'ended')").run(quizId, `END${participantSeq}${Date.now() % 1000}`)
+      .lastInsertRowid,
   );
 }
 
@@ -269,7 +277,8 @@ describe('updateQuestionWithChoices: regrading', () => {
     const { questionId, ids } = addChoiceQuestion('single', 2);
     const auto = addAnswer(questionId, { selected_choice_ids: JSON.stringify([ids[1]]), is_correct: 1, points_awarded: 2, grade_source: 'auto_choice' });
     const humanFull = addAnswer(questionId, { selected_choice_ids: JSON.stringify([ids[0]]), is_correct: 1, points_awarded: 2, grade_source: 'human' });
-    const humanPartial = addAnswer(questionId, { selected_choice_ids: JSON.stringify([ids[0]]), is_correct: 0, points_awarded: 1.5, grade_source: 'human' });
+    const humanPartial = addAnswer(questionId, { selected_choice_ids: JSON.stringify([ids[0]]), is_correct: 0, points_awarded: 0.5, grade_source: 'human' });
+    const humanClamped = addAnswer(questionId, { selected_choice_ids: JSON.stringify([ids[0]]), is_correct: 0, points_awarded: 1.5, grade_source: 'human' });
 
     updateQuestionWithChoices(
       db,
@@ -278,7 +287,8 @@ describe('updateQuestionWithChoices: regrading', () => {
     );
     assert.equal(answer(auto).points_awarded, 1);
     assert.equal(answer(humanFull).points_awarded, 1);
-    assert.equal(answer(humanPartial).points_awarded, 1, 'clamped to the new maximum');
+    assert.deepEqual(answer(humanClamped), { ...answer(humanClamped), points_awarded: 1, is_correct: 1 }, 'clamped to the new maximum, which is full points');
+    assert.deepEqual(answer(humanPartial), { ...answer(humanPartial), points_awarded: 0.5, is_correct: 0, grade_version: 0 }, 'below the new maximum: untouched');
 
     updateQuestionWithChoices(
       db,
@@ -287,7 +297,51 @@ describe('updateQuestionWithChoices: regrading', () => {
     );
     assert.equal(answer(auto).points_awarded, 3);
     assert.equal(answer(humanFull).points_awarded, 3, 'a full-points grade follows the maximum up');
-    assert.equal(answer(humanPartial).points_awarded, 1, 'a partial grade is not raised');
+    assert.equal(answer(humanPartial).points_awarded, 0.5, 'a partial grade is not raised');
+  });
+
+  test('an answer whose selected choice was deleted keeps its grade when the answer key changes (ended run too)', () => {
+    const { questionId, ids } = addChoiceQuestion('single', 1);
+    const [a, b, c] = ids;
+    const ended = endedSession();
+    const pickedOldCorrect = addAnswer(questionId, { selected_choice_ids: JSON.stringify([b]), is_correct: 1, points_awarded: 1, grade_source: 'auto_choice' }, ended);
+    const pickedC = addAnswer(questionId, { selected_choice_ids: JSON.stringify([c]), is_correct: 0, points_awarded: 0, grade_source: 'auto_choice' }, ended);
+    const pickedA = addAnswer(questionId, { selected_choice_ids: JSON.stringify([a]), is_correct: 0, points_awarded: 0, grade_source: 'auto_choice' });
+
+    // B is deleted and C becomes correct: B's answer cannot be graded against the new key.
+    const result = updateQuestionWithChoices(
+      db,
+      questionId,
+      parse({ type: 'single', text: 'Pick', points: 1, choices: [{ id: a, text: 'A', is_correct: false }, { id: c, text: 'C', is_correct: true }] }),
+    );
+    assert.deepEqual(answer(pickedOldCorrect), { selected_choice_ids: JSON.stringify([b]), is_correct: 1, points_awarded: 1, grade_version: 0 });
+    assert.deepEqual(answer(pickedC), { ...answer(pickedC), is_correct: 1, points_awarded: 1, grade_version: 1 });
+    assert.equal(answer(pickedA).grade_version, 0);
+    assert.deepEqual([...result.regradedBySession.entries()], [[ended, [pickedC]]]);
+  });
+
+  test('choices without any id on a question with answers are a 409 stale_editor and nothing changes (ended run)', () => {
+    const { questionId, ids } = addChoiceQuestion('single', 1);
+    const ended = endedSession();
+    const picked = [1, 2, 3].map(() =>
+      addAnswer(questionId, { selected_choice_ids: JSON.stringify([ids[1]]), is_correct: 1, points_awarded: 1, grade_source: 'auto_choice' }, ended),
+    );
+    const before = { question: db.prepare('SELECT * FROM questions WHERE id = ?').get(questionId), choices: choices(questionId), answers: picked.map(answer) };
+    // What an editor from before stable choice ids sends: a typo fix, the same choices, no ids.
+    expectWriteError(
+      () =>
+        updateQuestionWithChoices(
+          db,
+          questionId,
+          parse({ type: 'single', text: 'Pick (typo fixed)', points: 1, choices: [{ text: 'A' }, { text: 'B', is_correct: true }, { text: 'C' }] }),
+        ),
+      409,
+      'stale_editor',
+    );
+    assert.deepEqual(
+      { question: db.prepare('SELECT * FROM questions WHERE id = ?').get(questionId), choices: choices(questionId), answers: picked.map(answer) },
+      before,
+    );
   });
 
   test('the question, its choices and the regrade commit together or not at all', () => {
@@ -340,6 +394,14 @@ describe('isValidPoints (decision Q-points-step)', () => {
   test('allowZero accepts 0 for awarded points, still not negatives', () => {
     assert.equal(isValidPoints(0, { allowZero: true }), true);
     assert.equal(isValidPoints(-0.5, { allowZero: true }), false);
+  });
+
+  test('a positive value that would be stored as 0 is not valid question points', () => {
+    for (const tiny of [1e-10, 1e-12, Number.MIN_VALUE]) {
+      assert.equal(isValidPoints(tiny), false, String(tiny));
+      assert.equal(roundPoints(tiny), 0);
+    }
+    assert.match((parseQuestionInput({ type: 'text', text: 'T', points: 1e-10 }) as { error: string }).error, /half/);
   });
 
   test('stored points have no float noise, and parseQuestionInput enforces the step', () => {

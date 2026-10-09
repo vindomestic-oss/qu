@@ -23,9 +23,10 @@ interface Props {
   quizLanguages: QuizLang[];
   /** The open language pair, shared by every form of the editor; null = base only. */
   activeLang: ContentLangCode | null;
-  onActiveLangChange: (lang: ContentLangCode | null) => void;
+  /** `anchor` is the clicked button, which the editor keeps in place while fields open elsewhere. */
+  onActiveLangChange: (lang: ContentLangCode | null, anchor?: HTMLElement) => void;
   /** Declares a new language for the whole quiz (saved at once). */
-  onAddLanguage: (lang: ContentLangCode) => Promise<void>;
+  onAddLanguage: (lang: ContentLangCode, anchor?: HTMLElement) => Promise<void>;
 }
 
 interface ChoiceState {
@@ -53,7 +54,8 @@ export function QuestionForm({ initial, onSubmit, onCancel, baseLang, quizLangua
   const [textTranslations, setTextTranslations] = useState<Record<ContentLangCode, string>>(
     unflattenTranslations('text', initial),
   );
-  const [points, setPoints] = useState(initial?.points ?? 1);
+  // A string draft: clearing the field shows an empty field (not "0"), and typing never gives "03".
+  const [pointsText, setPointsText] = useState(String(initial?.points ?? 1));
   const [choices, setChoices] = useState<ChoiceState[]>(
     initial && initial.choices.length > 0
       ? initial.choices.map((c) => ({
@@ -128,7 +130,7 @@ export function QuestionForm({ initial, onSubmit, onCancel, baseLang, quizLangua
         type,
         text,
         ...flattenTranslations('text', textTranslations),
-        points,
+        points: Number(pointsText),
         choices:
           type === 'text'
             ? []
@@ -142,6 +144,14 @@ export function QuestionForm({ initial, onSubmit, onCancel, baseLang, quizLangua
     } catch (err) {
       if (err instanceof ApiError && err.status === 409 && err.message === 'has_answers') {
         setError('This question already has answers, so it cannot switch between a text answer and choices. Create a new question instead.');
+      } else if (err instanceof ApiError && err.status === 409 && err.message === 'stale_editor') {
+        // The server refuses choices without ids on an answered question. This form sends the id of
+        // every kept choice, so here it means every original choice was removed.
+        setError(
+          choices.some((c) => c.id !== undefined)
+            ? 'This editor is out of date. Reload the page and edit again.'
+            : 'This question already has answers. Keep at least one of its choices (change its text instead of removing it).',
+        );
       } else {
         setError(err instanceof Error ? err.message : 'Failed to save question');
       }
@@ -155,7 +165,7 @@ export function QuestionForm({ initial, onSubmit, onCancel, baseLang, quizLangua
       aria-label="Question"
       data-testid="question-form"
       onSubmit={handleSubmit}
-      style={{ border: '1px solid var(--border)', padding: 16, marginTop: 12, display: 'flex', flexDirection: 'column', gap: 10 }}
+      className="question-form"
     >
       <LanguagePairTabs
         base={baseLang}
@@ -197,8 +207,8 @@ export function QuestionForm({ initial, onSubmit, onCancel, baseLang, quizLangua
           max={100}
           step={0.5}
           inputMode="decimal"
-          value={points}
-          onChange={(e) => setPoints(Number(e.target.value))}
+          value={pointsText}
+          onChange={(e) => setPointsText(e.target.value)}
           required
           style={{ display: 'block', width: 100 }}
         />
@@ -209,16 +219,16 @@ export function QuestionForm({ initial, onSubmit, onCancel, baseLang, quizLangua
           <div>Choices ({type === 'single' ? 'mark one correct' : 'mark one or more correct'})</div>
           {choices.map((c, i) => (
             <div key={c.id ?? `new-${i}`} style={{ border: '1px solid var(--border-subtle)', padding: 8, marginTop: 4 }}>
-              <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+              <div className="choice-row">
                 <input
                   type={type === 'single' ? 'radio' : 'checkbox'}
                   name="correct"
                   aria-label={`Choice ${i + 1} is correct`}
                   checked={c.is_correct}
                   onChange={(e) => setCorrect(i, e.target.checked)}
-                  style={{ marginTop: 10, flexShrink: 0 }}
+                  className="choice-row__correct"
                 />
-                <div style={{ flex: 1, minWidth: 0 }}>
+                <div className="choice-row__fields">
                   <PairField
                     hideLabel
                     required
@@ -233,7 +243,12 @@ export function QuestionForm({ initial, onSubmit, onCancel, baseLang, quizLangua
                   />
                 </div>
                 {choices.length > 2 && (
-                  <button type="button" onClick={() => removeChoice(i)}>
+                  <button
+                    type="button"
+                    className="choice-row__remove"
+                    aria-label={`Remove choice ${i + 1}`}
+                    onClick={() => removeChoice(i)}
+                  >
                     Remove
                   </button>
                 )}
@@ -246,7 +261,11 @@ export function QuestionForm({ initial, onSubmit, onCancel, baseLang, quizLangua
         </div>
       )}
 
-      {error && <p style={{ color: 'var(--danger)' }}>{error}</p>}
+      {error && (
+        <p role="alert" style={{ color: 'var(--danger)' }}>
+          {error}
+        </p>
+      )}
 
       <div style={{ display: 'flex', gap: 8 }}>
         <button type="submit" disabled={submitting}>

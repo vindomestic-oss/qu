@@ -5,7 +5,7 @@ import { parseQuestionInput, extractTranslations } from '../lib/questionInput';
 import { deleteImageFile } from '../lib/uploads';
 import { createUniqueJoinCode, getSession, refreshSessionStatus, SessionRow } from '../lib/sessions';
 import { translationColumns, translationValues } from '../lib/sqlTranslations';
-import { CONTENT_LANGS, isQuizLang, QuizLang, translationLangs } from '../lib/languages';
+import { CONTENT_LANGS, isContentLang, isQuizLang, QuizLang, translationLangs } from '../lib/languages';
 import {
   computeUsedLanguages,
   invalidateQuizLanguages,
@@ -148,20 +148,22 @@ quizzesRouter.put('/:id', (req, res) => {
     timeLimit,
     baseLanguage,
   ];
-  // Only a change of the main language changes the declared list: the new base goes first, the old
-  // base drops out (English has no translation columns; a former non-English base's text is in the base fields).
   const oldBase = baseOf(existing);
-  if (baseLanguage !== oldBase) {
+  db.transaction(() => {
     const declared = declaredLanguages(quizId, oldBase, existing.content_languages);
+    db.prepare(`UPDATE quizzes SET ${setClauses.join(', ')} WHERE id = ?`).run(...values, quizId);
+    if (baseLanguage === oldBase) return;
+    // Only a change of the main language changes the declared list: the new base goes first. The old
+    // base stays only when it is a translation language that has text in its own translation columns
+    // (en -> de -> en keeps the German translations offered); English has no such columns, and a
+    // German-only quiz keeps its German in the base fields.
+    const keepOldBase = isContentLang(oldBase) && computeUsedLanguages(db, quizId, baseLanguage).includes(oldBase);
     const next = normalizeQuizLanguages(
-      [baseLanguage, ...declared.filter((l) => l !== oldBase && l !== baseLanguage)],
+      [baseLanguage, ...declared.filter((l) => l !== oldBase && l !== baseLanguage), ...(keepOldBase ? [oldBase] : [])],
       baseLanguage,
     );
-    setClauses.push('content_languages = ?');
-    values.push(JSON.stringify(next ?? [baseLanguage]));
-  }
-
-  db.prepare(`UPDATE quizzes SET ${setClauses.join(', ')} WHERE id = ?`).run(...values, quizId);
+    db.prepare('UPDATE quizzes SET content_languages = ? WHERE id = ?').run(JSON.stringify(next ?? [baseLanguage]), quizId);
+  })();
   invalidateQuizLanguages(quizId);
 
   res.json({ quiz: getQuizWithQuestions(quizId) });

@@ -36,7 +36,7 @@ export function isValidPoints(v: unknown, { allowZero = false }: { allowZero?: b
     typeof v === 'number' &&
     Number.isFinite(v) &&
     v <= 100 &&
-    (allowZero ? v >= 0 : v > 0) &&
+    (allowZero ? v >= 0 : v > 0 && roundPoints(v) > 0) &&
     Math.abs(v * 2 - Math.round(v * 2)) < 1e-9
   );
 }
