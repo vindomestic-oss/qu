@@ -144,7 +144,7 @@ export function QuestionForm({ initial, onSubmit, onCancel, baseLang, quizLangua
     } catch (err) {
       if (err instanceof ApiError && err.status === 409 && err.message === 'has_answers') {
         setError('This question already has answers, so it cannot switch between a text answer and choices. Create a new question instead.');
-      } else if (err instanceof ApiError && err.status === 409 && err.message === 'stale_editor') {
+      } else if (err instanceof ApiError && err.status === 409 && err.code === 'stale_editor') {
         // The server refuses choices without ids on an answered question. This form sends the id of
         // every kept choice, so here it means every original choice was removed.
         setError(

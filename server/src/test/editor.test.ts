@@ -342,7 +342,8 @@ describe('editing a question during a live session', () => {
       ],
     });
     assert.equal(stale.status, 409);
-    assert.deepEqual(stale.body, { error: 'stale_editor' });
+    // Old editors show `error` as is, so it is a sentence; current editors key on `code`.
+    assert.deepEqual(stale.body, { error: 'This editor is out of date. Reload the page and edit again.', code: 'stale_editor' });
     assert.deepEqual({ grades: grades(), choices: db.prepare('SELECT * FROM choices WHERE question_id = ?').all(ended.singleQuestionId) }, before);
     assert.ok((grades() as { points_awarded: number }[]).every((g) => g.points_awarded === 1));
   });

@@ -8,14 +8,17 @@ import { gradeChoiceAnswer } from './grading';
 /** A rejected write; the route answers `status` with `body`. Nothing was changed. */
 export class QuestionWriteError extends Error {
   status: number;
-  body: { error: string };
+  body: { error: string; code?: string };
 
-  constructor(status: number, error: string) {
+  constructor(status: number, error: string, code?: string) {
     super(error);
     this.status = status;
-    this.body = { error };
+    this.body = code ? { error, code } : { error };
   }
 }
+
+/** Shown as is by editors from before stable choice ids, which display the `error` string. */
+export const STALE_EDITOR_MESSAGE = 'This editor is out of date. Reload the page and edit again.';
 
 export interface QuestionWriteResult {
   quizId: number;
@@ -53,7 +56,7 @@ function parseSelected(raw: string | null): number[] {
  *
  * Throws QuestionWriteError: 404 when the question does not exist; 400 when a sent id belongs to
  * another question; 409 `has_answers` when the type changes between text and choice while answers
- * exist; 409 `stale_editor` when a choice question with answers gets choices none of which has an id
+ * exist; 409 with code `stale_editor` when a choice question with answers gets choices none of which has an id
  * (an editor from before stable ids would otherwise replace every choice the answers point at).
  * When the points or the set of correct choices change, the question's answers are re-graded in the
  * same transaction (wish 8): automatic grades are recomputed, except answers that selected a choice
@@ -78,7 +81,7 @@ export function updateQuestionWithChoices(
       throw new QuestionWriteError(409, 'has_answers');
     }
     if (!wasText && !isText && hasAnswers && parsed.choices.every((c) => c.id === null)) {
-      throw new QuestionWriteError(409, 'stale_editor');
+      throw new QuestionWriteError(409, STALE_EDITOR_MESSAGE, 'stale_editor');
     }
 
     const correctIds = () =>

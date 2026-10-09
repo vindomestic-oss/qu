@@ -6,7 +6,7 @@ import path from 'path';
 import Database from 'better-sqlite3';
 import { runMigrations } from '../db/migrate';
 import { parseQuestionInput, type QuestionInput } from '../lib/questionInput';
-import { QuestionWriteError, updateQuestionWithChoices } from '../lib/questionWrite';
+import { QuestionWriteError, STALE_EDITOR_MESSAGE, updateQuestionWithChoices } from '../lib/questionWrite';
 import { isValidPoints, roundPoints } from '../lib/grading';
 
 const SCHEMA = fs.readFileSync(path.join(__dirname, '..', 'db', 'schema.sql'), 'utf-8');
@@ -93,8 +93,11 @@ function answer(id: number) {
   };
 }
 
-function expectWriteError(fn: () => unknown, status: number, error: string) {
-  assert.throws(fn, (err: unknown) => err instanceof QuestionWriteError && err.status === status && err.body.error === error);
+function expectWriteError(fn: () => unknown, status: number, error: string, code?: string) {
+  assert.throws(
+    fn,
+    (err: unknown) => err instanceof QuestionWriteError && err.status === status && err.body.error === error && err.body.code === code,
+  );
 }
 
 describe('updateQuestionWithChoices: choices matched by id', () => {
@@ -336,6 +339,7 @@ describe('updateQuestionWithChoices: regrading', () => {
           parse({ type: 'single', text: 'Pick (typo fixed)', points: 1, choices: [{ text: 'A' }, { text: 'B', is_correct: true }, { text: 'C' }] }),
         ),
       409,
+      STALE_EDITOR_MESSAGE,
       'stale_editor',
     );
     assert.deepEqual(
