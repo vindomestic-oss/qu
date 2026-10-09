@@ -572,6 +572,72 @@ label {
   padding: 16px;
   border: 1px solid var(--border);
 }
+/* Accepted answers / spellings of a text question (wish 7): chips with ×, then a field and Add. */
+.accepted-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.accepted-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.accepted-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  max-inline-size: 100%;
+  padding-inline-start: 12px;
+  border: 1px solid var(--selected-border);
+  border-radius: 999px;
+  background: var(--selected-bg);
+  color: var(--selected-text);
+  overflow-wrap: anywhere;
+}
+.accepted-chip__remove,
+.accepted-chip__remove:hover:not(:disabled) {
+  min-height: 40px;
+  min-width: 40px;
+  padding: 0 10px;
+  border-color: transparent;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--selected-text);
+  font-size: 20px;
+  line-height: 1;
+}
+.accepted-chip__remove:hover:not(:disabled) {
+  text-decoration: underline;
+}
+@media (pointer: coarse) {
+  .accepted-chip__remove,
+  .accepted-chip__remove:hover:not(:disabled) {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+.accepted-field__add {
+  display: flex;
+  gap: 8px;
+}
+.accepted-field__add input {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 8px;
+}
+.accepted-field__hint {
+  color: var(--text-muted);
+}
+.accepted-field__message {
+  margin: 0;
+  min-height: 1.3em;
+  font-size: 14px;
+  color: var(--danger);
+}
 @media (max-width: 480px) {
   .question-form {
     padding: 10px;

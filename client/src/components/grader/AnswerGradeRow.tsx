@@ -8,6 +8,7 @@ import type { AnswerGrade } from '../../types';
 import { CheckIcon, CrossIcon } from './icons';
 import { AUTO_SOURCES, formatPoints, graderIdentity } from './format';
 import { Interpolate } from './Interpolate';
+import { RuleMatchedLabel } from './AnswerHints';
 
 interface Attempt {
   is_correct: boolean;
@@ -38,6 +39,9 @@ interface Props {
   headingHidden?: boolean;
   /** The answer itself (text or selected options). */
   children: React.ReactNode;
+  /** Secondary actions (wish 7: "Add to accepted answers"): under the answer beside the grading
+   *  controls, below them on narrow screens, so they never push the grading buttons. */
+  tools?: React.ReactNode;
   /** A saved grade, or the other grader's grade from a conflict, for the parent's list. */
   onGrade: (grade: AnswerGrade) => void;
 }
@@ -51,7 +55,17 @@ const isHalfStep = (v: number) => Math.abs(v * 2 - Math.round(v * 2)) < 1e-9;
  * grader keep theirs or replace it. A typed value stays until it is saved or discarded (Escape),
  * whatever arrives from the server meanwhile.
  */
-export function AnswerGradeRow({ sessionId, answer, maxPoints, disabled = false, heading, headingHidden = false, children, onGrade }: Props) {
+export function AnswerGradeRow({
+  sessionId,
+  answer,
+  maxPoints,
+  disabled = false,
+  heading,
+  headingHidden = false,
+  children,
+  tools,
+  onGrade,
+}: Props) {
   const { t, uiLanguage } = useLanguage();
   const inputRef = useRef<HTMLInputElement>(null);
   const correctRef = useRef<HTMLButtonElement>(null);
@@ -142,6 +156,8 @@ export function AnswerGradeRow({ sessionId, answer, maxPoints, disabled = false,
   const pointsValue = draft ?? (graded ? String(answer.points_awarded) : '');
   const meta = (() => {
     if (!graded) return t('grader.row.notGraded');
+    // Wish 7: credited because it matches the model answer or an accepted answer.
+    if (answer.grade_source === 'rule') return <RuleMatchedLabel />;
     if (answer.grade_source && AUTO_SOURCES.has(answer.grade_source)) return t('grader.row.auto');
     return (
       <Interpolate
@@ -155,7 +171,11 @@ export function AnswerGradeRow({ sessionId, answer, maxPoints, disabled = false,
   })();
 
   return (
-    <div className={`answer-row${disabled ? ' is-disabled' : ''}`} role="group" aria-labelledby={heading ? `${id}-h` : undefined}>
+    <div
+      className={`answer-row${disabled ? ' is-disabled' : ''}${tools ? ' answer-row--tools' : ''}`}
+      role="group"
+      aria-labelledby={heading ? `${id}-h` : undefined}
+    >
       <div className="answer-row__content">
         {heading && (
           <div id={`${id}-h`} className={headingHidden ? 'visually-hidden' : 'answer-row__heading'}>
@@ -274,6 +294,7 @@ export function AnswerGradeRow({ sessionId, answer, maxPoints, disabled = false,
           )}
         </div>
       </div>
+      {tools && <div className="answer-row__tools">{tools}</div>}
     </div>
   );
 }

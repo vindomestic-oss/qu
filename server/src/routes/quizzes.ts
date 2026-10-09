@@ -246,7 +246,7 @@ quizzesRouter.post('/:id/questions', (req, res) => {
       .prepare('SELECT COUNT(*) as count FROM questions WHERE quiz_id = ?')
       .get(quizId) as { count: number };
 
-    // Model answer and notes: text questions only (undefined for choice types).
+    // Model answer, accepted answers and notes: text questions only (undefined for choice types).
     const questionColumns = [
       'quiz_id',
       'sort_order',
@@ -256,6 +256,7 @@ quizzesRouter.post('/:id/questions', (req, res) => {
       'points',
       'section_id',
       'reference_answer',
+      'accepted_answers',
       'grader_notes',
     ];
     const result = db
@@ -270,6 +271,7 @@ quizzesRouter.post('/:id/questions', (req, res) => {
         parsed.section_id ?? null,
         // An explicitly empty model answer stays '' (not NULL), so the Chidon key backfill never fills it.
         parsed.reference_answer ?? null,
+        parsed.accepted_answers !== undefined ? JSON.stringify(parsed.accepted_answers) : null,
         parsed.grader_notes ?? null,
       );
     const questionId = Number(result.lastInsertRowid);

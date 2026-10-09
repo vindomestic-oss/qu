@@ -762,7 +762,11 @@ describe('migrations and answer keys', () => {
     assert.equal(CHIDON_5787_FORTGESCHRITTENE_KEY.length, 10);
     for (const key of [CHIDON_5786_KEY, CHIDON_5787_ANFAENGER_KEY, CHIDON_5787_FORTGESCHRITTENE_KEY]) {
       assert.equal(new Set(key.map((e) => e.text)).size, key.length);
-      for (const e of key) assert.deepEqual(e.accepted, e.reference.split(' / '));
+      for (const e of key) {
+        // S12 stored the model answer split on ' / '; S13 only appends to that list.
+        assert.deepEqual(e.s12.accepted, e.reference.split(' / '));
+        assert.deepEqual(e.accepted.slice(0, e.s12.accepted.length), e.s12.accepted);
+      }
     }
   });
 

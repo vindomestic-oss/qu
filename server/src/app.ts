@@ -14,11 +14,14 @@ import { graderRouter } from './routes/grader';
 import { gradingRouter } from './routes/grading';
 import { requireStaffForSession } from './middleware/staffAuth';
 import { UPLOAD_DIR } from './middleware/upload';
+import { registerAutoCheck } from './lib/autoCheck';
 
 const CLIENT_DIST = path.join(__dirname, '..', '..', 'client', 'dist');
 
 /** Everything except the HTTP server, Socket.IO and listen(), so tests can build the app without index.ts. */
 export function createApp(): express.Express {
+  // Wish 7 (S13): answers matching the model answer are credited when a session ends.
+  registerAutoCheck();
   const app = express();
   // Proxy hops in front of the app (Render: set after checking the real client IP). 0 = req.ip is the
   // socket address, so a forged X-Forwarded-For cannot dodge the grader-code rate limit.

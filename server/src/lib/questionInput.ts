@@ -1,5 +1,6 @@
 import { CONTENT_LANGS, ContentLang } from './languages';
 import { isValidPoints, roundPoints } from './grading';
+import { cleanAccepted } from './aiGrading/accepted';
 
 export type QuestionType = 'single' | 'multiple' | 'text';
 
@@ -26,6 +27,9 @@ export interface QuestionInput {
    *  sent, so the stored value stays; '' = cleared. Always undefined for choice types (stored as NULL). */
   reference_answer?: string;
   grader_notes?: string;
+  /** Text questions only (wish 7): accepted answers and spellings, cleaned (trimmed, deduplicated by
+   *  normalizeForMatch, ≤ 30 × ≤ 120 characters). undefined = not sent, the stored list stays. */
+  accepted_answers?: string[];
 }
 
 export const GRADER_FIELD_MAX = 2000;
@@ -75,7 +79,7 @@ export function parseQuestionInput(body: any): QuestionInput | { error: string }
   if ('error' in section) return section;
 
   if (type === 'text') {
-    const graderFields: Pick<QuestionInput, 'reference_answer' | 'grader_notes'> = {};
+    const graderFields: Pick<QuestionInput, 'reference_answer' | 'grader_notes' | 'accepted_answers'> = {};
     for (const key of ['reference_answer', 'grader_notes'] as const) {
       const v = body?.[key];
       if (v === undefined) continue;
@@ -83,6 +87,11 @@ export function parseQuestionInput(body: any): QuestionInput | { error: string }
       const trimmed = (v ?? '').trim();
       if (trimmed.length > GRADER_FIELD_MAX) return { error: `${key} must be at most ${GRADER_FIELD_MAX} characters` };
       graderFields[key] = trimmed;
+    }
+    if (body?.accepted_answers !== undefined) {
+      const accepted = cleanAccepted(body.accepted_answers);
+      if (!Array.isArray(accepted)) return accepted;
+      graderFields.accepted_answers = accepted;
     }
     return { type, text: text.trim(), translations, points: parsedPoints, choices: [], ...section, ...graderFields };
   }
