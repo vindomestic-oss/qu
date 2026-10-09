@@ -78,6 +78,8 @@ export function Play() {
   // lost silently when the child moves on.
   const [failedIds, setFailedIds] = useState<Set<number>>(new Set());
   const [submitted, setSubmitted] = useState(false);
+  // The host reopened the submission (S15): a note in the status slot until the child moves on.
+  const [reopened, setReopened] = useState(false);
   const finishedRef = useRef(false);
   // Read by handlers registered once (sockets, page events, the saver); a closure would be stale.
   const questionsRef = useRef<ParticipantQuestion[] | null>(null);
@@ -291,11 +293,22 @@ export function Play() {
         // the countdown and the polls are further safety nets
       }
     };
+    // Sent to this participant only when the host reopens the submission (S15): back to the questions
+    // at once, with the answers as the server has them. The poll after submitting is the fallback.
+    const onReopened = (p?: { sessionId?: number }) => {
+      if (p?.sessionId !== sessionId) return;
+      setStatus(null); // a "Saved" from before the submit would hide the note
+      setReopened(true);
+      setSubmitted(false);
+      void loadQuiz();
+    };
     socket.on('session:update', handler);
     socket.on('connect', onReconnect);
+    socket.on('submission:reopened', onReopened);
     return () => {
       socket.off('session:update', handler);
       socket.off('connect', onReconnect);
+      socket.off('submission:reopened', onReopened);
       leaveRoom('session', sessionId);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -333,8 +346,10 @@ export function Play() {
   // After the submit the dialog and the question are gone: the "Submitted" heading takes the focus,
   // so screen readers announce it and focus does not fall back to the page.
   useEffect(() => {
-    if (submitted && !loading) submittedRef.current?.focus({ preventScroll: true });
-  }, [submitted, loading]);
+    if (loading) return;
+    if (submitted) submittedRef.current?.focus({ preventScroll: true });
+    else if (reopened) headingRef.current?.focus({ preventScroll: true });
+  }, [submitted, loading, reopened]);
 
   // Load the next question's picture in the background, so it is there when the child moves on.
   useEffect(() => {
@@ -373,6 +388,7 @@ export function Play() {
     if (target === index) return;
     movedRef.current = true;
     setStatus(null);
+    setReopened(false);
     setPickedIndex(target);
     setParams({ q: String(target + 1) }, { replace: true });
   }
@@ -548,7 +564,9 @@ export function Play() {
         ? { tone: 'muted', text: t('play.saving') }
         : statusForQuestion?.state === 'saved'
           ? { tone: 'saved', text: t('play.saved') }
-          : null;
+          : reopened
+            ? { tone: 'muted', text: t('play.reopened') }
+            : null;
 
   return (
     <div className="play">

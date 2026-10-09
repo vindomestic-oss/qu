@@ -188,6 +188,27 @@ export function broadcastLiveUpdate(sessionId: number) {
   liveWindows.set(sessionId, { timer: open(), dirty: false });
 }
 
+/**
+ * An event for one participant only (S15 "Reopen submission"): it goes to the sockets in the session
+ * room whose token is still that participant's, never to the room, so no one else learns of it.
+ * Returns how many sockets got it; a participant who is offline catches up through the page's poll
+ * and reconnect refresh.
+ */
+export function emitToParticipant(sessionId: number, participantId: number, event: string, payload: object): number {
+  if (!io) return 0;
+  let sent = 0;
+  for (const socket of io.sockets.sockets.values()) {
+    const grant = grants(socket).get(`session:${sessionId}`);
+    if (!grant) continue;
+    const who = authenticate(grant.token, 'participant');
+    if (who.ok && who.role === 'participant' && who.participant.participantId === participantId && who.participant.sessionId === sessionId) {
+      socket.emit(event, payload);
+      sent += 1;
+    }
+  }
+  return sent;
+}
+
 /** Grading-relevant changes (submit, session end, grades) for the grading panel (S12). */
 export function broadcastGradingChanged(sessionId: number, payload: object) {
   io?.to(`staff:${sessionId}`).emit('grading:changed', payload);

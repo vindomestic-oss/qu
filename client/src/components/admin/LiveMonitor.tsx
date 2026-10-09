@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
-import { allowRejoin } from '../../api/sessions';
-import type { LiveStatusResponse } from '../../types';
+import { allowRejoin, reopenSubmission } from '../../api/sessions';
+import type { LiveParticipant, LiveStatusResponse } from '../../types';
+import { formatServerTime } from '../../lib/parseServerDate';
 
 interface Props {
   sessionId: number;
@@ -13,6 +14,23 @@ export function LiveMonitor({ sessionId, data, onRefresh }: Props) {
   const [rejoinMessage, setRejoinMessage] = useState('');
   const [rejoinError, setRejoinError] = useState<string | null>(null);
   const statusRef = useRef<HTMLParagraphElement>(null);
+
+  // S15: a child who pressed Finish too early gets the questions back (their page follows at once).
+  async function handleReopen(participantId: number, name: string) {
+    const ok = confirm(
+      `Reopen the submission of ${name}?\n\nTheir screen goes back to the questions. They can change answers until the time is up and should press Finish again (the end of the session submits them anyway). Grades already given stay; a changed answer has to be graded again.`,
+    );
+    if (!ok) return;
+    setRejoinError(null);
+    try {
+      const r = await reopenSubmission(sessionId, participantId);
+      setRejoinMessage(r.reopened ? `Submission reopened for ${name}. They can answer again until the time is up.` : `${name} has not submitted.`);
+      statusRef.current?.focus();
+      onRefresh();
+    } catch (err) {
+      setRejoinError(err instanceof Error ? err.message : 'Failed to reopen the submission');
+    }
+  }
 
   async function handleAllowRejoin(participantId: number, name: string) {
     setRejoinError(null);
@@ -30,6 +48,28 @@ export function LiveMonitor({ sessionId, data, onRefresh }: Props) {
   if (!data) return null;
 
   const totalQuestions = data.questions.length;
+  const running = data.session.status === 'active';
+
+  function submission(p: LiveParticipant) {
+    if (!p.submitted_at) return <span style={{ color: 'var(--text-muted)' }}>{running ? 'Answering' : '—'}</span>;
+    const label = `${p.submit_source === 'session_end' ? 'At the end' : 'Submitted'} ${formatServerTime(p.submitted_at, 'en-GB')}`;
+    return (
+      <span style={{ display: 'inline-flex', flexWrap: 'wrap', alignItems: 'center', gap: '4px 8px' }}>
+        <span>{label}</span>
+        {running && (
+          <button
+            type="button"
+            onClick={() => handleReopen(p.id, p.display_name)}
+            aria-label={`Reopen the submission of ${p.display_name}`}
+            title="Lets this participant change answers again until the time is up"
+            style={{ minHeight: 32, padding: '4px 10px', fontSize: 14 }}
+          >
+            Reopen
+          </button>
+        )}
+      </span>
+    );
+  }
 
   return (
     <div style={{ marginTop: 12, border: '1px solid var(--border)', padding: 12, background: 'var(--surface)' }}>
@@ -51,6 +91,7 @@ export function LiveMonitor({ sessionId, data, onRefresh }: Props) {
             <tr style={{ textAlign: 'left', borderBottom: '1px solid var(--border-strong)' }}>
               <th>Name</th>
               <th>Progress</th>
+              <th>Finished</th>
               <th>
                 <span title="Lets this name join again from another device, without the secret stored on the first one">
                   Rejoin
@@ -65,6 +106,7 @@ export function LiveMonitor({ sessionId, data, onRefresh }: Props) {
                 <td>
                   {p.answered_count} / {totalQuestions} answered
                 </td>
+                <td>{submission(p)}</td>
                 <td>
                   {p.rejoin_open ? (
                     <span>Rejoin allowed</span>

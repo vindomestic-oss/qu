@@ -33,6 +33,14 @@ export function getLiveStatus(sessionId: number) {
   return api<LiveStatusResponse>(`/sessions/${sessionId}/live`, { background: true });
 }
 
+/** S15: a participant who pressed Finish can answer again while the session runs. */
+export function reopenSubmission(sessionId: number, participantId: number) {
+  return api<{ participant: { id: number; submitted_at: null; submit_source: null }; reopened: boolean }>(
+    `/sessions/${sessionId}/participants/${participantId}/reopen`,
+    { method: 'POST' },
+  );
+}
+
 export function allowRejoin(sessionId: number, participantId: number) {
   return api<{ ok: true }>(`/sessions/${sessionId}/participants/${participantId}/allow-rejoin`, { method: 'PUT' });
 }

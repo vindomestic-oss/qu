@@ -56,6 +56,7 @@ const EXPECTED_ADMIN_ROUTES = [
   'GET /api/sessions/:id/live',
   'GET /api/sessions/:id/results',
   'PUT /api/sessions/:id/participants/:participantId/allow-rejoin',
+  'POST /api/sessions/:id/participants/:participantId/reopen',
   'PUT /api/sessions/:id/joining',
   'POST /api/sessions/:id/grader-links',
   'GET /api/sessions/:id/grader-links',

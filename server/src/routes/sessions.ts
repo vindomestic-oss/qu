@@ -5,7 +5,7 @@ import { finalizeSession, getSession, SessionRow } from '../lib/sessions';
 import { clearSessionTimer, scheduleSessionEnd } from '../lib/sessionTimers';
 import { ANSWERED_SQL } from '../lib/grading';
 import { nowIso } from '../lib/time';
-import { broadcastLiveUpdate, broadcastSessionUpdate, disconnectGraderLink } from '../socket';
+import { broadcastGradingChanged, broadcastLiveUpdate, broadcastSessionUpdate, disconnectGraderLink, emitToParticipant } from '../socket';
 import {
   formatGraderCode,
   generateGraderCode,
@@ -180,6 +180,45 @@ sessionsRouter.put('/:id/participants/:participantId/allow-rejoin', (req, res) =
   if (result.changes === 0) return res.status(404).json({ error: 'Participant not found in this session' });
   broadcastLiveUpdate(Number(req.params.id));
   res.json({ ok: true });
+});
+
+// "Reopen submission" (S15, wishes 8 and 10): while the run is active, a participant who pressed Finish
+// by mistake can answer again until the end and must press Finish again. Grades already given stay;
+// an answer that changes is graded again (the save path clears its grade), and graders cannot grade
+// this participant until the next submit (409 'not_submitted', S12). Audited in grade_events with
+// action 'reopen_submission' (answer_id and question_id NULL). Idempotent: a participant who has
+// not submitted gets 200 with reopened: false, and nothing is written or sent.
+sessionsRouter.post('/:id/participants/:participantId/reopen', (req: AuthedRequest, res) => {
+  const session = getSession(Number(req.params.id));
+  if (!session) return res.status(404).json({ error: 'Session not found' });
+  const participantId = Number(req.params.participantId);
+  const participant = db.prepare('SELECT id FROM participants WHERE id = ? AND session_id = ?').get(participantId, session.id);
+  if (!participant) return res.status(404).json({ error: 'Participant not found in this session' });
+  if (session.status === 'ended') {
+    return res.status(400).json({ error: 'This session has already ended', code: 'SESSION_ENDED' });
+  }
+  if (session.status !== 'active') {
+    return res.status(400).json({ error: 'This session has not started yet', code: 'SESSION_NOT_ACTIVE' });
+  }
+
+  const reopened = db.transaction(() => {
+    const r = db
+      .prepare('UPDATE participants SET submitted_at = NULL, submit_source = NULL WHERE id = ? AND session_id = ? AND submitted_at IS NOT NULL')
+      .run(participantId, session.id);
+    if (r.changes === 0) return false;
+    db.prepare(
+      "INSERT INTO grade_events (session_id, participant_id, actor, action, created_at) VALUES (?, ?, ?, 'reopen_submission', ?)",
+    ).run(session.id, participantId, `admin:${req.admin!.username}`, nowIso());
+    return true;
+  })();
+
+  if (reopened) {
+    broadcastLiveUpdate(session.id);
+    broadcastGradingChanged(session.id, { kind: 'submit', participantId });
+    // The participant's open page leaves the "Submitted" screen at once.
+    emitToParticipant(session.id, participantId, 'submission:reopened', { sessionId: session.id });
+  }
+  res.json({ participant: { id: participantId, submitted_at: null, submit_source: null }, reopened });
 });
 
 sessionsRouter.get('/:id/results', (req, res) => {
