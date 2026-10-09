@@ -225,7 +225,7 @@ export function Play() {
 
   if (session && session.status === 'pending') {
     return (
-      <div dir={isRtl ? 'rtl' : 'ltr'} style={{ maxWidth: 480, margin: '80px auto', textAlign: 'center' }}>
+      <div dir={isRtl ? 'rtl' : 'ltr'} style={{ maxWidth: 480, margin: '24px auto', textAlign: 'center' }}>
         <Logo />
         <UiLanguageMenu />
         <h1>{t('play.youreIn')}</h1>
@@ -247,7 +247,7 @@ export function Play() {
 
   if (submitted) {
     return (
-      <div dir={isRtl ? 'rtl' : 'ltr'} style={{ maxWidth: 480, margin: '80px auto', textAlign: 'center' }}>
+      <div dir={isRtl ? 'rtl' : 'ltr'} style={{ maxWidth: 480, margin: '24px auto', textAlign: 'center' }}>
         <Logo />
         <h1>{t('play.submittedTitle')}</h1>
         <p>{t('play.submittedBody')}</p>
@@ -276,7 +276,7 @@ export function Play() {
       : Boolean(question.myAnswer?.selected_choice_ids.length);
 
   return (
-    <div dir={isRtl ? 'rtl' : 'ltr'} style={{ maxWidth: 640, margin: '40px auto' }}>
+    <div dir={isRtl ? 'rtl' : 'ltr'} style={{ maxWidth: 640, margin: '16px auto' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
         <h1>{quizTitle}</h1>
         <div>
@@ -294,13 +294,13 @@ export function Play() {
       </div>
       {error && <p style={{ color: 'var(--danger)' }}>{error}</p>}
 
-      <div style={{ border: '1px solid var(--border)', padding: 16 }}>
+      <div style={{ border: '1px solid var(--border)', padding: 16, background: 'var(--surface)', borderRadius: 8 }}>
         <p style={{ fontWeight: 'bold' }}>{questionText}</p>
         {question.image_path && (
           <img
             src={question.image_path}
             alt=""
-            style={{ maxWidth: '100%', marginBottom: 12, border: '1px solid var(--border)' }}
+            style={{ maxWidth: '100%', marginBottom: 12, border: '1px solid var(--border)', background: 'var(--image-bg)' }}
           />
         )}
 

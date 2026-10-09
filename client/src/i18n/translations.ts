@@ -132,8 +132,8 @@ const de: Dict = {
 };
 
 const ru: Dict = {
-  'theme.switchToLight': 'Светлая тема',
-  'theme.switchToDark': 'Тёмная тема',
+  'theme.switchToLight': 'Включить светлую тему',
+  'theme.switchToDark': 'Включить тёмную тему',
   'home.title': 'Приложение для викторин',
   'home.adminLogin': 'Вход для администратора',
   'home.joinQuiz': 'Присоединиться к викторине',
@@ -301,6 +301,8 @@ const lt: Dict = {
 };
 
 const he: Dict = {
+  'theme.switchToLight': 'מעבר למצב בהיר',
+  'theme.switchToDark': 'מעבר למצב כהה',
   'home.title': 'אפליקציית שאלונים',
   'home.adminLogin': 'כניסת מנהל',
   'home.joinQuiz': 'הצטרפות לשאלון',

@@ -111,7 +111,7 @@ export function SessionResults() {
   const notYetFinishedCount = participants.length - gradableParticipantIds.size;
 
   return (
-    <div style={{ maxWidth: 800, margin: '40px auto' }}>
+    <div style={{ maxWidth: 800, margin: '16px auto' }}>
       <Link to={`/admin/quizzes/${quiz.id}`}>&larr; Back to quiz</Link>
       <h1>{quiz.title} — Results</h1>
       <p>

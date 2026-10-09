@@ -6,7 +6,7 @@ import { Logo } from '../components/Logo';
 export function Home() {
   const { t, isRtl } = useLanguage();
   return (
-    <div dir={isRtl ? 'rtl' : 'ltr'} style={{ maxWidth: 480, margin: '80px auto', textAlign: 'center' }}>
+    <div dir={isRtl ? 'rtl' : 'ltr'} style={{ maxWidth: 480, margin: '24px auto', textAlign: 'center' }}>
       <Logo />
       <UiLanguageMenu />
       <h1>{t('home.title')}</h1>

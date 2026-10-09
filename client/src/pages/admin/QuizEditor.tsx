@@ -145,7 +145,7 @@ export function QuizEditor() {
   const questions = [...(quiz.questions ?? [])].sort((a, b) => a.sort_order - b.sort_order);
 
   return (
-    <div style={{ maxWidth: 720, margin: '40px auto' }}>
+    <div style={{ maxWidth: 720, margin: '16px auto' }}>
       <Link to="/admin">&larr; Back to quizzes</Link>
       <h1>{quiz.title}</h1>
       {error && <p style={{ color: 'var(--danger)' }}>{error}</p>}
@@ -251,7 +251,7 @@ export function QuizEditor() {
                   <img
                     src={q.image_path}
                     alt=""
-                    style={{ maxWidth: 200, display: 'block', border: '1px solid var(--border)' }}
+                    style={{ maxWidth: 200, display: 'block', border: '1px solid var(--border)', background: 'var(--image-bg)' }}
                   />
                   <button onClick={() => handleImageChange(q.id, null)}>Remove image</button>
                 </div>

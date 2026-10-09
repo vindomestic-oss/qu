@@ -9,13 +9,13 @@ import { Join } from './pages/participant/Join';
 import { Play } from './pages/participant/Play';
 import { Results } from './pages/participant/Results';
 import { RequireParticipant } from './auth/RequireParticipant';
-import { ThemeToggle } from './components/ThemeToggle';
+import { AppTopBar } from './components/AppTopBar';
 import { AdminExpiredBanner } from './components/admin/AdminExpiredBanner';
 
 function App() {
   return (
     <>
-      <ThemeToggle />
+      <AppTopBar />
       <AdminExpiredBanner />
       <Routes>
         <Route path="/" element={<Home />} />
