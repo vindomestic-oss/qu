@@ -57,7 +57,7 @@ export function Join() {
             style={{ display: 'block', width: '100%' }}
           />
         </label>
-        {error && <p style={{ color: 'red' }}>{error}</p>}
+        {error && <p style={{ color: 'var(--danger)' }}>{error}</p>}
         <button type="submit" disabled={submitting} style={{ padding: '8px 16px' }}>
           {submitting ? t('join.joining') : t('join.join')}
         </button>

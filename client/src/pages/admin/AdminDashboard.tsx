@@ -80,7 +80,7 @@ export function AdminDashboard() {
         </div>
       </div>
 
-      {error && <p style={{ color: 'red' }}>{error}</p>}
+      {error && <p style={{ color: 'var(--danger)' }}>{error}</p>}
 
       <h2>Create a new quiz</h2>
       <form onSubmit={handleCreate} style={{ display: 'flex', flexDirection: 'column', gap: 8, maxWidth: 400 }}>
@@ -127,7 +127,7 @@ export function AdminDashboard() {
                 justifyContent: 'space-between',
                 alignItems: 'center',
                 padding: '10px 0',
-                borderBottom: '1px solid #ddd',
+                borderBottom: '1px solid var(--border-subtle)',
               }}
             >
               <div>

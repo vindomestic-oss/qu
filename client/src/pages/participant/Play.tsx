@@ -256,7 +256,7 @@ export function Play() {
   }
 
   if (error && !questions) {
-    return <p style={{ margin: 40, color: 'red' }}>{error}</p>;
+    return <p style={{ margin: 40, color: 'var(--danger)' }}>{error}</p>;
   }
 
   if (!questions || !quizMeta || !session) {
@@ -292,20 +292,20 @@ export function Play() {
           label={t('play.questionLanguage')}
         />
       </div>
-      {error && <p style={{ color: 'red' }}>{error}</p>}
+      {error && <p style={{ color: 'var(--danger)' }}>{error}</p>}
 
-      <div style={{ border: '1px solid #ccc', padding: 16 }}>
+      <div style={{ border: '1px solid var(--border)', padding: 16 }}>
         <p style={{ fontWeight: 'bold' }}>{questionText}</p>
         {question.image_path && (
           <img
             src={question.image_path}
             alt=""
-            style={{ maxWidth: '100%', marginBottom: 12, border: '1px solid #ccc' }}
+            style={{ maxWidth: '100%', marginBottom: 12, border: '1px solid var(--border)' }}
           />
         )}
 
         {!imageReady ? (
-          <p style={{ color: '#888' }}>{t('play.loadingImage')}</p>
+          <p style={{ color: 'var(--text-muted)' }}>{t('play.loadingImage')}</p>
         ) : question.type !== 'text' ? (
           <div>
             {question.choices.map((c) => (
@@ -337,7 +337,7 @@ export function Play() {
                 : t('play.saveAnswer')}
             </button>
             {textSaveStatus?.questionId === question.id && textSaveStatus.state === 'saved' && (
-              <span style={{ color: 'green', marginLeft: 8 }}>{t('play.saved')}</span>
+              <span style={{ color: 'var(--success)', marginLeft: 8 }}>{t('play.saved')}</span>
             )}
           </div>
         )}

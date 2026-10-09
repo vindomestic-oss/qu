@@ -24,13 +24,80 @@
 }
 
 :root {
-  color-scheme: light dark;
+  color-scheme: light;
   font: 16px/1.45 'Raleway', system-ui, 'Segoe UI', Roboto, sans-serif;
 
   --brand-blue: #27589f;
   --brand-blue-dark: #1c4179;
   --brand-green: #65bd7d;
   --text-dark: #212934;
+
+  /* Theme tokens: light values here, dark values below */
+  --bg: #ffffff;
+  --text: var(--text-dark);
+  --text-muted: #5f6b7a;
+  --surface: #ffffff;
+  --surface-alt: #f7f7f7;
+  --border: #ccc;
+  --border-subtle: #ddd;
+  --border-strong: #999;
+  --input-bg: #ffffff;
+  --link: var(--brand-blue);
+  --button-bg: var(--brand-blue);
+  --button-bg-hover: var(--brand-blue-dark);
+  --button-text: #fff;
+  --button-active-bg: var(--brand-blue-dark);
+  --button-disabled-bg: #b9c3d4;
+  --button-disabled-text: #fff;
+  --danger: #c62828;
+  --success: #2e7d32;
+}
+
+/* Dark: used when the user picked it, or when the OS is dark and the user didn't pick light */
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --bg: #121417;
+  --text: #eef1f5;
+  --text-muted: #aab3bf;
+  --surface: #1c2026;
+  --surface-alt: #1c2026;
+  --border: #59626e;
+  --border-subtle: #3a414b;
+  --border-strong: #8a94a1;
+  --input-bg: #1c2026;
+  --link: #8fb8f5;
+  --button-bg: #3a6fc0;
+  --button-bg-hover: #4a80d2;
+  --button-text: #fff;
+  --button-active-bg: #1c4179;
+  --button-disabled-bg: #3a414b;
+  --button-disabled-text: #8a94a1;
+  --danger: #ff8a80;
+  --success: #81d99a;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    color-scheme: dark;
+    --bg: #121417;
+    --text: #eef1f5;
+    --text-muted: #aab3bf;
+    --surface: #1c2026;
+    --surface-alt: #1c2026;
+    --border: #59626e;
+    --border-subtle: #3a414b;
+    --border-strong: #8a94a1;
+    --input-bg: #1c2026;
+    --link: #8fb8f5;
+    --button-bg: #3a6fc0;
+    --button-bg-hover: #4a80d2;
+    --button-text: #fff;
+    --button-active-bg: #1c4179;
+    --button-disabled-bg: #3a414b;
+    --button-disabled-text: #8a94a1;
+    --danger: #ff8a80;
+    --success: #81d99a;
+  }
 }
 
 * {
@@ -39,7 +106,8 @@
 
 body {
   margin: 0;
-  color: var(--text-dark);
+  background: var(--bg);
+  color: var(--text);
 }
 
 h1,
@@ -47,11 +115,11 @@ h2,
 h3 {
   font-family: 'Raleway', system-ui, sans-serif;
   font-weight: 700;
-  color: var(--text-dark);
+  color: var(--text);
 }
 
 a {
-  color: var(--brand-blue);
+  color: var(--link);
 }
 
 button {
@@ -60,20 +128,21 @@ button {
   font-size: 16px;
   font-family: inherit;
   cursor: pointer;
-  border: 1px solid var(--brand-blue);
+  border: 1px solid var(--button-bg);
   border-radius: 6px;
-  background: var(--brand-blue);
-  color: #fff;
+  background: var(--button-bg);
+  color: var(--button-text);
 }
 
 button:hover:not(:disabled) {
-  background: var(--brand-blue-dark);
-  border-color: var(--brand-blue-dark);
+  background: var(--button-bg-hover);
+  border-color: var(--button-bg-hover);
 }
 
 button:disabled {
-  background: #b9c3d4;
-  border-color: #b9c3d4;
+  background: var(--button-disabled-bg);
+  border-color: var(--button-disabled-bg);
+  color: var(--button-disabled-text);
   cursor: default;
 }
 
@@ -82,14 +151,22 @@ textarea,
 select {
   font-size: 16px;
   font-family: inherit;
-  border: 1px solid #ccc;
+  border: 1px solid var(--border);
   border-radius: 6px;
+  background: var(--input-bg);
+  color: var(--text);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--text-muted);
+  opacity: 1;
 }
 
 input:focus,
 textarea:focus,
 select:focus {
-  outline: 2px solid var(--brand-blue);
+  outline: 2px solid var(--link);
   outline-offset: 1px;
 }
 
@@ -98,9 +175,31 @@ input[type='checkbox'] {
   width: 20px;
   height: 20px;
   cursor: pointer;
-  accent-color: var(--brand-blue);
+  accent-color: var(--button-bg);
 }
 
 label {
   cursor: pointer;
+}
+
+.theme-toggle {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 100;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border-radius: 50%;
+  font-size: 20px;
+  line-height: 1;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+.theme-toggle:hover:not(:disabled) {
+  background: var(--surface-alt);
+  border-color: var(--border-strong);
 }

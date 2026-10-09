@@ -140,7 +140,7 @@ export function QuizEditor() {
   }
 
   if (loading) return <p style={{ margin: 40 }}>Loading…</p>;
-  if (!quiz) return <p style={{ margin: 40, color: 'red' }}>{error ?? 'Quiz not found'}</p>;
+  if (!quiz) return <p style={{ margin: 40, color: 'var(--danger)' }}>{error ?? 'Quiz not found'}</p>;
 
   const questions = [...(quiz.questions ?? [])].sort((a, b) => a.sort_order - b.sort_order);
 
@@ -148,7 +148,7 @@ export function QuizEditor() {
     <div style={{ maxWidth: 720, margin: '40px auto' }}>
       <Link to="/admin">&larr; Back to quizzes</Link>
       <h1>{quiz.title}</h1>
-      {error && <p style={{ color: 'red' }}>{error}</p>}
+      {error && <p style={{ color: 'var(--danger)' }}>{error}</p>}
 
       <form onSubmit={handleSaveMeta} style={{ display: 'flex', flexDirection: 'column', gap: 8, maxWidth: 400 }}>
         <label>
@@ -211,7 +211,7 @@ export function QuizEditor() {
       <h2 style={{ marginTop: 32 }}>Questions</h2>
       {questions.length === 0 && <p>No questions yet.</p>}
       {questions.map((q, i) => (
-        <div key={q.id} style={{ border: '1px solid #ddd', padding: 12, marginBottom: 8 }}>
+        <div key={q.id} style={{ border: '1px solid var(--border-subtle)', padding: 12, marginBottom: 8 }}>
           {formMode === q.id ? (
             <QuestionForm
               initial={q}
@@ -251,7 +251,7 @@ export function QuizEditor() {
                   <img
                     src={q.image_path}
                     alt=""
-                    style={{ maxWidth: 200, display: 'block', border: '1px solid #ccc' }}
+                    style={{ maxWidth: 200, display: 'block', border: '1px solid var(--border)' }}
                   />
                   <button onClick={() => handleImageChange(q.id, null)}>Remove image</button>
                 </div>

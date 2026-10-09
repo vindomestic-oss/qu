@@ -39,7 +39,7 @@ export function Results() {
     };
   }, []);
 
-  if (error) return <p style={{ margin: 40, color: 'red' }}>{error}</p>;
+  if (error) return <p style={{ margin: 40, color: 'var(--danger)' }}>{error}</p>;
   if (!results) return <p style={{ margin: 40 }}>{t('results.loading')}</p>;
 
   return (
@@ -64,7 +64,7 @@ export function Results() {
         const correctChoiceIds = new Set(item.question.choices.filter((c) => c.is_correct).map((c) => c.id));
         const questionText = resolveField(item.question, 'text', contentLanguage, results.base_language);
         return (
-          <div key={item.question.id} style={{ border: '1px solid #ddd', padding: 12, marginBottom: 8 }}>
+          <div key={item.question.id} style={{ border: '1px solid var(--border-subtle)', padding: 12, marginBottom: 8 }}>
             <p style={{ fontWeight: 'bold' }}>
               {i + 1}. {questionText} {t('results.ptsSuffix', { points: item.question.points })}
             </p>
@@ -78,7 +78,7 @@ export function Results() {
                       key={c.id}
                       style={{
                         fontWeight: wasSelected ? 'bold' : 'normal',
-                        color: isCorrectChoice ? 'green' : wasSelected ? 'red' : undefined,
+                        color: isCorrectChoice ? 'var(--success)' : wasSelected ? 'var(--danger)' : undefined,
                       }}
                     >
                       {resolveField(c, 'text', contentLanguage, results.base_language)} {wasSelected ? t('results.yourAnswer') : ''}{' '}

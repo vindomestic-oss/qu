@@ -94,7 +94,7 @@ export function SessionResults() {
     }
   }
 
-  if (error && !data) return <p style={{ margin: 40, color: 'red' }}>{error}</p>;
+  if (error && !data) return <p style={{ margin: 40, color: 'var(--danger)' }}>{error}</p>;
   if (!data) return <p style={{ margin: 40 }}>Loading…</p>;
 
   const { session, quiz, questions, participants, answers } = data;
@@ -117,7 +117,7 @@ export function SessionResults() {
       <p>
         Session status: <strong>{session.status}</strong> · Join code: {session.join_code}
       </p>
-      {error && <p style={{ color: 'red' }}>{error}</p>}
+      {error && <p style={{ color: 'var(--danger)' }}>{error}</p>}
 
       <button onClick={() => downloadCsv(`${quiz.title}-${session.join_code}.csv`, buildCsv(questions, participants, answers))}>
         Export CSV
@@ -129,7 +129,7 @@ export function SessionResults() {
       ) : (
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
-            <tr style={{ textAlign: 'left', borderBottom: '2px solid #333' }}>
+            <tr style={{ textAlign: 'left', borderBottom: '2px solid var(--text)' }}>
               <th>Name</th>
               <th>Status</th>
               <th>Score</th>
@@ -138,7 +138,7 @@ export function SessionResults() {
           </thead>
           <tbody>
             {scored.map(({ participant, scored: s, max, pending }) => (
-              <tr key={participant.id} style={{ borderBottom: '1px solid #ddd' }}>
+              <tr key={participant.id} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
                 <td>{participant.display_name}</td>
                 <td>
                   {session.status === 'ended' ? '—' : participant.submitted_at ? '✓ finished' : 'still answering'}
@@ -157,7 +157,7 @@ export function SessionResults() {
         <>
           <h2 style={{ marginTop: 32 }}>Grade text answers</h2>
           {session.status !== 'ended' && (
-            <p style={{ color: '#555' }}>
+            <p style={{ color: 'var(--text-muted)' }}>
               {notYetFinishedCount > 0
                 ? `${notYetFinishedCount} participant(s) haven't clicked "Finish" yet — their answers aren't shown here until they do.`
                 : 'All participants who have joined so far have finished — their answers are shown below.'}
@@ -175,7 +175,7 @@ export function SessionResults() {
                 ) : (
                   <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                     <thead>
-                      <tr style={{ textAlign: 'left', borderBottom: '2px solid #333' }}>
+                      <tr style={{ textAlign: 'left', borderBottom: '2px solid var(--text)' }}>
                         <th>Participant</th>
                         <th>Answer</th>
                         <th>Points (0–{q.points})</th>
@@ -187,7 +187,7 @@ export function SessionResults() {
                         const participant = participants.find((p) => p.id === a.participant_id);
                         const currentValue = gradeInputs[a.id] ?? (a.points_awarded != null ? String(a.points_awarded) : '');
                         return (
-                          <tr key={a.id} style={{ borderBottom: '1px solid #ddd' }}>
+                          <tr key={a.id} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
                             <td>{participant?.display_name ?? `#${a.participant_id}`}</td>
                             <td>{a.text_answer || <em>(no answer)</em>}</td>
                             <td>

@@ -28,6 +28,8 @@ export const RTL_LANGUAGES: Language[] = ['he'];
 type Dict = Record<string, string>;
 
 const en: Dict = {
+  'theme.switchToLight': 'Switch to light theme',
+  'theme.switchToDark': 'Switch to dark theme',
   'home.title': 'Quiz App',
   'home.adminLogin': 'Admin login',
   'home.joinQuiz': 'Join a quiz',
@@ -73,6 +75,8 @@ const en: Dict = {
 };
 
 const de: Dict = {
+  'theme.switchToLight': 'Zum hellen Design wechseln',
+  'theme.switchToDark': 'Zum dunklen Design wechseln',
   'home.title': 'Quiz-App',
   'home.adminLogin': 'Admin-Anmeldung',
   'home.joinQuiz': 'An einem Quiz teilnehmen',
@@ -118,6 +122,8 @@ const de: Dict = {
 };
 
 const ru: Dict = {
+  'theme.switchToLight': 'Светлая тема',
+  'theme.switchToDark': 'Тёмная тема',
   'home.title': 'Приложение для викторин',
   'home.adminLogin': 'Вход для администратора',
   'home.joinQuiz': 'Присоединиться к викторине',
@@ -598,6 +604,8 @@ const lv: Dict = {
 };
 
 const uk: Dict = {
+  'theme.switchToLight': 'Світла тема',
+  'theme.switchToDark': 'Темна тема',
   'home.title': 'Застосунок для квізів',
   'home.adminLogin': 'Вхід для адміністратора',
   'home.joinQuiz': 'Приєднатися до квізу',

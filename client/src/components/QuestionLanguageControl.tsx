@@ -15,7 +15,7 @@ interface Props {
 export function QuestionLanguageControl({ languages, value, onChange, label }: Props) {
   if (languages.length <= 1) {
     return (
-      <span style={{ fontSize: 14, color: '#555' }}>
+      <span style={{ fontSize: 14, color: 'var(--text-muted)' }}>
         {label} {labelFor(languages[0] ?? value)}
       </span>
     );
