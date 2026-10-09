@@ -1,9 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import './play.css';
-import { useNavigate } from 'react-router-dom';
-import { getMyQuiz, getMySession, submitChoiceAnswer, submitQuiz, submitTextAnswer } from '../../api/participant';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { getMyQuiz, getMySession, submitQuiz } from '../../api/participant';
 import type { QuizMeta } from '../../api/participant';
-import type { ParticipantQuestion, QuizSession } from '../../types';
+import type { ParticipantQuestion, QuizSection, QuizSession } from '../../types';
 import { ApiError } from '../../api/client';
 import { useParticipant } from '../../auth/ParticipantContext';
 import { getSocket, joinRoom, leaveRoom } from '../../lib/socket';
@@ -12,65 +12,199 @@ import { useContentLanguage } from '../../i18n/useContentLanguage';
 import { sanitizeOffered, type QuizLang } from '../../i18n/contentLanguages';
 import { resolveFieldWithLang } from '../../i18n/resolveText';
 import { dirOf } from '../../i18n/languageMeta';
+import { AnswerSaver, type Payload } from '../../lib/answerSaver';
+import { buildNavGroups } from '../../lib/navGroups';
 import { Countdown } from '../../components/participant/Countdown';
 import { LangStack } from '../../components/participant/LangStack';
+import { QuestionNavigator } from '../../components/participant/QuestionNavigator';
+import { QuestionOverviewDialog } from '../../components/participant/QuestionOverviewDialog';
 import { ThemeToggle } from '../../components/ThemeToggle';
 import { QuestionLanguageBar } from '../../components/participant/QuestionLanguageBar';
 import { Logo } from '../../components/Logo';
 import { formatJoinCode } from '../../lib/joinLink';
 
+const AUTOSAVE_MS = 1500;
+
 function offeredOf(info: { base_language: QuizLang; offered_languages: unknown }): QuizLang[] {
   return sanitizeOffered(info.offered_languages, info.base_language);
+}
+
+function confirmedPayload(q: ParticipantQuestion): Payload {
+  return q.type === 'text'
+    ? { kind: 'text', text: q.myAnswer?.text_answer ?? '' }
+    : { kind: 'choice', ids: q.myAnswer?.selected_choice_ids ?? [] };
+}
+
+function readFlags(sessionId: number): Set<number> {
+  try {
+    const raw = sessionStorage.getItem(`quiz_flags_${sessionId}`);
+    const list = raw ? JSON.parse(raw) : [];
+    return new Set(Array.isArray(list) ? list.filter((n) => Number.isInteger(n)) : []);
+  } catch {
+    return new Set();
+  }
+}
+
+function FlagIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+      <path d="M5 21V4M5 4h11l-2 4 2 4H5" />
+    </svg>
+  );
 }
 
 export function Play() {
   const navigate = useNavigate();
   const { leave } = useParticipant();
   const { t, setUiLanguageLocked } = useLanguage();
+  const [params, setParams] = useSearchParams();
 
   const [session, setSession] = useState<QuizSession | null>(null);
   const [quizMeta, setQuizMeta] = useState<QuizMeta | null>(null);
   const [offered, setOffered] = useState<QuizLang[] | null>(null);
   const { contentLanguage, base, setContentLanguage } = useContentLanguage(offered);
+  // myAnswer.text_answer holds only what the server has saved; typing lives in drafts.
   const [questions, setQuestions] = useState<ParticipantQuestion[] | null>(null);
-  const [index, setIndex] = useState(0);
+  const [sections, setSections] = useState<QuizSection[]>([]);
+  const [drafts, setDrafts] = useState<Record<number, string>>({});
+  const [flagged, setFlagged] = useState<Set<number>>(new Set());
+  const [overviewOpen, setOverviewOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   // Saving / saved of a text answer, shown only on its own question.
   const [status, setStatus] = useState<{ questionId: number; state: 'saving' | 'saved' } | null>(null);
-  // Answers whose last save failed, by question id. Kept across Previous/Next, so a failed save is
-  // never lost silently; cleared by that question's next successful save.
-  const [failed, setFailed] = useState<Record<number, string>>({});
-  const [finishError, setFinishError] = useState<string | null>(null);
-  // Per-question request counter: only the newest save of a question may set or clear its failure.
-  const saveSeqRef = useRef<Record<number, number>>({});
+  // Questions whose last save failed. Shown on every question until saved, so a failed save is never
+  // lost silently when the child moves on.
+  const [failedIds, setFailedIds] = useState<Set<number>>(new Set());
   const [submitted, setSubmitted] = useState(false);
-  const [finishing, setFinishing] = useState(false);
   const finishedRef = useRef(false);
-  // Read by socket handlers registered once per session; a closure would see a stale value.
+  // Read by handlers registered once (sockets, page events, the saver); a closure would be stale.
   const questionsRef = useRef<ParticipantQuestion[] | null>(null);
+  const draftsRef = useRef<Record<number, string>>({});
   useEffect(() => {
     questionsRef.current = questions;
-  }, [questions]);
+    draftsRef.current = drafts;
+  }, [questions, drafts]);
   const headingRef = useRef<HTMLHeadingElement>(null);
+  const submittedRef = useRef<HTMLHeadingElement>(null);
   const movedRef = useRef(false);
+  const timersRef = useRef(new Map<number, ReturnType<typeof setTimeout>>());
+
+  // The position is mirrored into ?q= (1-based), so a reload stays on the same question; ?q= is not
+  // written on load. The page itself switches at once from local state: router navigations are
+  // deferred, and typing right after a tap must not land in the previous question.
+  const [pickedIndex, setPickedIndex] = useState<number | null>(null);
+  const rawQ = Number.parseInt(params.get('q') ?? '', 10);
+  const total = questions?.length ?? 0;
+  const urlIndex = total ? (Number.isInteger(rawQ) ? Math.min(Math.max(rawQ - 1, 0), total - 1) : 0) : 0;
+  const index = pickedIndex !== null && pickedIndex < total ? pickedIndex : urlIndex;
+
+  const saverRef = useRef<AnswerSaver | null>(null);
+  if (!saverRef.current) {
+    saverRef.current = new AnswerSaver({ onConfirmed: () => {}, onFailed: () => {}, onSubmitted: () => {} });
+  }
+  const saver = saverRef.current;
+  useEffect(() => {
+    saver.setHandlers({
+      onConfirmed: (qid, payload, { superseded }) => {
+        setFailedIds((prev) => {
+          if (!prev.has(qid)) return prev;
+          const next = new Set(prev);
+          next.delete(qid);
+          return next;
+        });
+        if (payload.kind === 'text') {
+          setQuestions((prev) =>
+            prev
+              ? prev.map((q) => (q.id === qid ? { ...q, myAnswer: { selected_choice_ids: [], text_answer: payload.text.trim() } } : q))
+              : prev,
+          );
+          // "Saved" only when the field holds exactly what the server has; while a newer save waits it
+          // stays "Saving…", and while newer typing waits for its autosave the slot is empty.
+          const draft = draftsRef.current[qid];
+          const upToDate = draft === undefined || draft.trim() === payload.text.trim();
+          if (!superseded) {
+            setStatus((prev) => (prev?.questionId === qid ? (upToDate ? { questionId: qid, state: 'saved' } : null) : prev));
+          }
+        } else if (!superseded) {
+          // A retried choice comes back into view once the server has it. A superseded confirmation is
+          // older than what the child picked since, so the screen keeps the newer pick.
+          setQuestions((prev) =>
+            prev ? prev.map((q) => (q.id === qid ? { ...q, myAnswer: { selected_choice_ids: payload.ids, text_answer: null } } : q)) : prev,
+          );
+        }
+      },
+      onFailed: (qid, confirmed) => {
+        if (confirmed?.kind === 'choice') {
+          // Show what the server really has, so "answered" stays honest.
+          setQuestions((prev) =>
+            prev
+              ? prev.map((q) =>
+                  q.id === qid ? { ...q, myAnswer: { selected_choice_ids: confirmed.ids, text_answer: null } } : q,
+                )
+              : prev,
+          );
+        }
+        setStatus((prev) => (prev?.questionId === qid ? null : prev));
+        setFailedIds((prev) => new Set(prev).add(qid));
+      },
+      onSubmitted: () => {
+        setFailedIds(new Set());
+        setSubmitted(true);
+      },
+    });
+  });
 
   async function loadQuiz() {
     try {
-      const { session, quiz, questions, participant } = await getMyQuiz();
+      const { session, quiz, sections, questions, participant } = await getMyQuiz();
       setSession(session);
       setQuizMeta(quiz);
       setOffered(offeredOf(quiz));
+      setSections(sections);
+      for (const q of questions) saver.setConfirmed(q.id, confirmedPayload(q));
       setQuestions(questions);
+      setFlagged(readFlags(session.id));
       setSubmitted(Boolean(participant.submitted_at));
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Failed to load quiz');
     }
   }
 
+  /** Saves a question's draft when it differs from what the server has. */
+  const flushTextSave = useCallback(
+    (questionId: number, opts: { keepalive?: boolean; immediate?: boolean } = {}) => {
+      const timer = timersRef.current.get(questionId);
+      if (timer) clearTimeout(timer);
+      timersRef.current.delete(questionId);
+      const q = questionsRef.current?.find((x) => x.id === questionId);
+      const draft = draftsRef.current[questionId];
+      if (!q || q.type !== 'text' || draft === undefined) return;
+      // Compare with the newest intent (a save may already be on its way, e.g. blur then tap). On page
+      // exit the request on its way may be aborted, so only what the server confirmed counts.
+      const latest = opts.immediate ? saver.confirmedOf(questionId) : saver.latest(questionId);
+      const latestText = latest?.kind === 'text' ? latest.text.trim() : (q.myAnswer?.text_answer ?? '');
+      if (draft.trim() === latestText) return;
+      setStatus({ questionId, state: 'saving' });
+      // The untrimmed draft goes to the server (it trims); the draft itself is never replaced, so
+      // keystrokes typed while the request runs are not lost.
+      saver.save(questionId, { kind: 'text', text: draft }, opts);
+    },
+    [saver],
+  );
+
+  const flushAllDrafts = useCallback(
+    (opts: { keepalive?: boolean; immediate?: boolean } = {}) => {
+      if (opts.immediate) saver.sendQueuedNow();
+      for (const id of Object.keys(draftsRef.current)) flushTextSave(Number(id), opts);
+    },
+    [flushTextSave, saver],
+  );
+
   function goToResults() {
     if (finishedRef.current) return;
     finishedRef.current = true;
+    flushAllDrafts({ keepalive: true });
     navigate('/results');
   }
 
@@ -108,24 +242,28 @@ export function Play() {
     return () => setUiLanguageLocked(false);
   }, [session?.status, setUiLanguageLocked]);
 
-  // Fallback poll of session status while waiting, in case the socket event is missed.
+  // Fallback poll while waiting in the lobby (every 3 s) and after submitting (every 5 s), in case a
+  // socket event is missed.
   useEffect(() => {
-    if (!session || session.status !== 'pending') return;
-    const poll = setInterval(async () => {
-      try {
-        const { session: updated, quiz, participant } = await getMySession();
-        setSession(updated);
-        if (quiz) setOffered(offeredOf(quiz));
-        setSubmitted(Boolean(participant.submitted_at));
-        if (updated.status === 'active') await loadQuiz();
-        if (updated.status === 'ended') goToResults();
-      } catch {
-        // ignore transient errors while polling
-      }
-    }, 3000);
+    if (!session || !(session.status === 'pending' || submitted)) return;
+    const poll = setInterval(
+      async () => {
+        try {
+          const { session: updated, quiz, participant } = await getMySession();
+          setSession(updated);
+          if (quiz) setOffered(offeredOf(quiz));
+          setSubmitted(Boolean(participant.submitted_at));
+          if (updated.status === 'active' && !questionsRef.current) await loadQuiz();
+          if (updated.status === 'ended') goToResults();
+        } catch {
+          // ignore transient errors while polling
+        }
+      },
+      submitted ? 5000 : 3000,
+    );
     return () => clearInterval(poll);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session?.status]);
+  }, [session?.status, submitted]);
 
   useEffect(() => {
     if (!session) return;
@@ -162,8 +300,28 @@ export function Play() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.id]);
 
-  // After Previous/Next: back to the top, and the new question's heading gets focus (announced by
-  // screen readers) without scrolling.
+  // Leaving the page or hiding it (tab switch, iPad locked) saves every pending draft at once, with
+  // keepalive: iOS may freeze or close a hidden tab without a pagehide.
+  useEffect(() => {
+    const onHidden = () => {
+      if (document.visibilityState === 'hidden') flushAllDrafts({ keepalive: true, immediate: true });
+    };
+    const onPageHide = () => flushAllDrafts({ keepalive: true, immediate: true });
+    document.addEventListener('visibilitychange', onHidden);
+    window.addEventListener('pagehide', onPageHide);
+    return () => {
+      document.removeEventListener('visibilitychange', onHidden);
+      window.removeEventListener('pagehide', onPageHide);
+    };
+  }, [flushAllDrafts]);
+
+  useEffect(() => {
+    const timers = timersRef.current;
+    return () => timers.forEach((timer) => clearTimeout(timer));
+  }, []);
+
+  // After a move: back to the top, and the new question's heading gets focus (announced by screen
+  // readers) without scrolling.
   useEffect(() => {
     if (!movedRef.current) return;
     movedRef.current = false;
@@ -171,127 +329,101 @@ export function Play() {
     headingRef.current?.focus({ preventScroll: true });
   }, [index]);
 
+  // After the submit the dialog and the question are gone: the "Submitted" heading takes the focus,
+  // so screen readers announce it and focus does not fall back to the page.
+  useEffect(() => {
+    if (submitted && !loading) submittedRef.current?.focus({ preventScroll: true });
+  }, [submitted, loading]);
+
   // Load the next question's picture in the background, so it is there when the child moves on.
   useEffect(() => {
     const next = questions?.[index + 1];
     if (next?.image_path) new Image().src = next.image_path;
   }, [questions, index]);
 
+  const groups = useMemo(() => (questions ? buildNavGroups(questions, sections) : []), [questions, sections]);
+
+  /** Sends every failed save again, then any newer typing. */
+  function retryFailed() {
+    saver.retryFailed();
+    flushAllDrafts();
+  }
+
   function goTo(i: number) {
     if (!questions) return;
     const target = Math.max(0, Math.min(questions.length - 1, i));
+    flushTextSave(questions[index].id);
+    if (failedIds.size > 0) retryFailed();
     if (target === index) return;
     movedRef.current = true;
     setStatus(null);
-    setFinishError(null);
-    setIndex(target);
-    const pending = Object.keys(failed).map(Number);
-    if (pending.length > 0) void retryFailed(pending);
+    setPickedIndex(target);
+    setParams({ q: String(target + 1) }, { replace: true });
   }
 
-  function saveErrorMessage(err: unknown): string {
-    // 4xx messages explain the refusal; network errors and 5xx get the translated hint.
-    return err instanceof ApiError && err.status < 500 ? err.message : t('play.saveFailed');
+  function openOverview() {
+    flushAllDrafts();
+    setOverviewOpen(true);
   }
 
-  /**
-   * Sends one answer and records the outcome. Returns false only when the save failed; a 409 means
-   * the participant already finished (e.g. in another tab), so the submitted screen is shown.
-   */
-  async function sendAnswer(question: ParticipantQuestion, send: () => Promise<unknown>): Promise<boolean> {
-    const seq = (saveSeqRef.current[question.id] ?? 0) + 1;
-    saveSeqRef.current[question.id] = seq;
-    const isLatest = () => saveSeqRef.current[question.id] === seq;
-    try {
-      await send();
-      if (isLatest()) {
-        setFailed((prev) => {
-          if (!(question.id in prev)) return prev;
-          const rest = { ...prev };
-          delete rest[question.id];
-          return rest;
-        });
-      }
-      return true;
-    } catch (err) {
-      if (err instanceof ApiError && err.status === 409) {
-        setSubmitted(true);
-        return true;
-      }
-      if (isLatest()) setFailed((prev) => ({ ...prev, [question.id]: saveErrorMessage(err) }));
-      return false;
-    }
-  }
-
-  function sendCurrent(question: ParticipantQuestion) {
-    return sendAnswer(question, () =>
-      question.type === 'text'
-        ? submitTextAnswer(question.id, question.myAnswer?.text_answer ?? '')
-        : submitChoiceAnswer(question.id, question.myAnswer?.selected_choice_ids ?? []),
-    );
-  }
-
-  /** Re-sends the local answer of every failed question; returns how many still fail. */
-  async function retryFailed(ids: number[]): Promise<number> {
-    const all = questionsRef.current ?? [];
-    const results = await Promise.all(
-      ids.map((id) => {
-        const q = all.find((x) => x.id === id);
-        return q ? sendCurrent(q) : Promise.resolve(true);
-      }),
-    );
-    return results.filter((ok) => !ok).length;
-  }
-
-  async function handleChoiceChange(question: ParticipantQuestion, choiceId: number, checked: boolean) {
-    if (!questions) return;
+  function handleChoiceChange(question: ParticipantQuestion, choiceId: number, checked: boolean) {
     const current = question.myAnswer?.selected_choice_ids ?? [];
     const next =
       question.type === 'single' ? [choiceId] : checked ? [...current, choiceId] : current.filter((id) => id !== choiceId);
-
-    setQuestions(questions.map((q) => (q.id === question.id ? { ...q, myAnswer: { ...q.myAnswer, selected_choice_ids: next, text_answer: null } } : q)));
-    await sendAnswer(question, () => submitChoiceAnswer(question.id, next));
+    setQuestions((prev) =>
+      prev ? prev.map((q) => (q.id === question.id ? { ...q, myAnswer: { selected_choice_ids: next, text_answer: null } } : q)) : prev,
+    );
+    saver.save(question.id, { kind: 'choice', ids: next });
   }
 
-  async function handleTextChange(question: ParticipantQuestion, text: string) {
-    if (!questions) return;
-    setQuestions(questions.map((q) => (q.id === question.id ? { ...q, myAnswer: { selected_choice_ids: [], text_answer: text } } : q)));
+  function handleTextChange(question: ParticipantQuestion, text: string) {
+    setDrafts((prev) => ({ ...prev, [question.id]: text }));
+    draftsRef.current = { ...draftsRef.current, [question.id]: text };
     setStatus((prev) => (prev?.questionId === question.id && prev.state === 'saved' ? null : prev));
+    const old = timersRef.current.get(question.id);
+    if (old) clearTimeout(old);
+    timersRef.current.set(
+      question.id,
+      setTimeout(() => flushTextSave(question.id), AUTOSAVE_MS),
+    );
   }
 
-  async function handleTextSave(question: ParticipantQuestion) {
-    setStatus({ questionId: question.id, state: 'saving' });
-    const ok = await sendAnswer(question, () => submitTextAnswer(question.id, question.myAnswer?.text_answer ?? ''));
-    setStatus((prev) => (prev?.questionId === question.id ? (ok ? { questionId: question.id, state: 'saved' } : null) : prev));
+  function toggleFlag(questionId: number) {
+    if (!session) return;
+    setFlagged((prev) => {
+      const next = new Set(prev);
+      if (next.has(questionId)) next.delete(questionId);
+      else next.add(questionId);
+      try {
+        sessionStorage.setItem(`quiz_flags_${session.id}`, JSON.stringify([...next]));
+      } catch {
+        // storage blocked: the marks last until reload
+      }
+      return next;
+    });
   }
 
-  async function handleRetry() {
-    const pending = Object.keys(failed).map(Number);
-    if (pending.length > 0) await retryFailed(pending);
-  }
-
-  async function handleFinish() {
-    setFinishError(null);
-    // An answer that failed to save must not be dropped by finishing: retry first, stop if it still fails.
-    const pending = Object.keys(failed).map(Number);
-    if (pending.length > 0) {
-      setFinishing(true);
-      const stillFailing = await retryFailed(pending);
-      setFinishing(false);
-      if (stillFailing > 0) return;
-    }
-    if (!window.confirm(t('play.finishConfirm'))) return;
-    setFinishing(true);
+  /** The overview's finish step: every draft is saved first; a failed save stops the submit. */
+  async function finish(): Promise<'ok' | 'save-failed' | 'error'> {
+    retryFailed();
+    await saver.flushAll();
+    // Anything typed or retried while waiting is saved too before the submit.
+    flushAllDrafts();
+    const ok = await saver.flushAll();
+    if (!ok) return 'save-failed';
     try {
       await submitQuiz();
+      setOverviewOpen(false);
       setSubmitted(true);
+      return 'ok';
     } catch (err) {
-      // A 409 here means some other request already marked this participant finished
-      // (e.g. a duplicate click or a second tab) — that's the outcome we wanted anyway.
-      if (err instanceof ApiError && err.status === 409) setSubmitted(true);
-      else setFinishError(err instanceof ApiError && err.status < 500 ? err.message : t('play.finishFailed'));
-    } finally {
-      setFinishing(false);
+      // 409: already submitted (a second tab, or the session ended): the outcome we wanted.
+      if (err instanceof ApiError && err.status === 409) {
+        setOverviewOpen(false);
+        setSubmitted(true);
+        return 'ok';
+      }
+      return 'error';
     }
   }
 
@@ -334,7 +466,9 @@ export function Play() {
           </span>
         )}
       </h1>
-      {session?.ends_at && session.status === 'active' && <Countdown endsAt={session.ends_at} onExpire={goToResults} />}
+      {session?.ends_at && session.status === 'active' && (
+        <Countdown endsAt={session.ends_at} onExpire={goToResults} onAlmostOver={() => flushAllDrafts({ keepalive: true })} />
+      )}
       <ThemeToggle />
     </header>
   );
@@ -343,10 +477,12 @@ export function Play() {
     return (
       <div className="play">
         {header}
-        <div className="play-nav" />
+        <div className="play-nav play-nav--empty" />
         <main className="play-main" style={{ textAlign: 'center' }}>
           <Logo />
-          <h2>{t('play.submittedTitle')}</h2>
+          <h2 className="play-submitted__title" tabIndex={-1} ref={submittedRef}>
+            {t('play.submittedTitle')}
+          </h2>
           <p>{t('play.submittedBody')}</p>
         </main>
       </div>
@@ -369,30 +505,63 @@ export function Play() {
   const languages = offered ?? [base];
   const isLast = index === questions.length - 1;
   const statusForQuestion = status?.questionId === question.id ? status : null;
-  // One status slot per card: this question's failed save, then other unsaved questions, then a
-  // failed Finish, then saving / saved.
-  const otherUnsaved = questions.flatMap((q, i) => (q.id !== question.id && q.id in failed ? [i + 1] : []));
-  const slot: { tone: 'error' | 'saved' | 'muted'; text: string; retry?: boolean } | null =
-    question.id in failed
-      ? { tone: 'error', text: failed[question.id], retry: true }
-      : otherUnsaved.length > 0
-        ? { tone: 'error', text: t('play.notSavedOthers', { list: otherUnsaved.join(', ') }), retry: true }
-        : finishError
-          ? { tone: 'error', text: finishError }
-          : statusForQuestion?.state === 'saving'
-            ? { tone: 'muted', text: t('play.saving') }
-            : statusForQuestion?.state === 'saved'
-              ? { tone: 'saved', text: t('play.saved') }
-              : null;
+  const isFlagged = flagged.has(question.id);
+  // One status slot per card: this question's failed save, then other unsaved questions, then
+  // saving / saved.
+  const otherUnsaved = questions.flatMap((q, i) => (q.id !== question.id && failedIds.has(q.id) ? [i + 1] : []));
+  // The slot holds two lines next to "Try again": the short message there (the button says the rest).
+  const slot: { tone: 'error' | 'saved' | 'muted'; text: string; retry?: boolean } | null = failedIds.has(question.id)
+    ? { tone: 'error', text: t('play.saveFailedShort'), retry: true }
+    : otherUnsaved.length > 0
+      ? {
+          tone: 'error',
+          text: t(otherUnsaved.length > 1 ? 'play.notSavedOthersMany' : 'play.notSavedOthers', { list: otherUnsaved.join(', ') }),
+          retry: true,
+        }
+      : statusForQuestion?.state === 'saving'
+        ? { tone: 'muted', text: t('play.saving') }
+        : statusForQuestion?.state === 'saved'
+          ? { tone: 'saved', text: t('play.saved') }
+          : null;
 
   return (
     <div className="play">
       {header}
-      <div className="play-nav" />
+      <div className="play-nav">
+        <QuestionNavigator
+          questions={questions}
+          groups={groups}
+          currentIndex={index}
+          flagged={flagged}
+          contentLanguage={contentLanguage}
+          base={base}
+          onSelect={goTo}
+          onOpenOverview={openOverview}
+        />
+      </div>
       <main className="play-main">
         <article className="qcard" data-testid="question-card">
           <div className="qcard-head">
-            <span className="qcard-head__count">{t('play.questionOf', { n: index + 1, total: questions.length })}</span>
+            {/* The hidden "Question 50 of 50" reserves the widest count, so the flag never moves. */}
+            <span className="qcard-head__count">
+              <span>{t('play.questionOf', { n: index + 1, total: questions.length })}</span>
+              <span className="is-hidden" aria-hidden="true">
+                {t('play.questionOf', { n: questions.length, total: questions.length })}
+              </span>
+            </span>
+            <button
+              type="button"
+              className="flag-toggle"
+              aria-pressed={isFlagged}
+              aria-label={t('play.flag')}
+              title={t('play.flag')}
+              onClick={() => toggleFlag(question.id)}
+            >
+              <FlagIcon />
+              <span className="flag-toggle__label" aria-hidden="true">
+                {t('play.flag')}
+              </span>
+            </button>
             <span className="qcard-head__lang">
               <QuestionLanguageBar idPrefix="qlang-play" languages={languages} value={contentLanguage} onChange={setContentLanguage} />
             </span>
@@ -429,13 +598,13 @@ export function Play() {
               <div className="text-answer">
                 <textarea
                   rows={4}
-                  value={question.myAnswer?.text_answer ?? ''}
+                  value={drafts[question.id] ?? question.myAnswer?.text_answer ?? ''}
                   onChange={(e) => handleTextChange(question, e.target.value)}
-                  onBlur={() => handleTextSave(question)}
+                  onBlur={() => flushTextSave(question.id)}
                   dir="auto"
                   aria-label={t('play.yourAnswer')}
                 />
-                <button type="button" onClick={() => handleTextSave(question)} disabled={statusForQuestion?.state === 'saving'}>
+                <button type="button" onClick={() => flushTextSave(question.id)} disabled={statusForQuestion?.state === 'saving'}>
                   {t('play.saveAnswer')}
                 </button>
               </div>
@@ -446,7 +615,7 @@ export function Play() {
               {slot?.text}
             </span>
             {slot?.retry && (
-              <button type="button" className="qcard-status__retry" onClick={handleRetry}>
+              <button type="button" className="qcard-status__retry" onClick={retryFailed}>
                 {t('play.retry')}
               </button>
             )}
@@ -457,14 +626,14 @@ export function Play() {
         <button type="button" onClick={() => goTo(index - 1)} disabled={index === 0}>
           {t('play.previous')}
         </button>
-        <span>
-          {isLast && (
-            <button type="button" onClick={handleFinish} disabled={finishing}>
-              {finishing ? t('play.finishing') : t('play.finish')}
-            </button>
-          )}
-        </span>
-        <button type="button" data-testid="nav-next" className="btn-stack" onClick={() => goTo(index + 1)} disabled={isLast}>
+        <span />
+        <button
+          type="button"
+          data-testid="nav-next"
+          className="btn-stack"
+          aria-haspopup={isLast ? 'dialog' : undefined}
+          onClick={() => (isLast ? openOverview() : goTo(index + 1))}
+        >
           <span className={isLast ? 'is-hidden' : undefined} aria-hidden={isLast || undefined}>
             {t('play.next')}
           </span>
@@ -473,6 +642,18 @@ export function Play() {
           </span>
         </button>
       </footer>
+      <QuestionOverviewDialog
+        open={overviewOpen}
+        questions={questions}
+        groups={groups}
+        currentIndex={index}
+        flagged={flagged}
+        contentLanguage={contentLanguage}
+        base={base}
+        onSelect={goTo}
+        onClose={() => setOverviewOpen(false)}
+        onFinish={finish}
+      />
     </div>
   );
 }

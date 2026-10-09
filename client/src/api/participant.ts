@@ -1,5 +1,5 @@
 import { participantApi } from './participantClient';
-import type { Participant, ParticipantQuestion, QuizLanguageInfo, QuizSession, ResultsResponse } from '../types';
+import type { Participant, ParticipantQuestion, QuizLanguageInfo, QuizSection, QuizSession, ResultsResponse } from '../types';
 import type { WithTranslations } from '../i18n/contentLanguages';
 
 export interface QuizMeta extends WithTranslations<'title'>, WithTranslations<'description'>, QuizLanguageInfo {
@@ -24,30 +24,36 @@ export function getMySession() {
   }>('/my/session');
 }
 
-export function getMyQuiz() {
-  return participantApi<{
+export async function getMyQuiz() {
+  const data = await participantApi<{
     session: QuizSession;
     quiz: QuizMeta;
+    sections?: QuizSection[];
     questions: ParticipantQuestion[];
     participant: { submitted_at: string | null };
   }>('/my/quiz');
+  // Rubrics arrive with S11; older servers send none.
+  return { ...data, sections: data.sections ?? [] };
 }
 
 export function submitQuiz() {
   return participantApi<{ submitted_at: string }>('/my/submit', { method: 'POST' });
 }
 
-export function submitChoiceAnswer(questionId: number, selectedChoiceIds: number[]) {
+// keepalive lets a save started on pagehide (tab closed, iPad locked) still reach the server.
+export function submitChoiceAnswer(questionId: number, selectedChoiceIds: number[], { keepalive = false } = {}) {
   return participantApi<{ ok: true }>(`/my/answers/${questionId}`, {
     method: 'POST',
     body: JSON.stringify({ selected_choice_ids: selectedChoiceIds }),
+    keepalive,
   });
 }
 
-export function submitTextAnswer(questionId: number, textAnswer: string) {
+export function submitTextAnswer(questionId: number, textAnswer: string, { keepalive = false } = {}) {
   return participantApi<{ ok: true }>(`/my/answers/${questionId}`, {
     method: 'POST',
     body: JSON.stringify({ text_answer: textAnswer }),
+    keepalive,
   });
 }
 

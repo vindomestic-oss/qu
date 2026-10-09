@@ -274,7 +274,9 @@ await languageSweep(geoRun, 'Geography', true);
   if ((await page.locator('.qcard-status').innerText()).trim()) fail('moved-on save: error not cleared by Try again');
   await page.reload();
   await page.waitForSelector('[data-testid=question-card]');
-  for (let i = 0; i < 20; i++) await clickNext(page);
+  // A reload stays on the question in ?q=; walk there otherwise.
+  const at = Number((await page.locator('.qcard-head__count').innerText()).match(/\d+/)[0]);
+  for (let i = at; i < 21; i++) await clickNext(page);
   const saved = await page.locator('.text-answer textarea').inputValue();
   if (saved !== answer) fail(`moved-on save: after reload question 21 has "${saved}"`);
   log('moved-on-save', `next: "${onNext}", back: "${onBack}", after retry + reload: saved`);
