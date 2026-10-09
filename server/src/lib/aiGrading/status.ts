@@ -4,9 +4,9 @@ import type { AiConfig } from './config';
 // Wish 7, layer B (S14): the AI progress of one session for the grading panel: counts, an ETA and
 // how often the AI agreed with the graders. Counts only; no answer text, no participant.
 
-const AGREED_SQL = `((a.ai_verdict = 'correct' AND abs(a.points_awarded - q.points) < 1e-9) OR (a.ai_verdict = 'incorrect' AND a.points_awarded = 0))`;
+export const AGREED_SQL = `((a.ai_verdict = 'correct' AND abs(a.points_awarded - q.points) < 1e-9) OR (a.ai_verdict = 'incorrect' AND a.points_awarded = 0))`;
 /** A person decided an answer that had a clear suggestion (correct or incorrect). */
-const COMPARABLE_SQL = `(a.ai_verdict IN ('correct', 'incorrect') AND a.grade_source IN ('human', 'ai_confirmed') AND a.points_awarded IS NOT NULL)`;
+export const COMPARABLE_SQL = `(a.ai_verdict IN ('correct', 'incorrect') AND a.grade_source IN ('human', 'ai_confirmed') AND a.points_awarded IS NOT NULL)`;
 const n = (fragment: string) => `coalesce(SUM(CASE WHEN ${fragment} THEN 1 ELSE 0 END), 0)`;
 
 export interface AiSessionStatus {

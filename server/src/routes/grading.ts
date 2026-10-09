@@ -19,6 +19,8 @@ import {
 import { broadcastGradingChanged } from '../socket';
 import { matchesKeys, parseAccepted, referenceKeys } from '../lib/aiGrading/accepted';
 import { loadPrecedents, type Precedent } from '../lib/aiGrading/precedents';
+import { AGREED_SQL, COMPARABLE_SQL } from '../lib/aiGrading/status';
+import { LANGUAGE_DISPLAY_ORDER, isQuizLang } from '../lib/languages';
 
 /**
  * The grading panel's API (wish 8), mounted on /api/grading/:sessionId behind requireStaffForSession:
@@ -38,6 +40,10 @@ import { loadPrecedents, type Precedent } from '../lib/aiGrading/precedents';
  * suggestion (AI_ANSWER_FIELDS: status, verdict, confidence, rationale, flagged, error, source),
  * never the run's tokens or model. Grades may be sent with source 'ai' (an accepted suggestion).
  * The AI endpoints themselves are in routes/gradingAi.ts.
+ *
+ * Answer language (wish 8, S15): every answer carries answer_lang (the language the question was
+ * shown in, corrected by a text answer's script; lib/answerLanguage.ts) for a tag on the rows; the
+ * summary carries `languages`, counts per answer language of the submitted free-text answers.
  */
 export const gradingRouter = Router({ mergeParams: true });
 
@@ -152,6 +158,7 @@ interface AnswerRow {
   grade_source: string | null;
   grade_version: number;
   answer_norm: string | null;
+  answer_lang: string | null;
   ai_status: string | null;
   ai_source: string | null;
   ai_verdict: string | null;
@@ -165,7 +172,7 @@ interface AnswerRow {
 const AI_ANSWER_FIELDS = ['ai_status', 'ai_source', 'ai_verdict', 'ai_confidence', 'ai_rationale', 'ai_flagged', 'ai_error'] as const;
 
 const ANSWER_COLUMNS =
-  'a.id, a.question_id, a.participant_id, a.selected_choice_ids, a.text_answer, a.answer_norm, a.is_correct, a.points_awarded, a.graded_at, a.graded_by, a.grade_source, a.grade_version, ' +
+  'a.id, a.question_id, a.participant_id, a.selected_choice_ids, a.text_answer, a.answer_norm, a.answer_lang, a.is_correct, a.points_awarded, a.graded_at, a.graded_by, a.grade_source, a.grade_version, ' +
   AI_ANSWER_FIELDS.map((f) => `a.${f}`).join(', ');
 
 function aiFieldsOf(a: Pick<AnswerRow, (typeof AI_ANSWER_FIELDS)[number]>) {
@@ -201,6 +208,7 @@ function answerOut(a: AnswerRow, q: { type: string; keys: Set<string> }) {
           ...aiFieldsOf(a),
         }
       : { selected_choice_ids: parseIds(a.selected_choice_ids) }),
+    answer_lang: a.answer_lang,
     is_correct: a.is_correct,
     points_awarded: a.points_awarded,
     graded_at: a.graded_at,
@@ -216,6 +224,80 @@ function isAnswered(type: string, a: AnswerRow | undefined): boolean {
 }
 
 // --- Summary ----------------------------------------------------------------------------------
+
+interface LanguageStat {
+  /** answers.answer_lang; null = unknown. */
+  lang: string | null;
+  answers: number;
+  graded: number;
+  correct: number;
+  /** The AI suggestion and the person's final grade (S14's rule: correct = full points, incorrect = 0). */
+  ai: { agreed: number; total: number };
+  /** Graded answers the reference check matches (with the current key), and those that kept full points. */
+  rule: { agreed: number; total: number };
+}
+
+const langOrder = (lang: string | null) => {
+  const i = isQuizLang(lang) ? LANGUAGE_DISPLAY_ORDER.indexOf(lang) : -1;
+  return i < 0 ? LANGUAGE_DISPLAY_ORDER.length : i;
+};
+
+/**
+ * Per answer language (wish 8, S15): the non-blank free-text answers of submitted participants, how
+ * many are graded and correct, how often the AI suggestion agreed with the person's final grade, and
+ * how often a grade kept the credit of the reference check. Counts only; empty without such answers.
+ */
+function languageStats(sessionId: number, quizId: number): LanguageStat[] {
+  const keys = new Map(
+    (
+      db.prepare("SELECT id, reference_answer, accepted_answers FROM questions WHERE quiz_id = ? AND type = 'text'").all(quizId) as {
+        id: number;
+        reference_answer: string | null;
+        accepted_answers: string | null;
+      }[]
+    ).map((q) => [q.id, referenceKeys(q)]),
+  );
+  const rows = db
+    .prepare(
+      `SELECT a.answer_lang AS lang, a.question_id, a.answer_norm, a.points_awarded, a.is_correct, q.points AS max_points,
+         (CASE WHEN ${COMPARABLE_SQL} THEN 1 ELSE 0 END) AS ai_comparable,
+         (CASE WHEN ${COMPARABLE_SQL} AND ${AGREED_SQL} THEN 1 ELSE 0 END) AS ai_agreed
+       FROM answers a
+       JOIN questions q ON q.id = a.question_id
+       JOIN participants p ON p.id = a.participant_id
+       WHERE a.session_id = ? AND q.type = 'text' AND trim(coalesce(a.text_answer, '')) <> '' AND p.submitted_at IS NOT NULL`,
+    )
+    .all(sessionId) as {
+    lang: string | null;
+    question_id: number;
+    answer_norm: string | null;
+    points_awarded: number | null;
+    is_correct: number | null;
+    max_points: number;
+    ai_comparable: number;
+    ai_agreed: number;
+  }[];
+  const byLang = new Map<string | null, LanguageStat>();
+  for (const r of rows) {
+    const lang = isQuizLang(r.lang) ? r.lang : null;
+    let stat = byLang.get(lang);
+    if (!stat) {
+      stat = { lang, answers: 0, graded: 0, correct: 0, ai: { agreed: 0, total: 0 }, rule: { agreed: 0, total: 0 } };
+      byLang.set(lang, stat);
+    }
+    stat.answers += 1;
+    stat.ai.total += r.ai_comparable;
+    stat.ai.agreed += r.ai_agreed;
+    if (r.points_awarded === null) continue;
+    stat.graded += 1;
+    if (r.is_correct === 1) stat.correct += 1;
+    if (matchesKeys(r.answer_norm, keys.get(r.question_id) ?? new Set())) {
+      stat.rule.total += 1;
+      if (Math.abs(r.points_awarded - r.max_points) < 1e-9) stat.rule.agreed += 1;
+    }
+  }
+  return [...byLang.values()].sort((x, y) => langOrder(x.lang) - langOrder(y.lang));
+}
 
 interface ParticipantAggregate {
   id: number;
@@ -323,6 +405,7 @@ gradingRouter.get('/summary', (req: StaffRequest, res) => {
     counters,
     participants,
     questions,
+    languages: languageStats(session.id, session.quiz_id),
   });
 });
 

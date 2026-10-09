@@ -11,6 +11,7 @@ import { normalizeForMatch } from '../lib/aiGrading/normalize';
 import { autoCheckParticipant } from '../lib/autoCheck';
 import { aiAfterSubmit } from '../lib/aiGradingService';
 import { TEXT_ANSWER_MAX_CHARS_AI } from '../lib/aiGrading/types';
+import { answerLanguage, shownLanguage } from '../lib/answerLanguage';
 import {
   PARTICIPANT_CHOICE_COLUMNS,
   PARTICIPANT_QUESTION_COLUMNS,
@@ -223,6 +224,16 @@ myRouter.post('/answers/:questionId', (req: ParticipantRequest, res) => {
   ) as QuestionRow | undefined;
   if (!question) return res.status(404).json({ error: 'Question not found in this quiz' });
 
+  // Wish 8 (S15): the language the question was shown in (optional `lang`, one of the offered
+  // languages) for the graders' answer_lang; participants never get it back.
+  const quizRow = db.prepare('SELECT id, base_language, content_languages FROM quizzes WHERE id = ?').get(session.quiz_id) as {
+    id: number;
+    base_language: string;
+    content_languages: string | null;
+  };
+  const { base_language: baseLanguage, offered } = getQuizLanguageInfo(db, quizRow);
+  const shown = shownLanguage(req.body?.lang, offered);
+
   if (question.type === 'text') {
     const { text_answer } = req.body ?? {};
     if (typeof text_answer !== 'string') {
@@ -246,13 +257,15 @@ myRouter.post('/answers/:questionId', (req: ParticipantRequest, res) => {
     const gradeSource = trimmed ? null : 'auto_blank';
     // The comparison form for the reference check and grouping (wish 7); NULL for a blank answer.
     const answerNorm = trimmed ? normalizeForMatch(trimmed) : null;
+    const answerLang = answerLanguage({ text: trimmed, shown, base: baseLanguage, languages: offered });
     db.prepare(
-      `INSERT INTO answers (session_id, question_id, participant_id, text_answer, answer_norm, is_correct, points_awarded,
+      `INSERT INTO answers (session_id, question_id, participant_id, text_answer, answer_norm, answer_lang, is_correct, points_awarded,
          grade_source, submitted_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
        ON CONFLICT(participant_id, question_id) DO UPDATE SET
          text_answer = excluded.text_answer,
          answer_norm = excluded.answer_norm,
+         answer_lang = excluded.answer_lang,
          is_correct = excluded.is_correct,
          points_awarded = excluded.points_awarded,
          grade_source = excluded.grade_source,
@@ -263,7 +276,7 @@ myRouter.post('/answers/:questionId', (req: ParticipantRequest, res) => {
          ai_status = NULL, ai_source = NULL, ai_verdict = NULL, ai_confidence = NULL, ai_rationale = NULL,
          ai_flagged = 0, ai_run_id = NULL, ai_claim = NULL, ai_error = NULL,
          submitted_at = excluded.submitted_at`,
-    ).run(session.id, questionId, participantId, trimmed, answerNorm, isCorrect, pointsAwarded, gradeSource);
+    ).run(session.id, questionId, participantId, trimmed, answerNorm, answerLang, isCorrect, pointsAwarded, gradeSource);
     broadcastLiveUpdate(session.id);
     return res.json({ ok: true });
   }
@@ -285,11 +298,12 @@ myRouter.post('/answers/:questionId', (req: ParticipantRequest, res) => {
   const { isCorrect, pointsAwarded } = gradeChoiceAnswer(choices, selected_choice_ids, question.points);
 
   db.prepare(
-    `INSERT INTO answers (session_id, question_id, participant_id, selected_choice_ids, is_correct, points_awarded,
+    `INSERT INTO answers (session_id, question_id, participant_id, selected_choice_ids, answer_lang, is_correct, points_awarded,
        grade_source, submitted_at)
-     VALUES (?, ?, ?, ?, ?, ?, 'auto_choice', datetime('now'))
+     VALUES (?, ?, ?, ?, ?, ?, ?, 'auto_choice', datetime('now'))
      ON CONFLICT(participant_id, question_id) DO UPDATE SET
        selected_choice_ids = excluded.selected_choice_ids,
+       answer_lang = excluded.answer_lang,
        is_correct = excluded.is_correct,
        points_awarded = excluded.points_awarded,
        grade_source = 'auto_choice',
@@ -298,7 +312,7 @@ myRouter.post('/answers/:questionId', (req: ParticipantRequest, res) => {
        graded_by_link_id = NULL,
        grade_version = grade_version + 1,
        submitted_at = excluded.submitted_at`,
-  ).run(session.id, questionId, participantId, JSON.stringify(selected_choice_ids), isCorrect ? 1 : 0, pointsAwarded);
+  ).run(session.id, questionId, participantId, JSON.stringify(selected_choice_ids), shown, isCorrect ? 1 : 0, pointsAwarded);
   broadcastLiveUpdate(session.id);
 
   res.json({ ok: true });

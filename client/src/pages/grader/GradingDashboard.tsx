@@ -11,6 +11,7 @@ import { FlagIcon } from '../../components/grader/icons';
 import { formatPercent } from '../../components/grader/format';
 import { AiGradingBar } from '../../components/grader/AiGradingBar';
 import { DifficultBadge, DifficultLegend } from '../../components/grader/DifficultBadge';
+import { LanguageStats } from '../../components/grader/LanguageStats';
 import { useAiBlindMode } from '../../lib/useAiBlindMode';
 import '../../components/grader/grader.css';
 
@@ -167,6 +168,9 @@ export function GradingDashboard() {
         </div>
         <DifficultLegend />
       </section>
+
+      {/* Wish 8 (S15): free-text answers per answer language, with the AI's and the reference check's agreement. */}
+      <LanguageStats stats={data.languages ?? []} aiEnabled={quiz.ai_grading_enabled === true} />
     </div>
   );
 }

@@ -1,7 +1,8 @@
 import { ApiError } from '../api/client';
 import { submitChoiceAnswer, submitTextAnswer } from '../api/participant';
 
-export type Payload = { kind: 'text'; text: string } | { kind: 'choice'; ids: number[] };
+/** lang (wish 8, S15): the language the question was shown in; sent along, never compared. */
+export type Payload = { kind: 'text'; text: string; lang?: string } | { kind: 'choice'; ids: number[]; lang?: string };
 
 interface QueueState {
   /** Requests on their way; more than one only after an immediate (page-exit) save. */
@@ -130,8 +131,8 @@ export class AnswerSaver {
     q.inFlight += 1;
     q.sending = payload;
     try {
-      if (payload.kind === 'text') await submitTextAnswer(questionId, payload.text, { keepalive });
-      else await submitChoiceAnswer(questionId, payload.ids, { keepalive });
+      if (payload.kind === 'text') await submitTextAnswer(questionId, payload.text, { keepalive, lang: payload.lang });
+      else await submitChoiceAnswer(questionId, payload.ids, { keepalive, lang: payload.lang });
       if (newest()) {
         q.confirmed = payload;
         q.lastFailed = false;

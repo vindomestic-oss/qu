@@ -21,6 +21,7 @@ import { useAiBlindMode } from '../../lib/useAiBlindMode';
 import { useShortcutsEnabled } from '../../lib/graderShortcuts';
 import { GraderShortcuts } from '../../components/grader/GraderShortcuts';
 import { DifficultBadge } from '../../components/grader/DifficultBadge';
+import { LangTag } from '../../components/grader/LangTag';
 import { runAi } from '../../api/aiGrading';
 import { QuestionLanguageBar } from '../../components/participant/QuestionLanguageBar';
 import type { AiGradingStatus, AnswerGrade, GradingAnswer, GradingQuestion, WholeQuizQuestion, WholeQuizResponse } from '../../types';
@@ -392,6 +393,10 @@ export function WholeQuizReview() {
   };
   const pct = progress.total > 0 ? Math.round((progress.graded / progress.total) * 100) : 100;
   const languages = snapshot.quiz.offered_languages;
+  /** Wish 8 (S15): the language of an answer or group, when it says something. */
+  const langTag = (members: Row[]) => (
+    <LangTag langs={members.map((m) => m.answer_lang)} base={snapshot.quiz.base_language} offered={languages} />
+  );
   const ai = snapshot.quiz.ai_grading_enabled === true;
   const retryAi = (questionId: number) => void runAi(id, { questionId, includeFailed: true }).catch(() => {});
   const questionNumber = new Map<number, number>();
@@ -532,6 +537,7 @@ export function WholeQuizReview() {
             answer={row}
             maxPoints={q.points}
             heading={t('grader.row.answerOf', { n: row.label })}
+            tag={langTag([row])}
             onGrade={(g) => mergeGrades([g])}
             tools={withHints ? acceptFor([row]) : undefined}
           >
@@ -633,6 +639,7 @@ export function WholeQuizReview() {
                     }
                     label={members[0].text_answer ?? ''}
                     hints={hintFor(members)}
+                    tag={langTag(members)}
                     actions={acceptFor(members)}
                     ai={
                       ai ? (
@@ -656,6 +663,7 @@ export function WholeQuizReview() {
                   answer={row}
                   maxPoints={q.points}
                   heading={t('grader.row.answerOf', { n: row.label })}
+                  tag={langTag([row])}
                   onGrade={(g) => mergeGrades([g])}
                 >
                   <p className="answer-row__text">

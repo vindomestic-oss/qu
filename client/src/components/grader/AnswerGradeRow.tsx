@@ -40,6 +40,8 @@ interface Props {
   headingHidden?: boolean;
   /** The answer itself (text or selected options). */
   children: React.ReactNode;
+  /** Beside the heading (wish 8: the answer's language tag). */
+  tag?: React.ReactNode;
   /** Secondary actions (wish 7: "Add to accepted answers"): under the answer beside the grading
    *  controls, below them on narrow screens, so they never push the grading buttons. */
   tools?: React.ReactNode;
@@ -64,6 +66,7 @@ export function AnswerGradeRow({
   heading,
   headingHidden = false,
   children,
+  tag,
   tools,
   onGrade,
 }: Props) {
@@ -202,6 +205,12 @@ export function AnswerGradeRow({
     );
   })();
 
+  const headingEl = heading && (
+    <div id={`${id}-h`} className={headingHidden ? 'visually-hidden' : 'answer-row__heading'}>
+      {heading}
+    </div>
+  );
+
   return (
     <div
       ref={rowRef}
@@ -215,10 +224,13 @@ export function AnswerGradeRow({
       data-gradable={disabled ? 'false' : 'true'}
     >
       <div className="answer-row__content">
-        {heading && (
-          <div id={`${id}-h`} className={headingHidden ? 'visually-hidden' : 'answer-row__heading'}>
-            {heading}
+        {tag ? (
+          <div className="answer-row__headline">
+            {headingEl}
+            {tag}
           </div>
+        ) : (
+          headingEl
         )}
         {children}
       </div>

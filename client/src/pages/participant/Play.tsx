@@ -130,6 +130,16 @@ export function Play() {
   const urlIndex = total ? (Number.isInteger(rawQ) ? Math.min(Math.max(rawQ - 1, 0), total - 1) : 0) : 0;
   const index = pickedIndex !== null && pickedIndex < total ? pickedIndex : urlIndex;
 
+  // Wish 8 (S15): every save says which language its question is shown in (graders see it as a tag).
+  const langRef = useRef({ contentLanguage, base });
+  useEffect(() => {
+    langRef.current = { contentLanguage, base };
+  }, [contentLanguage, base]);
+  const shownLangOf = useCallback((q: ParticipantQuestion): QuizLang => {
+    const { contentLanguage: picked, base: b } = langRef.current;
+    return questionLanguages(q, b).includes(picked) ? picked : b;
+  }, []);
+
   const saverRef = useRef<AnswerSaver | null>(null);
   if (!saverRef.current) {
     saverRef.current = new AnswerSaver({ onConfirmed: () => {}, onFailed: () => {}, onSubmitted: () => {} });
@@ -257,9 +267,9 @@ export function Play() {
       setStatus({ questionId, state: 'saving' });
       // The untrimmed draft goes to the server (it trims); the draft itself is never replaced, so
       // keystrokes typed while the request runs are not lost.
-      saver.save(questionId, { kind: 'text', text: draft }, opts);
+      saver.save(questionId, { kind: 'text', text: draft, lang: shownLangOf(q) }, opts);
     },
-    [saver],
+    [saver, shownLangOf],
   );
 
   const flushAllDrafts = useCallback(
@@ -514,7 +524,7 @@ export function Play() {
       prev ? prev.map((q) => (q.id === question.id ? { ...q, myAnswer: { selected_choice_ids: next, text_answer: null } } : q)) : prev,
     );
     setReopenNote('off');
-    saver.save(question.id, { kind: 'choice', ids: next });
+    saver.save(question.id, { kind: 'choice', ids: next, lang: shownLangOf(question) });
   }
 
   function handleTextChange(question: ParticipantQuestion, text: string) {

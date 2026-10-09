@@ -21,6 +21,7 @@ import { useAiAcceptKey } from '../../lib/useAiAcceptKey';
 import { useAiBlindMode } from '../../lib/useAiBlindMode';
 import { useShortcutsEnabled } from '../../lib/graderShortcuts';
 import { GraderShortcuts } from '../../components/grader/GraderShortcuts';
+import { LangTag } from '../../components/grader/LangTag';
 import { runAi } from '../../api/aiGrading';
 import type { AnswerGrade, ParticipantReviewResponse } from '../../types';
 import '../../components/grader/grader.css';
@@ -173,6 +174,8 @@ export function ParticipantReview() {
               disabled={!data.gradable}
               heading={t('grader.question.number', { n: i + 1 })}
               headingHidden
+              // Wish 8 (S15): the language the participant saw this question in.
+              tag={<LangTag langs={[answer.answer_lang]} base={data.quiz.base_language} offered={languages} />}
               onGrade={mergeGrade}
               tools={
                 // Admins: "Add to accepted answers" once a person credited the answer (wish 7).

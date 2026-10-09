@@ -40,6 +40,8 @@ interface Props {
   label: string;
   /** The precedent hint, under the text. */
   hints?: ReactNode;
+  /** Beside the "×N" heading (wish 8: the answers' language tag). */
+  tag?: ReactNode;
   /** The admin's "Add to accepted answers", next to "Show the N answers" (below the controls on
    *  narrow screens, so it never pushes the grading buttons). */
   actions?: ReactNode;
@@ -62,7 +64,7 @@ const isHalfStep = (v: number) => Math.abs(v * 2 - Math.round(v * 2)) < 1e-9;
  * The group can be opened to grade its answers one by one. Its layout does not change when grades
  * arrive (fixed status line), so nothing moves under the grader's finger.
  */
-export function AnswerGroupRow({ sessionId, members, maxPoints, text, label, hints, actions, ai, onGrade, renderMember }: Props) {
+export function AnswerGroupRow({ sessionId, members, maxPoints, text, label, hints, tag, actions, ai, onGrade, renderMember }: Props) {
   const { t, tCount, uiLanguage } = useLanguage();
   const id = useId();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -232,10 +234,13 @@ export function AnswerGroupRow({ sessionId, members, maxPoints, text, label, hin
           <span id={`${id}-name`} className="visually-hidden">
             {tCount('grader.group.label', n)}: <bdi>{label}</bdi>
           </span>
-          <div className="answer-row__heading" aria-hidden="true">
-            <span className="group-count">
-              <Interpolate template={t('grader.group.heading')} values={{ count: <bdi dir="ltr">{`×${n}`}</bdi> }} />
-            </span>
+          <div className="answer-row__headline">
+            <div className="answer-row__heading" aria-hidden="true">
+              <span className="group-count">
+                <Interpolate template={t('grader.group.heading')} values={{ count: <bdi dir="ltr">{`×${n}`}</bdi> }} />
+              </span>
+            </div>
+            {tag}
           </div>
           {text}
           {hints}

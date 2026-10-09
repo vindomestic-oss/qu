@@ -1087,3 +1087,31 @@ html:has(.quiz-bar) {
   margin: 8px 0 0;
   font-size: 14px;
 }
+
+/* --- Answer language (wish 8, S15) ------------------------------------------------------------- */
+.answer-row__headline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 8px;
+}
+.lang-tag {
+  display: inline-block;
+  padding: 0 6px;
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 18px;
+  letter-spacing: 0.03em;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.grade-table--languages {
+  max-inline-size: 760px;
+}
+/* One line per cell ("67 % (2 of 3)" never breaks); the table scrolls sideways on a phone. */
+.grade-table--languages td,
+.lang-stat__name {
+  white-space: nowrap;
+}

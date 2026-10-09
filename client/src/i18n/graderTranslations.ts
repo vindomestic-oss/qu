@@ -183,6 +183,18 @@ export const GRADER_EN: Dict = {
   'grader.difficult.badge': 'Difficult',
   'grader.difficult.title': 'Fewer than {pct} of the graded answers are correct ({correct} of {graded})',
   'grader.difficult.legend': '= fewer than {pct} of the graded answers correct, counted from {n} graded answers.',
+
+  // Answer language (wish 8, S15).
+  'grader.lang.tag': 'Answer language: {lang}',
+  'grader.languages.title': 'Free-text answers by language',
+  'grader.languages.lang': 'Language',
+  'grader.languages.answers': 'Answers',
+  'grader.languages.correct': 'Correct (of graded)',
+  'grader.languages.rule': 'Automatic credit kept',
+  'grader.languages.share': '{pct} ({n} of {total})',
+  'grader.languages.unknown': 'Unknown',
+  'grader.languages.note':
+    'Language: the one the question was shown in; an answer written in another script counts under that script’s language. Answers of participants who have submitted.',
 };
 
 export const GRADER_DE: Dict = {
@@ -364,6 +376,18 @@ export const GRADER_DE: Dict = {
   'grader.difficult.badge': 'Schwierig',
   'grader.difficult.title': 'Weniger als {pct} der bewerteten Antworten sind richtig ({correct} von {graded})',
   'grader.difficult.legend': '= weniger als {pct} der bewerteten Antworten richtig, gezählt ab {n} bewerteten Antworten.',
+
+  // Answer language (wish 8, S15).
+  'grader.lang.tag': 'Sprache der Antwort: {lang}',
+  'grader.languages.title': 'Freitextantworten nach Sprache',
+  'grader.languages.lang': 'Sprache',
+  'grader.languages.answers': 'Antworten',
+  'grader.languages.correct': 'Richtig (von bewerteten)',
+  'grader.languages.rule': 'Automatische Wertung beibehalten',
+  'grader.languages.share': '{pct} ({n} von {total})',
+  'grader.languages.unknown': 'Unbekannt',
+  'grader.languages.note':
+    'Sprache: in der die Frage angezeigt wurde; eine Antwort in einer anderen Schrift zählt zur Sprache dieser Schrift. Antworten von Teilnehmenden, die abgegeben haben.',
 };
 
 export const GRADER_RU: Dict = {
@@ -549,6 +573,18 @@ export const GRADER_RU: Dict = {
   'grader.difficult.badge': 'Сложный',
   'grader.difficult.title': 'Верно меньше {pct} проверенных ответов ({correct} из {graded})',
   'grader.difficult.legend': '= верно меньше {pct} проверенных ответов; считается, когда проверено не меньше {n}.',
+
+  // Answer language (wish 8, S15).
+  'grader.lang.tag': 'Язык ответа: {lang}',
+  'grader.languages.title': 'Открытые ответы по языкам',
+  'grader.languages.lang': 'Язык',
+  'grader.languages.answers': 'Ответы',
+  'grader.languages.correct': 'Верно (из оценённых)',
+  'grader.languages.rule': 'Автозачёт сохранён',
+  'grader.languages.share': '{pct} ({n} из {total})',
+  'grader.languages.unknown': 'Неизвестно',
+  'grader.languages.note':
+    'Язык: тот, на котором был показан вопрос; ответ, написанный другим алфавитом, считается по языку этого алфавита. Учтены ответы сдавших участников.',
 };
 
 export const GRADER_HE: Dict = {
@@ -732,4 +768,16 @@ export const GRADER_HE: Dict = {
   'grader.difficult.badge': 'קשה',
   'grader.difficult.title': 'פחות מ־{pct} מהתשובות שנבדקו נכונות ({correct} מתוך {graded})',
   'grader.difficult.legend': '= פחות מ־{pct} מהתשובות שנבדקו נכונות; נספר החל מ־{n} תשובות שנבדקו.',
+
+  // Answer language (wish 8, S15).
+  'grader.lang.tag': 'שפת התשובה: {lang}',
+  'grader.languages.title': 'תשובות פתוחות לפי שפה',
+  'grader.languages.lang': 'שפה',
+  'grader.languages.answers': 'תשובות',
+  'grader.languages.correct': 'נכונות (מתוך שנבדקו)',
+  'grader.languages.rule': 'הניקוד האוטומטי נשמר',
+  'grader.languages.share': '{pct} ({n} מתוך {total})',
+  'grader.languages.unknown': 'לא ידוע',
+  'grader.languages.note':
+    'השפה: השפה שבה הוצגה השאלה; תשובה שנכתבה בכתב אחר נספרת בשפה של אותו כתב. נספרות תשובות של משתתפים שהגישו.',
 };

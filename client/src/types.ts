@@ -283,6 +283,21 @@ export interface GradingSummary {
     graded_count: number;
     correct_rate: number | null;
   }[];
+  /** Wish 8 (S15): submitted free-text answers per answer language (empty without any). */
+  languages?: GradingLanguageStat[];
+}
+
+/** One answer language on the overview (wish 8, S15): counts only. */
+export interface GradingLanguageStat {
+  /** answers.answer_lang; null = unknown. */
+  lang: QuizLang | null;
+  answers: number;
+  graded: number;
+  correct: number;
+  /** AI suggestion vs the person's final grade (S14's rule). */
+  ai: { agreed: number; total: number };
+  /** Graded answers the reference check matches, and those that kept full points. */
+  rule: { agreed: number; total: number };
 }
 
 export interface GradingChoice extends WithTranslations<'text'> {
@@ -343,6 +358,8 @@ export interface GradingAnswer extends AnswerGrade, Partial<AiSuggestionFields> 
   answer_norm?: string | null;
   /** Text answers: the model answer or an accepted answer matches it (wish 7). */
   matches_reference?: boolean;
+  /** Wish 8 (S15): the language the question was shown in (a text answer's script corrects it); null = unknown. */
+  answer_lang?: QuizLang | null;
 }
 
 export type StaffViewer = { kind: 'admin' | 'grader'; name: string };
