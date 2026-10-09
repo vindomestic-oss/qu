@@ -18,7 +18,9 @@ export function createApp(): express.Express {
   const app = express();
   app.use(cors());
   app.use(express.json());
-  app.use('/uploads', express.static(UPLOAD_DIR));
+  // A day of browser caching saves ~100 iPads a revalidation round trip per picture (names are fixed,
+  // so not "immutable").
+  app.use('/uploads', express.static(UPLOAD_DIR, { maxAge: '1d' }));
 
   app.get('/api/health', (_req, res) => {
     res.json({ ok: true });

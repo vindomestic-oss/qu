@@ -113,6 +113,19 @@
   box-sizing: border-box;
 }
 
+html {
+  /* No sideways jump when a classic scrollbar appears (Windows); focused fields stay above the
+     sticky action bar on /play (WCAG 2.4.11). */
+  scrollbar-gutter: stable;
+  scroll-padding-block-end: calc(72px + env(safe-area-inset-bottom));
+}
+
+/* Raleway first: it has no Hebrew letters, so they fall through to the Hebrew fonts, while Latin
+   text and digits keep Raleway (Arial Hebrew draws small old-style digits). */
+:lang(he) {
+  font-family: 'Raleway', 'Arial Hebrew', 'Noto Sans Hebrew', system-ui, 'Segoe UI', Arial, sans-serif;
+}
+
 body {
   margin: 0;
   background: var(--bg);

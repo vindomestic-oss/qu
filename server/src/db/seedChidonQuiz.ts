@@ -9,7 +9,7 @@ const QUIZ_TITLE = 'European Chidon Tanach 5786 (January 2026)';
 
 // Source images live alongside the TS source (not dist/) so both `tsx` (dev) and the compiled
 // build (dist/db -> ../../src/assets) resolve to the same files without a separate copy step.
-const CHIDON_PICS_DIR = path.join(__dirname, '..', '..', 'src', 'assets', 'chidon-pics');
+export const CHIDON_PICS_DIR = path.join(__dirname, '..', '..', 'src', 'assets', 'chidon-pics');
 
 type ChoiceSpec = { text: string; isCorrect: boolean; translations?: Translations };
 type QuestionSpec = { type: 'single' | 'text'; text: string; translations?: Translations; points: number; choices: ChoiceSpec[]; imageFile?: string };
@@ -180,3 +180,28 @@ export function seedChidonQuiz() {
   const quizId = seed();
   console.log(`Chidon quiz seeded (id ${quizId}): "${QUIZ_TITLE}" with ${QUESTIONS.length} questions.`);
 }
+
+/**
+ * Copies the bundled Chidon pictures into UPLOAD_DIR when a copy is missing or differs in size (e.g.
+ * the lighter re-encoded files replacing the old 1 MB ones on a persistent disk). Idempotent.
+ */
+export function syncChidonPictures(): void {
+  if (!fs.existsSync(CHIDON_PICS_DIR)) return;
+  let copied = 0;
+  try {
+    for (const entry of fs.readdirSync(CHIDON_PICS_DIR, { withFileTypes: true })) {
+      if (!entry.isFile() || !/\.jpe?g$/i.test(entry.name)) continue;
+      const from = path.join(CHIDON_PICS_DIR, entry.name);
+      const to = path.join(UPLOAD_DIR, entry.name);
+      if (!fs.existsSync(to) || fs.statSync(to).size !== fs.statSync(from).size) {
+        fs.copyFileSync(from, to);
+        copied += 1;
+      }
+    }
+  } catch (err) {
+    // A failed copy must not stop the server from starting; the old picture stays in place.
+    console.error('Chidon pictures could not be synced:', err);
+  }
+  if (copied > 0) console.log(`Chidon pictures synced: ${copied} file(s).`);
+}
+

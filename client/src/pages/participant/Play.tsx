@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import './play.css';
 import { useNavigate } from 'react-router-dom';
 import { getMyQuiz, getMySession, submitChoiceAnswer, submitQuiz, submitTextAnswer } from '../../api/participant';
 import type { QuizMeta } from '../../api/participant';
@@ -11,43 +12,15 @@ import { useContentLanguage } from '../../i18n/useContentLanguage';
 import { sanitizeOffered, type QuizLang } from '../../i18n/contentLanguages';
 import { resolveFieldWithLang } from '../../i18n/resolveText';
 import { dirOf } from '../../i18n/languageMeta';
+import { Countdown } from '../../components/participant/Countdown';
+import { LangStack } from '../../components/participant/LangStack';
+import { ThemeToggle } from '../../components/ThemeToggle';
 import { QuestionLanguageBar } from '../../components/participant/QuestionLanguageBar';
 import { Logo } from '../../components/Logo';
 import { formatJoinCode } from '../../lib/joinLink';
 
 function offeredOf(info: { base_language: QuizLang; offered_languages: unknown }): QuizLang[] {
   return sanitizeOffered(info.offered_languages, info.base_language);
-}
-
-function formatCountdown(endsAt: string, now: number): string {
-  const remainingMs = new Date(endsAt).getTime() - now;
-  if (remainingMs <= 0) return '0:00';
-  const totalSeconds = Math.ceil(remainingMs / 1000);
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-  return `${minutes}:${seconds.toString().padStart(2, '0')}`;
-}
-
-/**
- * Waits for an image to finish loading (and reserve its layout space) before
- * the caller reveals anything below it — otherwise a late-loading image can
- * shift the choices down mid-click, causing the wrong option to be selected.
- */
-function useImageReady(src: string | null): boolean {
-  const [ready, setReady] = useState(false);
-  useEffect(() => {
-    if (!src) {
-      setReady(true);
-      return;
-    }
-    setReady(false);
-    const img = new Image();
-    img.onload = () => setReady(true);
-    img.onerror = () => setReady(true);
-    img.src = src;
-    if (img.complete) setReady(true);
-  }, [src]);
-  return ready;
 }
 
 export function Play() {
@@ -61,12 +34,16 @@ export function Play() {
   const { contentLanguage, base, setContentLanguage } = useContentLanguage(offered);
   const [questions, setQuestions] = useState<ParticipantQuestion[] | null>(null);
   const [index, setIndex] = useState(0);
-  const [now, setNow] = useState(Date.now());
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [textSaveStatus, setTextSaveStatus] = useState<{ questionId: number; state: 'saving' | 'saved' } | null>(
-    null,
-  );
+  // Saving / saved of a text answer, shown only on its own question.
+  const [status, setStatus] = useState<{ questionId: number; state: 'saving' | 'saved' } | null>(null);
+  // Answers whose last save failed, by question id. Kept across Previous/Next, so a failed save is
+  // never lost silently; cleared by that question's next successful save.
+  const [failed, setFailed] = useState<Record<number, string>>({});
+  const [finishError, setFinishError] = useState<string | null>(null);
+  // Per-question request counter: only the newest save of a question may set or clear its failure.
+  const saveSeqRef = useRef<Record<number, number>>({});
   const [submitted, setSubmitted] = useState(false);
   const [finishing, setFinishing] = useState(false);
   const finishedRef = useRef(false);
@@ -75,8 +52,8 @@ export function Play() {
   useEffect(() => {
     questionsRef.current = questions;
   }, [questions]);
-  const currentQuestion = questions?.[index] ?? null;
-  const imageReady = useImageReady(currentQuestion?.image_path ?? null);
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  const movedRef = useRef(false);
 
   async function loadQuiz() {
     try {
@@ -122,11 +99,6 @@ export function Play() {
     }
     init();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
-    const tick = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(tick);
   }, []);
 
   // The interface-language menu is offered in the waiting room only (decision Q-ui-lang-after-join),
@@ -190,12 +162,86 @@ export function Play() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.id]);
 
-  // Client-side countdown expiry as a second safety net.
+  // After Previous/Next: back to the top, and the new question's heading gets focus (announced by
+  // screen readers) without scrolling.
   useEffect(() => {
-    if (session?.status === 'active' && session.ends_at && new Date(session.ends_at).getTime() <= now) {
-      goToResults();
+    if (!movedRef.current) return;
+    movedRef.current = false;
+    window.scrollTo({ top: 0, behavior: 'instant' });
+    headingRef.current?.focus({ preventScroll: true });
+  }, [index]);
+
+  // Load the next question's picture in the background, so it is there when the child moves on.
+  useEffect(() => {
+    const next = questions?.[index + 1];
+    if (next?.image_path) new Image().src = next.image_path;
+  }, [questions, index]);
+
+  function goTo(i: number) {
+    if (!questions) return;
+    const target = Math.max(0, Math.min(questions.length - 1, i));
+    if (target === index) return;
+    movedRef.current = true;
+    setStatus(null);
+    setFinishError(null);
+    setIndex(target);
+    const pending = Object.keys(failed).map(Number);
+    if (pending.length > 0) void retryFailed(pending);
+  }
+
+  function saveErrorMessage(err: unknown): string {
+    // 4xx messages explain the refusal; network errors and 5xx get the translated hint.
+    return err instanceof ApiError && err.status < 500 ? err.message : t('play.saveFailed');
+  }
+
+  /**
+   * Sends one answer and records the outcome. Returns false only when the save failed; a 409 means
+   * the participant already finished (e.g. in another tab), so the submitted screen is shown.
+   */
+  async function sendAnswer(question: ParticipantQuestion, send: () => Promise<unknown>): Promise<boolean> {
+    const seq = (saveSeqRef.current[question.id] ?? 0) + 1;
+    saveSeqRef.current[question.id] = seq;
+    const isLatest = () => saveSeqRef.current[question.id] === seq;
+    try {
+      await send();
+      if (isLatest()) {
+        setFailed((prev) => {
+          if (!(question.id in prev)) return prev;
+          const rest = { ...prev };
+          delete rest[question.id];
+          return rest;
+        });
+      }
+      return true;
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 409) {
+        setSubmitted(true);
+        return true;
+      }
+      if (isLatest()) setFailed((prev) => ({ ...prev, [question.id]: saveErrorMessage(err) }));
+      return false;
     }
-  }, [now, session]);
+  }
+
+  function sendCurrent(question: ParticipantQuestion) {
+    return sendAnswer(question, () =>
+      question.type === 'text'
+        ? submitTextAnswer(question.id, question.myAnswer?.text_answer ?? '')
+        : submitChoiceAnswer(question.id, question.myAnswer?.selected_choice_ids ?? []),
+    );
+  }
+
+  /** Re-sends the local answer of every failed question; returns how many still fail. */
+  async function retryFailed(ids: number[]): Promise<number> {
+    const all = questionsRef.current ?? [];
+    const results = await Promise.all(
+      ids.map((id) => {
+        const q = all.find((x) => x.id === id);
+        return q ? sendCurrent(q) : Promise.resolve(true);
+      }),
+    );
+    return results.filter((ok) => !ok).length;
+  }
 
   async function handleChoiceChange(question: ParticipantQuestion, choiceId: number, checked: boolean) {
     if (!questions) return;
@@ -204,50 +250,46 @@ export function Play() {
       question.type === 'single' ? [choiceId] : checked ? [...current, choiceId] : current.filter((id) => id !== choiceId);
 
     setQuestions(questions.map((q) => (q.id === question.id ? { ...q, myAnswer: { ...q.myAnswer, selected_choice_ids: next, text_answer: null } } : q)));
-
-    try {
-      await submitChoiceAnswer(question.id, next);
-    } catch (err) {
-      // 409: this participant already finished (e.g. in another tab): show the submitted screen.
-      if (err instanceof ApiError && err.status === 409) setSubmitted(true);
-      else setError(err instanceof ApiError ? err.message : 'Failed to save answer');
-    }
+    await sendAnswer(question, () => submitChoiceAnswer(question.id, next));
   }
 
   async function handleTextChange(question: ParticipantQuestion, text: string) {
     if (!questions) return;
     setQuestions(questions.map((q) => (q.id === question.id ? { ...q, myAnswer: { selected_choice_ids: [], text_answer: text } } : q)));
-    setTextSaveStatus((prev) => (prev?.questionId === question.id ? null : prev));
+    setStatus((prev) => (prev?.questionId === question.id && prev.state === 'saved' ? null : prev));
   }
 
   async function handleTextSave(question: ParticipantQuestion) {
-    const text = question.myAnswer?.text_answer ?? '';
-    setTextSaveStatus({ questionId: question.id, state: 'saving' });
-    try {
-      await submitTextAnswer(question.id, text);
-      setTextSaveStatus({ questionId: question.id, state: 'saved' });
-    } catch (err) {
-      if (err instanceof ApiError && err.status === 409) setSubmitted(true);
-      else setError(err instanceof ApiError ? err.message : 'Failed to save answer');
-      setTextSaveStatus(null);
-    }
+    setStatus({ questionId: question.id, state: 'saving' });
+    const ok = await sendAnswer(question, () => submitTextAnswer(question.id, question.myAnswer?.text_answer ?? ''));
+    setStatus((prev) => (prev?.questionId === question.id ? (ok ? { questionId: question.id, state: 'saved' } : null) : prev));
+  }
+
+  async function handleRetry() {
+    const pending = Object.keys(failed).map(Number);
+    if (pending.length > 0) await retryFailed(pending);
   }
 
   async function handleFinish() {
+    setFinishError(null);
+    // An answer that failed to save must not be dropped by finishing: retry first, stop if it still fails.
+    const pending = Object.keys(failed).map(Number);
+    if (pending.length > 0) {
+      setFinishing(true);
+      const stillFailing = await retryFailed(pending);
+      setFinishing(false);
+      if (stillFailing > 0) return;
+    }
     if (!window.confirm(t('play.finishConfirm'))) return;
     setFinishing(true);
-    setError(null);
     try {
       await submitQuiz();
       setSubmitted(true);
     } catch (err) {
       // A 409 here means some other request already marked this participant finished
       // (e.g. a duplicate click or a second tab) — that's the outcome we wanted anyway.
-      if (err instanceof ApiError && err.status === 409) {
-        setSubmitted(true);
-      } else {
-        setError(err instanceof ApiError ? err.message : 'Failed to finish');
-      }
+      if (err instanceof ApiError && err.status === 409) setSubmitted(true);
+      else setFinishError(err instanceof ApiError && err.status < 500 ? err.message : t('play.finishFailed'));
     } finally {
       setFinishing(false);
     }
@@ -282,12 +324,31 @@ export function Play() {
     );
   }
 
+  const title = quizMeta ? resolveFieldWithLang(quizMeta, 'title', contentLanguage, base) : null;
+  const header = (
+    <header className="play-header">
+      <h1 className="play-title" title={title?.text}>
+        {title && (
+          <span className="play-title__text" lang={title.lang} dir={dirOf(title.lang)}>
+            {title.text}
+          </span>
+        )}
+      </h1>
+      {session?.ends_at && session.status === 'active' && <Countdown endsAt={session.ends_at} onExpire={goToResults} />}
+      <ThemeToggle />
+    </header>
+  );
+
   if (submitted) {
     return (
-      <div style={{ maxWidth: 480, margin: '24px auto', paddingInline: 16, textAlign: 'center' }}>
-        <Logo />
-        <h1>{t('play.submittedTitle')}</h1>
-        <p>{t('play.submittedBody')}</p>
+      <div className="play">
+        {header}
+        <div className="play-nav" />
+        <main className="play-main" style={{ textAlign: 'center' }}>
+          <Logo />
+          <h2>{t('play.submittedTitle')}</h2>
+          <p>{t('play.submittedBody')}</p>
+        </main>
       </div>
     );
   }
@@ -305,98 +366,113 @@ export function Play() {
   }
 
   const question = questions[index];
-  const questionText = resolveFieldWithLang(question, 'text', contentLanguage, base);
-  const quizTitle = resolveFieldWithLang(quizMeta, 'title', contentLanguage, base);
-  const hasAnswer =
-    question.type === 'text'
-      ? Boolean(question.myAnswer?.text_answer?.trim())
-      : Boolean(question.myAnswer?.selected_choice_ids.length);
+  const languages = offered ?? [base];
+  const isLast = index === questions.length - 1;
+  const statusForQuestion = status?.questionId === question.id ? status : null;
+  // One status slot per card: this question's failed save, then other unsaved questions, then a
+  // failed Finish, then saving / saved.
+  const otherUnsaved = questions.flatMap((q, i) => (q.id !== question.id && q.id in failed ? [i + 1] : []));
+  const slot: { tone: 'error' | 'saved' | 'muted'; text: string; retry?: boolean } | null =
+    question.id in failed
+      ? { tone: 'error', text: failed[question.id], retry: true }
+      : otherUnsaved.length > 0
+        ? { tone: 'error', text: t('play.notSavedOthers', { list: otherUnsaved.join(', ') }), retry: true }
+        : finishError
+          ? { tone: 'error', text: finishError }
+          : statusForQuestion?.state === 'saving'
+            ? { tone: 'muted', text: t('play.saving') }
+            : statusForQuestion?.state === 'saved'
+              ? { tone: 'saved', text: t('play.saved') }
+              : null;
 
   return (
-    <div style={{ maxWidth: 640, margin: '16px auto' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-        <h1 lang={quizTitle.lang}>
-          <span dir={dirOf(quizTitle.lang)}>{quizTitle.text}</span>
-        </h1>
-        <div>
-          {t('play.timeLeft')} <strong>{session.ends_at ? formatCountdown(session.ends_at, now) : '--'}</strong>
-        </div>
-      </div>
-      <p style={{ margin: '0 0 8px' }}>{t('play.questionOf', { n: index + 1, total: questions.length })}</p>
-      {error && <p style={{ color: 'var(--danger)' }}>{error}</p>}
-
-      <div style={{ border: '1px solid var(--border)', padding: 16, background: 'var(--surface)', borderRadius: 8 }}>
-        <div className="card-head" style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', minHeight: 44, marginBlockEnd: 8 }}>
-          {offered && (
-            <QuestionLanguageBar idPrefix="qlang-play" languages={offered} value={contentLanguage} onChange={setContentLanguage} />
-          )}
-        </div>
-        <p lang={questionText.lang} dir={dirOf(questionText.lang)} style={{ fontWeight: 'bold' }}>
-          {questionText.text}
-        </p>
-        {question.image_path && (
-          <img
-            src={question.image_path}
-            alt=""
-            style={{ maxWidth: '100%', marginBottom: 12, border: '1px solid var(--border)', background: 'var(--image-bg)' }}
-          />
-        )}
-
-        {!imageReady ? (
-          <p style={{ color: 'var(--text-muted)' }}>{t('play.loadingImage')}</p>
-        ) : question.type !== 'text' ? (
-          <div dir={dirOf(contentLanguage)}>
-            {question.choices.map((c) => {
-              const choiceText = resolveFieldWithLang(c, 'text', contentLanguage, base);
-              return (
-                <label key={c.id} style={{ display: 'block', marginBottom: 8 }}>
-                  <input
-                    type={question.type === 'single' ? 'radio' : 'checkbox'}
-                    name={`question-${question.id}`}
-                    checked={question.myAnswer?.selected_choice_ids.includes(c.id) ?? false}
-                    onChange={(e) => handleChoiceChange(question, c.id, e.target.checked)}
-                  />{' '}
-                  <span lang={choiceText.lang}>{choiceText.text}</span>
-                </label>
-              );
-            })}
+    <div className="play">
+      {header}
+      <div className="play-nav" />
+      <main className="play-main">
+        <article className="qcard" data-testid="question-card">
+          <div className="qcard-head">
+            <span className="qcard-head__count">{t('play.questionOf', { n: index + 1, total: questions.length })}</span>
+            <span className="qcard-head__lang">
+              <QuestionLanguageBar idPrefix="qlang-play" languages={languages} value={contentLanguage} onChange={setContentLanguage} />
+            </span>
           </div>
-        ) : (
-          <div>
-            <textarea
-              value={question.myAnswer?.text_answer ?? ''}
-              onChange={(e) => handleTextChange(question, e.target.value)}
-              onBlur={() => handleTextSave(question)}
-              dir="auto"
-              style={{ width: '100%', minHeight: 100 }}
-            />
-            <button
-              onClick={() => handleTextSave(question)}
-              disabled={textSaveStatus?.questionId === question.id && textSaveStatus.state === 'saving'}
-            >
-              {textSaveStatus?.questionId === question.id && textSaveStatus.state === 'saving'
-                ? t('play.saving')
-                : t('play.saveAnswer')}
-            </button>
-            {textSaveStatus?.questionId === question.id && textSaveStatus.state === 'saved' && (
-              <span style={{ color: 'var(--success)', marginInlineStart: 8 }}>{t('play.saved')}</span>
+          <div className="qcard-body" key={question.id}>
+            <h2 tabIndex={-1} ref={headingRef} id={`question-${question.id}-text`}>
+              <LangStack row={question} field="text" languages={languages} active={contentLanguage} base={base} />
+            </h2>
+            {question.image_path && (
+              <div className="qcard-media">
+                <img src={question.image_path} alt={t('play.questionImage', { n: index + 1 })} decoding="async" />
+              </div>
+            )}
+            {question.type !== 'text' ? (
+              <div
+                className="choices"
+                dir={dirOf(contentLanguage)}
+                role={question.type === 'single' ? 'radiogroup' : 'group'}
+                aria-labelledby={`question-${question.id}-text`}
+              >
+                {question.choices.map((c) => (
+                  <label key={c.id} className="choice">
+                    <input
+                      type={question.type === 'single' ? 'radio' : 'checkbox'}
+                      name={`question-${question.id}`}
+                      checked={question.myAnswer?.selected_choice_ids.includes(c.id) ?? false}
+                      onChange={(e) => handleChoiceChange(question, c.id, e.target.checked)}
+                    />
+                    <LangStack row={c} field="text" languages={languages} active={contentLanguage} base={base} />
+                  </label>
+                ))}
+              </div>
+            ) : (
+              <div className="text-answer">
+                <textarea
+                  rows={4}
+                  value={question.myAnswer?.text_answer ?? ''}
+                  onChange={(e) => handleTextChange(question, e.target.value)}
+                  onBlur={() => handleTextSave(question)}
+                  dir="auto"
+                  aria-label={t('play.yourAnswer')}
+                />
+                <button type="button" onClick={() => handleTextSave(question)} disabled={statusForQuestion?.state === 'saving'}>
+                  {t('play.saveAnswer')}
+                </button>
+              </div>
             )}
           </div>
-        )}
-      </div>
-
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 12 }}>
-        <button onClick={() => setIndex((i) => Math.max(0, i - 1))} disabled={index === 0}>
+          <div className="qcard-status" data-tone={slot?.tone}>
+            <span className="qcard-status__text" role="status" aria-live="polite">
+              {slot?.text}
+            </span>
+            {slot?.retry && (
+              <button type="button" className="qcard-status__retry" onClick={handleRetry}>
+                {t('play.retry')}
+              </button>
+            )}
+          </div>
+        </article>
+      </main>
+      <footer className="play-actionbar">
+        <button type="button" onClick={() => goTo(index - 1)} disabled={index === 0}>
           {t('play.previous')}
         </button>
-        {index === questions.length - 1 ? (
-          <button onClick={handleFinish} disabled={!hasAnswer || finishing}>
-            {finishing ? t('play.finishing') : t('play.finish')}
-          </button>
-        ) : (
-          <button onClick={() => setIndex((i) => Math.min(questions.length - 1, i + 1))}>{t('play.next')}</button>
-        )}
-      </div>
+        <span>
+          {isLast && (
+            <button type="button" onClick={handleFinish} disabled={finishing}>
+              {finishing ? t('play.finishing') : t('play.finish')}
+            </button>
+          )}
+        </span>
+        <button type="button" data-testid="nav-next" className="btn-stack" onClick={() => goTo(index + 1)} disabled={isLast}>
+          <span className={isLast ? 'is-hidden' : undefined} aria-hidden={isLast || undefined}>
+            {t('play.next')}
+          </span>
+          <span className={isLast ? undefined : 'is-hidden'} aria-hidden={!isLast || undefined}>
+            {t('play.toOverview')}
+          </span>
+        </button>
+      </footer>
     </div>
   );
 }

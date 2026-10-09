@@ -12,6 +12,8 @@ export function AppTopBar() {
   const { pathname } = useLocation();
   const showUiMenu =
     !uiLanguageLocked && (UI_MENU_PATHS.includes(pathname) || pathname.startsWith('/grade/') || pathname.startsWith('/g/'));
+  // During the quiz /play draws its own header (title, timer, theme toggle): never two bars.
+  if (pathname === '/play' && uiLanguageLocked) return null;
   return (
     <header className="app-topbar">
       {showUiMenu && <UiLanguageMenu />}

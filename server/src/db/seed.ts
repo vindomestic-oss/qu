@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 import { db } from './index';
 import { nowIso } from '../lib/time';
 import { seedSampleQuiz } from './seedSampleQuiz';
-import { seedChidonQuiz } from './seedChidonQuiz';
+import { seedChidonQuiz, syncChidonPictures } from './seedChidonQuiz';
 import { seedChidon5787Anfaenger } from './seedChidon5787Anfaenger';
 import { seedChidon5787Fortgeschrittene } from './seedChidon5787Fortgeschrittene';
 
@@ -61,3 +61,4 @@ if (!anyQuiz && process.env.SEED_SAMPLE_QUIZ !== 'false') {
 // call them on every deploy — this is how new quizzes get added to the live database too.
 seedChidon5787Anfaenger();
 seedChidon5787Fortgeschrittene();
+syncChidonPictures();
