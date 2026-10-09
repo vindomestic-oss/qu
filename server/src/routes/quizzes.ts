@@ -250,7 +250,7 @@ quizzesRouter.get('/:id/sessions', (req, res) => {
   if (!quiz) return res.status(404).json({ error: 'Quiz not found' });
 
   const rows = db
-    .prepare('SELECT * FROM sessions WHERE quiz_id = ? ORDER BY created_at DESC')
+    .prepare('SELECT * FROM sessions WHERE quiz_id = ? ORDER BY id DESC')
     .all(quizId) as SessionRow[];
   const sessions = rows.map(refreshSessionStatus);
   res.json({ sessions });
@@ -261,11 +261,14 @@ quizzesRouter.post('/:id/sessions', (req, res) => {
   const quiz = db.prepare('SELECT id FROM quizzes WHERE id = ?').get(quizId);
   if (!quiz) return res.status(404).json({ error: 'Quiz not found' });
 
+  // One open run per quiz (decision Q-parallel-runs). Ordered by id: created_at has 1 s resolution.
+  // A run whose time is up is ended here and a new one is created instead of returning it.
   const existing = db
-    .prepare("SELECT * FROM sessions WHERE quiz_id = ? AND status IN ('pending', 'active') ORDER BY created_at DESC LIMIT 1")
+    .prepare("SELECT * FROM sessions WHERE quiz_id = ? AND status IN ('pending', 'active') ORDER BY id DESC LIMIT 1")
     .get(quizId) as SessionRow | undefined;
   if (existing) {
-    return res.json({ session: refreshSessionStatus(existing) });
+    const current = refreshSessionStatus(existing);
+    if (current.status !== 'ended') return res.json({ session: current });
   }
 
   const joinCode = createUniqueJoinCode();

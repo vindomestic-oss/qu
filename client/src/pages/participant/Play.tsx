@@ -5,7 +5,7 @@ import type { QuizMeta } from '../../api/participant';
 import type { ParticipantQuestion, QuizSession } from '../../types';
 import { ApiError } from '../../api/client';
 import { useParticipant } from '../../auth/ParticipantContext';
-import { getSocket, joinSessionRoom } from '../../lib/socket';
+import { getSocket, joinRoom, leaveRoom } from '../../lib/socket';
 import { useLanguage } from '../../i18n/LanguageContext';
 import { useContentLanguage } from '../../i18n/useContentLanguage';
 import { sanitizeOffered, type QuizLang } from '../../i18n/contentLanguages';
@@ -152,16 +152,32 @@ export function Play() {
   useEffect(() => {
     if (!session) return;
     const socket = getSocket();
-    joinSessionRoom(session.id, 'participant');
+    const sessionId = session.id;
+    joinRoom('session', sessionId);
     const handler = async (updated: QuizSession) => {
-      if (updated.id !== session.id) return;
+      if (updated.id !== sessionId) return;
       setSession(updated);
       if (updated.status === 'active' && !questions) await loadQuiz();
       if (updated.status === 'ended') goToResults();
     };
+    // After a reconnect, events sent while offline are lost: ask for the current state.
+    const onReconnect = async () => {
+      try {
+        const { session: fresh, participant } = await getMySession();
+        setSession(fresh);
+        setSubmitted(Boolean(participant.submitted_at));
+        if (fresh.status === 'active' && !questions) await loadQuiz();
+        if (fresh.status === 'ended') goToResults();
+      } catch {
+        // the countdown and the polls are further safety nets
+      }
+    };
     socket.on('session:update', handler);
+    socket.on('connect', onReconnect);
     return () => {
       socket.off('session:update', handler);
+      socket.off('connect', onReconnect);
+      leaveRoom('session', sessionId);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.id]);

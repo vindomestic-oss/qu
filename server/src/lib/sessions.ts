@@ -1,5 +1,6 @@
 import { randomInt } from 'crypto';
 import { db } from '../db';
+import { broadcastGradingChanged, broadcastSessionUpdate } from '../socket';
 
 export interface SessionRow {
   id: number;
@@ -30,11 +31,49 @@ export function createUniqueJoinCode(): string {
   throw new Error('Could not generate a unique join code');
 }
 
-/** Lazily flips an active session to 'ended' if its end time has passed. Returns the up-to-date row. */
+type EndHook = (sessionId: number) => void;
+const endHooks: EndHook[] = [];
+
+/** Runs after a session has ended (once per session). Later steps register follow-up work here. */
+export function onSessionEnded(hook: EndHook): void {
+  endHooks.push(hook);
+}
+
+/**
+ * The only way a session ends: by the host, by its timer, by the 30 s sweep or by the lazy check on
+ * read. In one transaction it marks the session ended and submits everyone who has not pressed
+ * Finish ("session_end"). Broadcasts only if this call actually ended it. Returns the fresh row.
+ */
+export function finalizeSession(sessionId: number, endedAtIso: string): SessionRow | null {
+  const changed = db.transaction(() => {
+    const r = db
+      .prepare("UPDATE sessions SET status = 'ended', ends_at = ? WHERE id = ? AND status <> 'ended'")
+      .run(endedAtIso, sessionId);
+    if (r.changes === 0) return false;
+    db.prepare(
+      "UPDATE participants SET submitted_at = ?, submit_source = 'session_end' WHERE session_id = ? AND submitted_at IS NULL",
+    ).run(endedAtIso, sessionId);
+    return true;
+  })();
+  const row = db.prepare('SELECT * FROM sessions WHERE id = ?').get(sessionId) as SessionRow | undefined;
+  if (changed && row) {
+    broadcastSessionUpdate(sessionId, row);
+    broadcastGradingChanged(sessionId, { kind: 'session_end' });
+    for (const hook of endHooks) {
+      try {
+        hook(sessionId);
+      } catch (err) {
+        console.error('session end hook failed:', err instanceof Error ? err.message : err);
+      }
+    }
+  }
+  return row ?? null;
+}
+
+/** Lazily ends an active session whose end time has passed. Returns the up-to-date row. */
 export function refreshSessionStatus(session: SessionRow): SessionRow {
   if (session.status === 'active' && session.ends_at && new Date(session.ends_at).getTime() <= Date.now()) {
-    db.prepare("UPDATE sessions SET status = 'ended' WHERE id = ?").run(session.id);
-    return { ...session, status: 'ended' };
+    return finalizeSession(session.id, session.ends_at) ?? { ...session, status: 'ended' };
   }
   return session;
 }

@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { createOrGetSession, endSession, startSession } from '../../api/sessions';
+import { createOrGetSession, endSession, getSession, startSession } from '../../api/sessions';
 import type { QuizSession } from '../../types';
 import { ApiError } from '../../api/client';
-import { getSocket, joinSessionRoom } from '../../lib/socket';
+import { useStaffLive } from '../../lib/useStaffLive';
+import { useLiveStatus } from '../../lib/useLiveStatus';
 import { LiveMonitor } from './LiveMonitor';
 
 interface Props {
@@ -40,20 +41,43 @@ export function SessionPanel({ quizId, initialSession, onSessionEnded }: Props) 
     return () => clearInterval(tick);
   }, []);
 
+  const sessionId = session?.id ?? null;
+  const live = useLiveStatus(sessionId);
+  const refetchingRef = useRef(false);
+  const lastStatusRef = useRef<QuizSession['status'] | null>(null);
+
+  const refetchSession = useCallback(() => {
+    if (sessionId === null || refetchingRef.current) return;
+    refetchingRef.current = true;
+    getSession(sessionId)
+      .then(({ session: fresh }) => setSession(fresh))
+      .catch(() => {
+        // transient; the next event, reconnect or expiry check tries again
+      })
+      .finally(() => {
+        refetchingRef.current = false;
+      });
+  }, [sessionId]);
+
+  // Status changes arrive in the staff room; after a reconnect the session is fetched again.
+  useStaffLive(sessionId, refetchSession, { events: ['session:update'] });
+
   useEffect(() => {
     if (!session) return;
-    const socket = getSocket();
-    joinSessionRoom(session.id, 'admin');
-    const handler = (updated: QuizSession) => {
-      if (updated.id !== session.id) return;
-      setSession(updated);
-      if (updated.status === 'ended') onSessionEndedRef.current?.();
-    };
-    socket.on('session:update', handler);
-    return () => {
-      socket.off('session:update', handler);
-    };
-  }, [session?.id]);
+    if (session.status === 'ended' && lastStatusRef.current && lastStatusRef.current !== 'ended') {
+      onSessionEndedRef.current?.();
+    }
+    lastStatusRef.current = session.status;
+  }, [session]);
+
+  // Fallback for a missed broadcast: once the countdown is over, ask the server every 3 s.
+  const expired = session?.status === 'active' && session.ends_at !== null && Date.parse(session.ends_at) <= now;
+  useEffect(() => {
+    if (!expired) return;
+    refetchSession();
+    const retry = setInterval(refetchSession, 3000);
+    return () => clearInterval(retry);
+  }, [expired, refetchSession]);
 
   async function handleCreateOrShow() {
     setBusy(true);
@@ -90,7 +114,6 @@ export function SessionPanel({ quizId, initialSession, onSessionEnded }: Props) 
     try {
       const { session: updated } = await endSession(session.id);
       setSession(updated);
-      onSessionEndedRef.current?.();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Failed to end session');
     } finally {
@@ -117,7 +140,7 @@ export function SessionPanel({ quizId, initialSession, onSessionEnded }: Props) 
           <button onClick={handleStart} disabled={busy}>
             Start now
           </button>
-          <LiveMonitor sessionId={session.id} />
+          <LiveMonitor sessionId={session.id} data={live.data} onRefresh={live.refresh} />
         </div>
       )}
 
@@ -133,7 +156,7 @@ export function SessionPanel({ quizId, initialSession, onSessionEnded }: Props) 
             End early
           </button>{' '}
           <Link to={`/admin/sessions/${session.id}/results`}>Grade finished participants</Link>
-          <LiveMonitor sessionId={session.id} />
+          <LiveMonitor sessionId={session.id} data={live.data} onRefresh={live.refresh} />
         </div>
       )}
 

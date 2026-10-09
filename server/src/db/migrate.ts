@@ -19,6 +19,18 @@ const ADDED_COLUMNS: Record<string, { name: string; type: string }[]> = {
     { name: 'rejoin_hash', type: 'TEXT' },
     // Raised whenever the row is claimed again; participant tokens carry it, so older tokens stop working.
     { name: 'token_version', type: 'INTEGER NOT NULL DEFAULT 0' },
+    // Who submitted: 'participant' (Finish) or 'session_end' (the session ended first).
+    { name: 'submit_source', type: 'TEXT' },
+  ],
+  answers: [
+    // 'auto_choice' | 'auto_blank' | 'rule' | 'ai_confirmed' | 'ai_auto' | 'human' (validated in TypeScript).
+    { name: 'grade_source', type: 'TEXT' },
+    // Display string of the grader, e.g. 'admin:alex' or 'Rav K. (link #3)'.
+    { name: 'graded_by', type: 'TEXT' },
+    // grader_links.id of the grader (S12); no foreign key on purpose.
+    { name: 'graded_by_link_id', type: 'INTEGER' },
+    // Optimistic concurrency for grading: every write to the answer or its grade raises it.
+    { name: 'grade_version', type: 'INTEGER NOT NULL DEFAULT 0' },
   ],
 };
 
@@ -49,6 +61,33 @@ export function runMigrations(db: Database.Database) {
       setBaseLanguage.run(lang, title);
     }
   }
+
+  // Ended sessions count as submitted by the session end (they can be graded at once). Guarded by IS NULL.
+  db.exec(`
+    UPDATE participants
+    SET submitted_at = (SELECT coalesce(s.ends_at, s.created_at) FROM sessions s WHERE s.id = participants.session_id),
+        submit_source = 'session_end'
+    WHERE submitted_at IS NULL AND session_id IN (SELECT id FROM sessions WHERE status = 'ended')
+  `);
+  db.exec(`UPDATE participants SET submit_source = 'participant' WHERE submitted_at IS NOT NULL AND submit_source IS NULL`);
+
+  // Where each existing grade came from, in this order; every step only touches rows still NULL.
+  db.exec(`
+    UPDATE answers SET grade_source = 'auto_choice'
+    WHERE grade_source IS NULL AND question_id IN (SELECT id FROM questions WHERE type <> 'text')
+  `);
+  db.exec(`
+    UPDATE answers SET grade_source = 'auto_blank'
+    WHERE grade_source IS NULL AND trim(coalesce(text_answer, '')) = ''
+      AND question_id IN (SELECT id FROM questions WHERE type = 'text')
+  `);
+  db.exec(`
+    UPDATE answers SET grade_source = 'human'
+    WHERE grade_source IS NULL AND graded_at IS NOT NULL AND points_awarded IS NOT NULL
+      AND question_id IN (SELECT id FROM questions WHERE type = 'text')
+  `);
+  // A text answer re-saved after grading lost its points but kept graded_at; that stamp is stale.
+  db.exec('UPDATE answers SET graded_at = NULL WHERE points_awarded IS NULL AND graded_at IS NOT NULL');
 
   // Blank text answers submitted before auto-scoring was added were left pending
   // (points_awarded IS NULL) for manual grading; backfill them to 0 now that they don't need review.
