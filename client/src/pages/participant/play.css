@@ -76,24 +76,86 @@
   color: var(--text);
   border: 1px solid var(--input-border);
 }
-.qnav-arrow:hover:not(:disabled),
+.qnav-arrow:hover:not([aria-disabled='true']),
 .qnav-all:hover:not(:disabled) {
   background: var(--surface-hover);
   border-color: var(--input-border);
 }
+.qnav-arrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding-inline: 4px;
+}
+/* At an end the arrow looks disabled but stays focusable (aria-disabled), so focus is never lost. */
+.qnav-arrow[aria-disabled='true'],
+.qnav-arrow[aria-disabled='true']:hover {
+  background: var(--button-disabled-bg);
+  border-color: var(--button-disabled-bg);
+  color: var(--button-disabled-text);
+  cursor: default;
+}
+/* The chevrons are drawn for LTR; mirrored in RTL they still point outward. */
+[dir='rtl'] .qnav-arrow svg {
+  transform: scaleX(-1);
+}
+/* Whole strip visible: the arrows have nothing to do, but keep their space. */
+.qnav[data-fits] .qnav-arrow {
+  visibility: hidden;
+}
+@media (pointer: coarse) {
+  .qnav-arrow {
+    min-inline-size: var(--qnav-item);
+  }
+}
+.qnav-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.qnav-all__icon {
+  display: none;
+  flex: none;
+}
+/* The hidden widest count ("50/50") shares the cell, so the button never widens. */
 .qnav-all__count {
+  display: inline-grid;
   font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   font-variant-numeric: tabular-nums;
   color: var(--text-muted);
 }
+.qnav-all__count > span {
+  grid-area: 1 / 1;
+}
+.qnav-all__count > .is-hidden {
+  visibility: hidden;
+}
+/* On a phone the label is hidden (it stays the accessible name): a grid icon over the count says
+   what the button opens, in little width, so the strip keeps room for its numbers. */
 @media (max-width: 600px) {
-  .qnav-all > span:first-child {
+  .qnav {
+    gap: 4px;
+  }
+  .qnav-all {
+    flex-direction: column;
+    justify-content: center;
+    gap: 2px;
+    padding-inline: 6px;
+  }
+  .qnav-all__label {
     position: absolute;
     inline-size: 1px;
     block-size: 1px;
     overflow: hidden;
     clip-path: inset(50%);
     white-space: nowrap;
+  }
+  .qnav-all__icon {
+    display: block;
+  }
+  .qnav-all__count {
+    font-size: 12px;
+    line-height: 1;
   }
 }
 .qnav-scroller {
@@ -204,6 +266,25 @@
   border-block-start: 11px solid var(--nav-flag);
   border-inline-start: 11px solid transparent;
 }
+/* On a filled number the corner needs its own red to stand out from the fill (3:1). */
+.qnav-item[data-state='answered'][data-flagged]::before {
+  border-block-start-color: var(--nav-flag-on-answered);
+}
+/* Keyboard focus: a two-tone ring inside the border (gap, then ring), so it never merges with the
+   current question's outer ring, is never clipped by the strip's edge and shows on filled and
+   outlined numbers alike. The transparent outline appears in forced-colours mode, which drops
+   box-shadow. The current number keeps its outer ring and gets the inner one as well. */
+.qnav-item:focus-visible {
+  outline: 2px solid transparent;
+  outline-offset: -6px;
+  box-shadow:
+    inset 0 0 0 2px var(--nav-focus-gap),
+    inset 0 0 0 5px var(--nav-focus-ring);
+}
+.qnav-item[aria-current='step']:focus-visible {
+  outline: 3px solid var(--nav-current-ring);
+  outline-offset: 2px;
+}
 
 .flag-toggle {
   display: inline-flex;
@@ -228,15 +309,25 @@
   border: 2px solid var(--nav-flag);
   padding-inline: 9px;
 }
-@media (max-width: 600px) {
+/* Up to the iPad portrait width the card head has no room for the label (it stays the name). */
+@media (max-width: 767.98px) {
   .flag-toggle__label {
     display: none;
   }
 }
+@media (pointer: coarse) {
+  .flag-toggle {
+    min-inline-size: 44px;
+    justify-content: center;
+  }
+}
 
-/* "All questions" dialog = review step before submitting. */
+/* "All questions" dialog = review step before submitting. Fixed height: a filter changes the grid,
+   never the dialog's size or place, so the chips and the buttons stay put (wish 11). Longer
+   content scrolls inside. */
 .qoverview {
   inline-size: min(720px, calc(100vw - 24px));
+  block-size: min(680px, calc(100svh - 24px));
   max-block-size: calc(100svh - 24px);
   padding: 0;
   border: 1px solid var(--border-strong);
@@ -248,6 +339,7 @@
   background: rgba(0, 0, 0, 0.5);
 }
 .qoverview__inner {
+  min-block-size: 100%;
   padding: 16px;
   display: flex;
   flex-direction: column;
@@ -270,10 +362,14 @@
   font-size: 14px;
   color: var(--text-muted);
 }
+.qoverview__legend-item {
+  white-space: nowrap;
+}
 .legend-swatch {
   display: inline-block;
   inline-size: 14px;
   block-size: 14px;
+  margin-inline-end: 2px;
   vertical-align: -2px;
   border: 2px solid var(--nav-unanswered-border);
   border-radius: 3px;
@@ -294,6 +390,7 @@
 .legend-swatch--current {
   outline: 2px solid var(--nav-current-ring);
   outline-offset: 1px;
+  margin-inline: 3px 5px; /* room for the ring on both sides */
 }
 .qoverview__filters {
   display: flex;
@@ -304,6 +401,10 @@
   background: var(--surface);
   color: var(--text);
   border: 1px solid var(--input-border);
+}
+.qoverview__empty {
+  margin: 0;
+  color: var(--text-muted);
 }
 .qoverview__group h3 {
   margin: 4px 0 8px;
@@ -328,6 +429,7 @@
   --qnav-item: 44px;
 }
 .qoverview__footer {
+  margin-block-start: auto; /* stays at the bottom when a filter shows few numbers */
   border-block-start: 1px solid var(--border-subtle);
   padding-block-start: 12px;
 }
@@ -353,6 +455,28 @@
   justify-content: space-between;
   gap: 8px;
 }
+/* Close and Back only leave the dialog: quiet buttons. "Finish and submit" is the one filled one. */
+.qoverview__close,
+.qoverview__back {
+  background: var(--surface);
+  color: var(--text);
+  border-color: var(--input-border);
+}
+.qoverview__close:hover:not(:disabled),
+.qoverview__back:hover:not(:disabled) {
+  background: var(--surface-hover);
+  border-color: var(--input-border);
+}
+.btn-finish {
+  font-weight: 700;
+}
+@media (pointer: coarse) {
+  .qoverview__close,
+  .qoverview__filters .toggle-chip,
+  .qoverview__actions button {
+    min-block-size: 44px;
+  }
+}
 .play-main {
   display: flex;
   flex-direction: column;
@@ -374,22 +498,46 @@
   align-items: center;
   gap: 8px;
 }
+/* "Question n of N" is never cut. It keeps the width of the widest count (the hidden "Question 50 of
+   50" in the same cell), so the flag beside it never moves; the language label gives way first. */
 .qcard-head__count {
-  min-inline-size: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  flex-shrink: 0;
+  display: grid;
+  align-items: center;
+  line-height: 1.2;
   font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   font-variant-numeric: tabular-nums;
   color: var(--text-muted);
 }
+.qcard-head__count > span {
+  grid-area: 1 / 1;
+}
+.qcard-head__count > .is-hidden {
+  visibility: hidden;
+}
 .qcard-head__lang {
   margin-inline-start: auto;
+  min-inline-size: 0;
+}
+/* Block-level here, so it takes the width its slot gets and the label can shrink inside it. */
+.qcard-head .qlang {
+  display: flex;
+  flex-wrap: nowrap;
+}
+.qcard-head .qlang__label {
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.qcard-head .lang-menu,
+.qcard-head .toggle-chip {
   flex-shrink: 0;
 }
-/* On a phone the card head keeps one row: the visible label and the count go, the menu stays and
-   keeps its accessible name ("Question language English"). */
-@media (max-width: 600px) {
+/* Below the iPad portrait width the card head keeps one row: the visible label goes, the menu stays
+   and keeps its accessible name ("Question language English"). If the row is still too narrow, the
+   counter wraps to two lines inside the 44 px row instead of being cut. */
+@media (max-width: 767.98px) {
   .qcard-head .qlang__label {
     position: absolute;
     inline-size: 1px;
@@ -397,6 +545,25 @@
     overflow: hidden;
     clip-path: inset(50%);
     white-space: nowrap;
+  }
+  .qcard-head__count {
+    flex-shrink: 1;
+    text-wrap: balance;
+  }
+  .qcard-head__lang {
+    flex-shrink: 0;
+  }
+}
+/* On a phone the language count goes too, and the row is a little tighter. */
+@media (max-width: 600px) {
+  .qcard-head {
+    gap: 6px;
+  }
+  .qcard-head__count {
+    font-size: 15px;
+  }
+  .qcard-head .lang-menu__trigger {
+    padding-inline: 10px;
   }
   .qcard-head .lang-menu__count {
     display: none;
@@ -413,7 +580,8 @@
   font-size: 19px;
   line-height: 1.4;
 }
-.qcard-body h2:focus {
+.qcard-body h2:focus,
+.play-submitted__title:focus {
   outline: none;
 }
 /* The frame reserves the space; only the picture itself gets the light plate, so dark mode has no
@@ -505,6 +673,16 @@
   flex-shrink: 0;
   padding-block: 4px;
 }
+/* A touch screen gets a 44 px "Try again"; the slot grows by its border and a hair of air, the same
+   on every question. */
+@media (pointer: coarse) {
+  .qcard-status {
+    block-size: 46px;
+  }
+  .qcard-status__retry {
+    min-block-size: 44px;
+  }
+}
 .play-actionbar {
   position: sticky;
   inset-block-end: 0;
@@ -517,6 +695,12 @@
   gap: 8px;
   background: var(--bg);
   border-block-start: 1px solid var(--border-subtle);
+}
+/* The bar is always on screen, but it sits inside html's scroll-padding-block-end. Shifting its
+   buttons' scroll area up by that padding means focusing one (Tab, or the dialog handing focus
+   back to Review) never scrolls the page. */
+.play-actionbar button {
+  scroll-margin-block: calc(72px + env(safe-area-inset-bottom)) calc(-72px - env(safe-area-inset-bottom));
 }
 .play-actionbar > :first-child {
   justify-self: start;

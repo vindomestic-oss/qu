@@ -54,6 +54,7 @@ export function QuestionOverviewDialog({ open, questions, groups, currentIndex, 
   const flaggedCount = questions.filter((q) => flagged.has(q.id)).length;
   const visible = (q: ParticipantQuestion) =>
     filter === 'all' || (filter === 'unanswered' ? !isAnswered(q) : flagged.has(q.id));
+  const anyVisible = questions.some(visible);
 
   async function finish() {
     setBusy(true);
@@ -89,13 +90,25 @@ export function QuestionOverviewDialog({ open, questions, groups, currentIndex, 
           <p className="qoverview__summary">
             {t('play.overview.summary', { answered, unanswered: total - answered, flagged: flaggedCount })}
           </p>
+          {/* Each swatch stays on the line of its own label. */}
           <p className="qoverview__legend">
-            <span className="legend-swatch legend-swatch--answered" aria-hidden="true" /> {t('play.nav.answered')} ·{' '}
-            <span className="legend-swatch" aria-hidden="true" /> {t('play.nav.unanswered')} ·{' '}
-            <span className="legend-swatch legend-swatch--flagged" aria-hidden="true" /> {t('play.nav.flagged')} ·{' '}
-            <span className="legend-swatch legend-swatch--current" aria-hidden="true" /> {t('play.nav.current')}
+            <span className="qoverview__legend-item">
+              <span className="legend-swatch legend-swatch--answered" aria-hidden="true" /> {t('play.nav.answered')}
+            </span>{' '}
+            ·{' '}
+            <span className="qoverview__legend-item">
+              <span className="legend-swatch" aria-hidden="true" /> {t('play.nav.unanswered')}
+            </span>{' '}
+            ·{' '}
+            <span className="qoverview__legend-item">
+              <span className="legend-swatch legend-swatch--flagged" aria-hidden="true" /> {t('play.nav.flagged')}
+            </span>{' '}
+            ·{' '}
+            <span className="qoverview__legend-item">
+              <span className="legend-swatch legend-swatch--current" aria-hidden="true" /> {t('play.nav.current')}
+            </span>
           </p>
-          <div className="qoverview__filters" role="group">
+          <div className="qoverview__filters" role="group" aria-label={t('play.overview.filterLabel')}>
             {(['all', 'unanswered', 'flagged'] as Filter[]).map((f) => (
               <button key={f} type="button" className="toggle-chip" aria-pressed={filter === f} onClick={() => setFilter(f)}>
                 {f === 'all'
@@ -106,6 +119,7 @@ export function QuestionOverviewDialog({ open, questions, groups, currentIndex, 
               </button>
             ))}
           </div>
+          {!anyVisible && <p className="qoverview__empty">{t('play.overview.empty')}</p>}
           {groups.map((g) => {
             const items = questions.slice(g.startIndex, g.endIndex + 1).map((q, k) => ({ q, i: g.startIndex + k })).filter(({ q }) => visible(q));
             if (!items.length) return null;
@@ -162,11 +176,17 @@ export function QuestionOverviewDialog({ open, questions, groups, currentIndex, 
               </p>
             )}
             <div className="qoverview__actions">
-              <button type="button" ref={backRef} onClick={onClose} disabled={busy}>
+              <button type="button" className="qoverview__back" ref={backRef} onClick={onClose} disabled={busy}>
                 {t('play.overview.back')}
               </button>
-              <button type="button" className="btn-finish" onClick={finish} disabled={busy}>
-                {busy ? t('play.finishing') : t('play.finish')}
+              {/* Both labels share one cell, so "Finishing…" does not change the button's width. */}
+              <button type="button" className="btn-finish btn-stack" onClick={finish} disabled={busy}>
+                <span className={busy ? 'is-hidden' : undefined} aria-hidden={busy || undefined}>
+                  {t('play.finish')}
+                </span>
+                <span className={busy ? undefined : 'is-hidden'} aria-hidden={!busy || undefined}>
+                  {t('play.finishing')}
+                </span>
               </button>
             </div>
           </div>

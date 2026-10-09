@@ -19,6 +19,28 @@ interface Props {
   onOpenOverview: () => void;
 }
 
+/** Scroll-arrow chevron. Drawn pointing back/forward in LTR; play.css mirrors it in RTL, so both
+ *  arrows always point outward (a text ‹ › would be mirrored by the bidi algorithm on top). */
+function Chevron({ back }: { back?: boolean }) {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d={back ? 'M15 5l-7 7 7 7' : 'M9 5l7 7-7 7'} />
+    </svg>
+  );
+}
+
+/** Grid icon of the "All questions" button; on a phone it stands in for the hidden label. */
+function GridIcon() {
+  return (
+    <svg className="qnav-all__icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+      <rect x="3.5" y="3.5" width="7" height="7" rx="1" />
+      <rect x="13.5" y="3.5" width="7" height="7" rx="1" />
+      <rect x="3.5" y="13.5" width="7" height="7" rx="1" />
+      <rect x="13.5" y="13.5" width="7" height="7" rx="1" />
+    </svg>
+  );
+}
+
 /**
  * One-line strip of all question numbers above the card (wish 10). States by shape: filled = saved
  * answer, outline = none, ring + triangle = current, red corner = marked. One Tab stop (roving
@@ -86,16 +108,21 @@ export function QuestionNavigator({ questions, groups, currentIndex, flagged, co
   const [focusIndex, setFocusIndex] = useState<number | null>(null);
   const tabStop = focusIndex ?? currentIndex;
 
+  // At an end the arrow stays focusable (aria-disabled, the click is ignored): a disabled button
+  // would drop keyboard focus to the page. When the whole strip fits, both arrows are hidden but keep
+  // their space, so nothing moves.
   return (
-    <nav className="qnav" aria-label={t('play.nav.label')}>
+    <nav className="qnav" aria-label={t('play.nav.label')} data-fits={(edges.atStart && edges.atEnd) || undefined}>
       <button
         type="button"
         className="qnav-arrow"
         aria-label={t('play.nav.scrollBack')}
-        disabled={edges.atStart}
-        onClick={() => scrollByPage(-1)}
+        aria-disabled={edges.atStart}
+        onClick={() => {
+          if (!edges.atStart) scrollByPage(-1);
+        }}
       >
-        <span aria-hidden="true">{isRtl ? '›' : '‹'}</span>
+        <Chevron back />
       </button>
       <div
         className="qnav-scroller"
@@ -109,8 +136,9 @@ export function QuestionNavigator({ questions, groups, currentIndex, flagged, co
       >
         {groups.map((g) => {
           const name = g.section ? resolveFieldWithLang(g.section, 'name', contentLanguage, base) : null;
+          // A run without a rubric has no name, so it is no group either (the nav already says "Questions").
           return (
-            <div key={g.key} className="qnav-group" role="group" aria-label={name?.text} style={sectionStyle(g.colorIndex)}>
+            <div key={g.key} className="qnav-group" role={name ? 'group' : undefined} aria-label={name?.text} style={sectionStyle(g.colorIndex)}>
               {name && (
                 <span className="qnav-group-label" aria-hidden="true" lang={name.lang} title={name.text}>
                   {name.text}
@@ -153,13 +181,23 @@ export function QuestionNavigator({ questions, groups, currentIndex, flagged, co
         type="button"
         className="qnav-arrow"
         aria-label={t('play.nav.scrollForward')}
-        disabled={edges.atEnd}
-        onClick={() => scrollByPage(1)}
+        aria-disabled={edges.atEnd}
+        onClick={() => {
+          if (!edges.atEnd) scrollByPage(1);
+        }}
       >
-        <span aria-hidden="true">{isRtl ? '‹' : '›'}</span>
+        <Chevron />
       </button>
       <button type="button" className="qnav-all" aria-haspopup="dialog" onClick={onOpenOverview}>
-        <span>{t('play.nav.all')}</span> <span className="qnav-all__count">{t('play.nav.answeredCount', { answered: answeredCount, total })}</span>
+        <GridIcon />
+        <span className="qnav-all__label">{t('play.nav.all')}</span>{' '}
+        {/* The hidden "50/50" reserves the widest count, so the button keeps its width at 10/50. */}
+        <span className="qnav-all__count">
+          <span>{t('play.nav.answeredCount', { answered: answeredCount, total })}</span>
+          <span className="is-hidden" aria-hidden="true">
+            {t('play.nav.answeredCount', { answered: total, total })}
+          </span>
+        </span>
       </button>
     </nav>
   );

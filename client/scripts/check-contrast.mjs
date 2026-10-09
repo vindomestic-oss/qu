@@ -30,6 +30,12 @@ PAIRS.push(
   ['--nav-current-ring', '--surface', 3],
   ['--nav-flag', '--bg', 3],
   ['--nav-flag', '--surface', 3],
+  ['--nav-flag-on-answered', '--nav-answered-bg', 3],
+  ['--nav-flag-on-answered', '--bg', 3],
+  ['--nav-flag-on-answered', '--surface', 3],
+  ['--nav-focus-ring', '--nav-focus-gap', 3],
+  ['--nav-focus-gap', '--nav-answered-bg', 3],
+  ['--nav-focus-ring', '--surface', 3],
   ...[1, 2, 3, 4, 5, 6].flatMap((n) => [
     [`--section-${n}`, '--bg', 3],
     [`--section-${n}`, '--surface', 3],

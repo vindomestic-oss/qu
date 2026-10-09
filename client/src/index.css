@@ -73,6 +73,9 @@
   --nav-unanswered-border: #767676; /* 4.54 on --bg */
   --nav-current-ring: #27589f; /* 7.04 on --bg */
   --nav-flag: #c62828; /* 5.62 on --bg */
+  --nav-flag-on-answered: #e84545; /* marked corner on a filled number: 3.75 on --nav-answered-bg, 3.91 on --bg */
+  --nav-focus-ring: var(--focus-ring); /* keyboard focus inside a number: 7.04 on --nav-focus-gap */
+  --nav-focus-gap: var(--bg); /* 14.67 on --nav-answered-bg */
   --section-1: #00796b;
   --section-2: #b45309;
   --section-3: #7b3fb5;
@@ -123,6 +126,7 @@
   --nav-unanswered-border: #8a94a1;
   --nav-current-ring: #8fb8f5;
   --nav-flag: #ff8a80;
+  --nav-flag-on-answered: #dc4c4c; /* 3.58 on --nav-answered-bg, 4.55 on --bg, 4.04 on --surface */
   --section-1: #4fc3b3;
   --section-2: #f0a95b;
   --section-3: #c39bf0;

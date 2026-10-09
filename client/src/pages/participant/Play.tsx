@@ -86,6 +86,7 @@ export function Play() {
     draftsRef.current = drafts;
   }, [questions, drafts]);
   const headingRef = useRef<HTMLHeadingElement>(null);
+  const submittedRef = useRef<HTMLHeadingElement>(null);
   const movedRef = useRef(false);
   const timersRef = useRef(new Map<number, ReturnType<typeof setTimeout>>());
 
@@ -328,6 +329,12 @@ export function Play() {
     headingRef.current?.focus({ preventScroll: true });
   }, [index]);
 
+  // After the submit the dialog and the question are gone: the "Submitted" heading takes the focus,
+  // so screen readers announce it and focus does not fall back to the page.
+  useEffect(() => {
+    if (submitted && !loading) submittedRef.current?.focus({ preventScroll: true });
+  }, [submitted, loading]);
+
   // Load the next question's picture in the background, so it is there when the child moves on.
   useEffect(() => {
     const next = questions?.[index + 1];
@@ -473,7 +480,9 @@ export function Play() {
         <div className="play-nav play-nav--empty" />
         <main className="play-main" style={{ textAlign: 'center' }}>
           <Logo />
-          <h2>{t('play.submittedTitle')}</h2>
+          <h2 className="play-submitted__title" tabIndex={-1} ref={submittedRef}>
+            {t('play.submittedTitle')}
+          </h2>
           <p>{t('play.submittedBody')}</p>
         </main>
       </div>
@@ -500,10 +509,15 @@ export function Play() {
   // One status slot per card: this question's failed save, then other unsaved questions, then
   // saving / saved.
   const otherUnsaved = questions.flatMap((q, i) => (q.id !== question.id && failedIds.has(q.id) ? [i + 1] : []));
+  // The slot holds two lines next to "Try again": the short message there (the button says the rest).
   const slot: { tone: 'error' | 'saved' | 'muted'; text: string; retry?: boolean } | null = failedIds.has(question.id)
-    ? { tone: 'error', text: t('play.saveFailed'), retry: true }
+    ? { tone: 'error', text: t('play.saveFailedShort'), retry: true }
     : otherUnsaved.length > 0
-      ? { tone: 'error', text: t('play.notSavedOthers', { list: otherUnsaved.join(', ') }), retry: true }
+      ? {
+          tone: 'error',
+          text: t(otherUnsaved.length > 1 ? 'play.notSavedOthersMany' : 'play.notSavedOthers', { list: otherUnsaved.join(', ') }),
+          retry: true,
+        }
       : statusForQuestion?.state === 'saving'
         ? { tone: 'muted', text: t('play.saving') }
         : statusForQuestion?.state === 'saved'
@@ -528,7 +542,13 @@ export function Play() {
       <main className="play-main">
         <article className="qcard" data-testid="question-card">
           <div className="qcard-head">
-            <span className="qcard-head__count">{t('play.questionOf', { n: index + 1, total: questions.length })}</span>
+            {/* The hidden "Question 50 of 50" reserves the widest count, so the flag never moves. */}
+            <span className="qcard-head__count">
+              <span>{t('play.questionOf', { n: index + 1, total: questions.length })}</span>
+              <span className="is-hidden" aria-hidden="true">
+                {t('play.questionOf', { n: questions.length, total: questions.length })}
+              </span>
+            </span>
             <button
               type="button"
               className="flag-toggle"
