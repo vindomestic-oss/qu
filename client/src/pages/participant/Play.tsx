@@ -105,7 +105,7 @@ export function Play() {
   const saver = saverRef.current;
   useEffect(() => {
     saver.setHandlers({
-      onConfirmed: (qid, payload) => {
+      onConfirmed: (qid, payload, { superseded }) => {
         setFailedIds((prev) => {
           if (!prev.has(qid)) return prev;
           const next = new Set(prev);
@@ -118,9 +118,16 @@ export function Play() {
               ? prev.map((q) => (q.id === qid ? { ...q, myAnswer: { selected_choice_ids: [], text_answer: payload.text.trim() } } : q))
               : prev,
           );
-          setStatus((prev) => (prev?.questionId === qid && !saver.isBusy(qid) ? { questionId: qid, state: 'saved' } : prev));
-        } else {
-          // A retried choice comes back into view once the server has it.
+          // "Saved" only when the field holds exactly what the server has; while a newer save waits it
+          // stays "Saving…", and while newer typing waits for its autosave the slot is empty.
+          const draft = draftsRef.current[qid];
+          const upToDate = draft === undefined || draft.trim() === payload.text.trim();
+          if (!superseded) {
+            setStatus((prev) => (prev?.questionId === qid ? (upToDate ? { questionId: qid, state: 'saved' } : null) : prev));
+          }
+        } else if (!superseded) {
+          // A retried choice comes back into view once the server has it. A superseded confirmation is
+          // older than what the child picked since, so the screen keeps the newer pick.
           setQuestions((prev) =>
             prev ? prev.map((q) => (q.id === qid ? { ...q, myAnswer: { selected_choice_ids: payload.ids, text_answer: null } } : q)) : prev,
           );
@@ -165,15 +172,16 @@ export function Play() {
 
   /** Saves a question's draft when it differs from what the server has. */
   const flushTextSave = useCallback(
-    (questionId: number, opts: { keepalive?: boolean } = {}) => {
+    (questionId: number, opts: { keepalive?: boolean; immediate?: boolean } = {}) => {
       const timer = timersRef.current.get(questionId);
       if (timer) clearTimeout(timer);
       timersRef.current.delete(questionId);
       const q = questionsRef.current?.find((x) => x.id === questionId);
       const draft = draftsRef.current[questionId];
       if (!q || q.type !== 'text' || draft === undefined) return;
-      // Compare with the newest intent (a save may already be on its way, e.g. blur then tap).
-      const latest = saver.latest(questionId);
+      // Compare with the newest intent (a save may already be on its way, e.g. blur then tap). On page
+      // exit the request on its way may be aborted, so only what the server confirmed counts.
+      const latest = opts.immediate ? saver.confirmedOf(questionId) : saver.latest(questionId);
       const latestText = latest?.kind === 'text' ? latest.text.trim() : (q.myAnswer?.text_answer ?? '');
       if (draft.trim() === latestText) return;
       setStatus({ questionId, state: 'saving' });
@@ -185,10 +193,11 @@ export function Play() {
   );
 
   const flushAllDrafts = useCallback(
-    (opts: { keepalive?: boolean } = {}) => {
+    (opts: { keepalive?: boolean; immediate?: boolean } = {}) => {
+      if (opts.immediate) saver.sendQueuedNow();
       for (const id of Object.keys(draftsRef.current)) flushTextSave(Number(id), opts);
     },
-    [flushTextSave],
+    [flushTextSave, saver],
   );
 
   function goToResults() {
@@ -290,12 +299,13 @@ export function Play() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.id]);
 
-  // Leaving the page or hiding it (tab switch, iPad locked) saves every pending draft.
+  // Leaving the page or hiding it (tab switch, iPad locked) saves every pending draft at once, with
+  // keepalive: iOS may freeze or close a hidden tab without a pagehide.
   useEffect(() => {
     const onHidden = () => {
-      if (document.visibilityState === 'hidden') flushAllDrafts();
+      if (document.visibilityState === 'hidden') flushAllDrafts({ keepalive: true, immediate: true });
     };
-    const onPageHide = () => flushAllDrafts({ keepalive: true });
+    const onPageHide = () => flushAllDrafts({ keepalive: true, immediate: true });
     document.addEventListener('visibilitychange', onHidden);
     window.addEventListener('pagehide', onPageHide);
     return () => {
@@ -389,6 +399,9 @@ export function Play() {
   /** The overview's finish step: every draft is saved first; a failed save stops the submit. */
   async function finish(): Promise<'ok' | 'save-failed' | 'error'> {
     retryFailed();
+    await saver.flushAll();
+    // Anything typed or retried while waiting is saved too before the submit.
+    flushAllDrafts();
     const ok = await saver.flushAll();
     if (!ok) return 'save-failed';
     try {

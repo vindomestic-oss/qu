@@ -4,19 +4,29 @@ import { submitChoiceAnswer, submitTextAnswer } from '../api/participant';
 export type Payload = { kind: 'text'; text: string } | { kind: 'choice'; ids: number[] };
 
 interface QueueState {
-  inFlight: boolean;
+  /** Requests on their way; more than one only after an immediate (page-exit) save. */
+  inFlight: number;
   sending: Payload | null;
   queued: { payload: Payload; keepalive: boolean } | null;
   confirmed: Payload | null;
   lastFailed: boolean;
   /** The intent whose save failed last, kept for retryFailed(). */
   failedPayload: Payload | null;
+  /** Number of the newest request sent; only its outcome changes confirmed / failed. */
+  sentSeq: number;
 }
 
 interface Handlers {
-  onConfirmed: (questionId: number, payload: Payload) => void;
+  /** superseded: a newer intent is already waiting, so the UI must keep showing that one. */
+  onConfirmed: (questionId: number, payload: Payload, info: { superseded: boolean }) => void;
   onFailed: (questionId: number, confirmed: Payload | null, error: unknown) => void;
   onSubmitted: () => void;
+}
+
+interface SaveOptions {
+  keepalive?: boolean;
+  /** Send now even if a request is on its way (the page is going away, a queued save would never leave). */
+  immediate?: boolean;
 }
 
 /**
@@ -43,12 +53,13 @@ export class AnswerSaver {
     if (!q.inFlight && !q.queued) q.confirmed = payload;
   }
 
-  save(questionId: number, payload: Payload, { keepalive = false }: { keepalive?: boolean } = {}): void {
+  save(questionId: number, payload: Payload, { keepalive = false, immediate = false }: SaveOptions = {}): void {
     const q = this.state(questionId);
-    if (q.inFlight) {
+    if (q.inFlight && !immediate) {
       q.queued = { payload, keepalive };
       return;
     }
+    q.queued = null;
     void this.send(questionId, payload, keepalive);
   }
 
@@ -58,9 +69,24 @@ export class AnswerSaver {
     return q ? (q.queued?.payload ?? q.sending ?? q.confirmed) : null;
   }
 
+  /** What the server has confirmed for a question. */
+  confirmedOf(questionId: number): Payload | null {
+    return this.queues.get(questionId)?.confirmed ?? null;
+  }
+
   isBusy(questionId: number): boolean {
     const q = this.queues.get(questionId);
-    return Boolean(q && (q.inFlight || q.queued));
+    return Boolean(q && (q.inFlight > 0 || q.queued));
+  }
+
+  /** Page exit: every waiting intent leaves at once with keepalive (a queued one would never be sent). */
+  sendQueuedNow(): void {
+    for (const [id, q] of this.queues) {
+      if (!q.queued) continue;
+      const { payload } = q.queued;
+      q.queued = null;
+      void this.send(id, payload, true);
+    }
   }
 
   /** Questions whose last save failed. */
@@ -86,7 +112,7 @@ export class AnswerSaver {
   private state(questionId: number): QueueState {
     let q = this.queues.get(questionId);
     if (!q) {
-      q = { inFlight: false, sending: null, queued: null, confirmed: null, lastFailed: false, failedPayload: null };
+      q = { inFlight: 0, sending: null, queued: null, confirmed: null, lastFailed: false, failedPayload: null, sentSeq: 0 };
       this.queues.set(questionId, q);
     }
     return q;
@@ -98,15 +124,20 @@ export class AnswerSaver {
 
   private async send(questionId: number, payload: Payload, keepalive: boolean): Promise<void> {
     const q = this.state(questionId);
-    q.inFlight = true;
+    q.sentSeq += 1;
+    const seq = q.sentSeq;
+    const newest = () => seq === q.sentSeq;
+    q.inFlight += 1;
     q.sending = payload;
     try {
       if (payload.kind === 'text') await submitTextAnswer(questionId, payload.text, { keepalive });
       else await submitChoiceAnswer(questionId, payload.ids, { keepalive });
-      q.confirmed = payload;
-      q.lastFailed = false;
-      q.failedPayload = null;
-      this.handlers.onConfirmed(questionId, payload);
+      if (newest()) {
+        q.confirmed = payload;
+        q.lastFailed = false;
+        q.failedPayload = null;
+        this.handlers.onConfirmed(questionId, payload, { superseded: q.queued !== null });
+      }
     } catch (err) {
       if (err instanceof ApiError && err.status === 409) {
         // Already submitted (another tab, or the session ended): nothing more can be saved.
@@ -114,15 +145,17 @@ export class AnswerSaver {
         q.lastFailed = false;
         q.failedPayload = null;
         this.handlers.onSubmitted();
-      } else if (!q.queued) {
+      } else if (newest() && !q.queued) {
         q.lastFailed = true;
         q.failedPayload = payload;
         this.handlers.onFailed(questionId, q.confirmed, err);
       }
     } finally {
-      q.inFlight = false;
-      q.sending = null;
+      q.inFlight -= 1;
+      if (!q.inFlight) q.sending = null;
     }
+    // While a newer request is still on its way, that one finishes the job.
+    if (q.inFlight) return;
     const next = q.queued;
     q.queued = null;
     if (next) {

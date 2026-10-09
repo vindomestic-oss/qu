@@ -31,6 +31,7 @@ export function QuestionOverviewDialog({ open, questions, groups, currentIndex, 
   const { t } = useLanguage();
   const itemLabel = useNavItemLabel();
   const ref = useRef<HTMLDialogElement>(null);
+  const backRef = useRef<HTMLButtonElement>(null);
   const [filter, setFilter] = useState<Filter>('all');
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState<string | null>(null);
@@ -38,7 +39,12 @@ export function QuestionOverviewDialog({ open, questions, groups, currentIndex, 
   useEffect(() => {
     const dialog = ref.current;
     if (!dialog) return;
-    if (open && !dialog.open) dialog.showModal();
+    if (open && !dialog.open) {
+      dialog.showModal();
+      // The safe choice is preselected (showModal would focus Close, the first button). No scroll:
+      // on a phone the button sits at the bottom of a tall dialog.
+      backRef.current?.focus({ preventScroll: true });
+    }
     if (!open && dialog.open) dialog.close();
   }, [open]);
 
@@ -64,15 +70,19 @@ export function QuestionOverviewDialog({ open, questions, groups, currentIndex, 
       className="qoverview"
       aria-labelledby="qoverview-title"
       onClose={onClose}
+      // While the submit runs the dialog stays open: Esc and a backdrop tap do nothing.
+      onCancel={(e) => {
+        if (busy) e.preventDefault();
+      }}
       onClick={(e) => {
-        if (e.target === ref.current) onClose();
+        if (e.target === ref.current && !busy) onClose();
       }}
     >
       {open && (
         <div className="qoverview__inner">
           <div className="qoverview__head">
             <h2 id="qoverview-title">{t('play.overview.title')}</h2>
-            <button type="button" className="qoverview__close" onClick={onClose}>
+            <button type="button" className="qoverview__close" onClick={onClose} disabled={busy}>
               {t('play.overview.close')}
             </button>
           </div>
@@ -122,6 +132,7 @@ export function QuestionOverviewDialog({ open, questions, groups, currentIndex, 
                           data-state={done ? 'answered' : 'unanswered'}
                           data-flagged={flagged.has(q.id) || undefined}
                           aria-current={i === currentIndex ? 'step' : undefined}
+                          disabled={busy}
                           aria-label={itemLabel(i + 1, total, name?.text ?? null, done, flagged.has(q.id))}
                           onClick={() => {
                             onClose();
@@ -151,7 +162,7 @@ export function QuestionOverviewDialog({ open, questions, groups, currentIndex, 
               </p>
             )}
             <div className="qoverview__actions">
-              <button type="button" autoFocus onClick={onClose} disabled={busy}>
+              <button type="button" ref={backRef} onClick={onClose} disabled={busy}>
                 {t('play.overview.back')}
               </button>
               <button type="button" className="btn-finish" onClick={finish} disabled={busy}>
