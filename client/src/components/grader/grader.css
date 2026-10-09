@@ -1055,3 +1055,35 @@ html:has(.quiz-bar) {
   block-size: 22px;
   margin: 0;
 }
+
+/* --- "Difficult" question (wish 8, S15) -------------------------------------------------------- */
+.difficult-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--on-warning-bg);
+  background: var(--warning-bg);
+  color: var(--on-warning-bg);
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+/* Kept in the layout while not shown, so nothing moves when it appears. */
+.difficult-badge.is-unused {
+  visibility: hidden;
+}
+/* The falling line falls towards the reading end in Hebrew too. */
+.difficult-badge .grade-icon:dir(rtl) {
+  transform: scaleX(-1);
+}
+.rate-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.difficult-legend {
+  margin: 8px 0 0;
+  font-size: 14px;
+}

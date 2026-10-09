@@ -311,8 +311,9 @@ gradingRouter.get('/summary', (req: StaffRequest, res) => {
     }[]
   ).map(({ incorrect_count, ...q }) => {
     const graded = q.correct_count + incorrect_count;
-    // Share of correct among the graded answers; null until one is graded.
-    return { ...q, correct_rate: graded > 0 ? q.correct_count / graded : null };
+    // Share of correct among the graded answers; null until one is graded. graded_count is the
+    // denominator (the panel's "difficult" badge needs at least 5, wish 8).
+    return { ...q, graded_count: graded, correct_rate: graded > 0 ? q.correct_count / graded : null };
   });
 
   res.json({
@@ -437,6 +438,8 @@ gradingRouter.get('/quiz', (req: StaffRequest, res) => {
 
     const stats: Record<string, unknown> = {
       answered: fromSubmitted.length,
+      // Graded answers and the correct ones among them (the "difficult" badge, wish 8).
+      graded: fromSubmitted.filter(({ a }) => a.points_awarded != null).length,
       correct: fromSubmitted.filter(({ a }) => a.points_awarded != null && a.is_correct === 1).length,
       needs_review: needsReview,
       awaiting_submission: q.type === 'text' ? answered.filter((a) => !a.submitted && a.points_awarded == null).length : 0,

@@ -78,3 +78,12 @@ export function KeyboardIcon(p: IconProps) {
     </Svg>
   );
 }
+
+/** A difficult question (wish 8, S15): a falling line. */
+export function TrendDownIcon(p: IconProps) {
+  return (
+    <Svg {...p}>
+      <path d="M3 7l6 6 4-4 8 8M21 11v6h-6" />
+    </Svg>
+  );
+}

@@ -178,6 +178,11 @@ export const GRADER_EN: Dict = {
   'grader.keys.allGraded': 'Every answer here is graded.',
   'grader.keys.tooHigh': 'Too many points: the maximum is {max}.',
   'grader.keys.notGradable': 'Not gradable yet: the participant has not submitted.',
+
+  // "Difficult" questions (wish 8, S15).
+  'grader.difficult.badge': 'Difficult',
+  'grader.difficult.title': 'Fewer than {pct} of the graded answers are correct ({correct} of {graded})',
+  'grader.difficult.legend': '= fewer than {pct} of the graded answers correct, counted from {n} graded answers.',
 };
 
 export const GRADER_DE: Dict = {
@@ -354,6 +359,11 @@ export const GRADER_DE: Dict = {
   'grader.keys.allGraded': 'Alle Antworten hier sind bewertet.',
   'grader.keys.tooHigh': 'Zu viele Punkte: höchstens {max}.',
   'grader.keys.notGradable': 'Noch nicht bewertbar: noch nicht abgegeben.',
+
+  // "Difficult" questions (wish 8, S15).
+  'grader.difficult.badge': 'Schwierig',
+  'grader.difficult.title': 'Weniger als {pct} der bewerteten Antworten sind richtig ({correct} von {graded})',
+  'grader.difficult.legend': '= weniger als {pct} der bewerteten Antworten richtig, gezählt ab {n} bewerteten Antworten.',
 };
 
 export const GRADER_RU: Dict = {
@@ -534,6 +544,11 @@ export const GRADER_RU: Dict = {
   'grader.keys.allGraded': 'Все ответы здесь оценены.',
   'grader.keys.tooHigh': 'Слишком много баллов: максимум {max}.',
   'grader.keys.notGradable': 'Пока нельзя оценить: работа ещё не сдана.',
+
+  // "Difficult" questions (wish 8, S15).
+  'grader.difficult.badge': 'Сложный',
+  'grader.difficult.title': 'Верно меньше {pct} проверенных ответов ({correct} из {graded})',
+  'grader.difficult.legend': '= верно меньше {pct} проверенных ответов; считается, когда проверено не меньше {n}.',
 };
 
 export const GRADER_HE: Dict = {
@@ -712,4 +727,9 @@ export const GRADER_HE: Dict = {
   'grader.keys.allGraded': 'כל התשובות כאן נבדקו.',
   'grader.keys.tooHigh': 'יותר מדי נקודות: המקסימום הוא {max}.',
   'grader.keys.notGradable': 'עדיין אי אפשר לבדוק: התשובות עוד לא הוגשו.',
+
+  // "Difficult" questions (wish 8, S15).
+  'grader.difficult.badge': 'קשה',
+  'grader.difficult.title': 'פחות מ־{pct} מהתשובות שנבדקו נכונות ({correct} מתוך {graded})',
+  'grader.difficult.legend': '= פחות מ־{pct} מהתשובות שנבדקו נכונות; נספר החל מ־{n} תשובות שנבדקו.',
 };

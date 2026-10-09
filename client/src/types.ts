@@ -279,6 +279,8 @@ export interface GradingSummary {
     answered_count: number;
     correct_count: number;
     needs_review_count: number;
+    /** Graded answers (correct + incorrect): the denominator of correct_rate. */
+    graded_count: number;
     correct_rate: number | null;
   }[];
 }
@@ -369,6 +371,8 @@ export interface WholeQuizQuestion {
   question: GradingQuestion;
   stats: {
     answered: number;
+    /** Answers with a grade (wish 8: the "difficult" badge counts correct among these). */
+    graded: number;
     correct: number;
     needs_review: number;
     awaiting_submission: number;

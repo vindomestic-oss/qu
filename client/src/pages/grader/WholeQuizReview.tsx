@@ -20,6 +20,7 @@ import { useAiAcceptKey } from '../../lib/useAiAcceptKey';
 import { useAiBlindMode } from '../../lib/useAiBlindMode';
 import { useShortcutsEnabled } from '../../lib/graderShortcuts';
 import { GraderShortcuts } from '../../components/grader/GraderShortcuts';
+import { DifficultBadge } from '../../components/grader/DifficultBadge';
 import { runAi } from '../../api/aiGrading';
 import { QuestionLanguageBar } from '../../components/participant/QuestionLanguageBar';
 import type { AiGradingStatus, AnswerGrade, GradingAnswer, GradingQuestion, WholeQuizQuestion, WholeQuizResponse } from '../../types';
@@ -42,6 +43,9 @@ interface Snapshot {
     groups: number[][];
     /** The server's rule_matched minus the shown rows' share, so the count follows rows updated in place. */
     ruleBase: number;
+    /** The same for the graded and correct answers ("difficult" badge, wish 8). */
+    gradedBase: number;
+    correctBase: number;
   }[];
 }
 
@@ -70,6 +74,25 @@ function countRule(ids: number[], rows: Map<number, Row>): number {
   let n = 0;
   for (const id of ids) if (rows.get(id)?.grade_source === 'rule') n += 1;
   return n;
+}
+
+/** Shown rows with a grade, and those graded correct (the "difficult" badge, wish 8). */
+function countGrades(ids: number[], rows: Map<number, Row>): { graded: number; correct: number } {
+  let graded = 0;
+  let correct = 0;
+  for (const id of ids) {
+    const r = rows.get(id);
+    if (r?.points_awarded == null) continue;
+    graded += 1;
+    if (r.is_correct === 1) correct += 1;
+  }
+  return { graded, correct };
+}
+
+/** The server's graded / correct counts minus the shown rows' share (see Snapshot). */
+function gradeBases(stats: WholeQuizQuestion['stats'], ids: number[], rows: Map<number, Row>) {
+  const shown = countGrades(ids, rows);
+  return { gradedBase: (stats.graded ?? 0) - shown.graded, correctBase: stats.correct - shown.correct };
 }
 
 /** The fields of a question's answer key (wish 7: they can change while the list is open). */
@@ -177,6 +200,7 @@ export function WholeQuizReview() {
             ids,
             groups: q.question.type === 'text' ? groupIdentical(q.answers) : [],
             ruleBase: (q.stats.rule_matched ?? 0) - countRule(ids, map),
+            ...gradeBases(q.stats, ids, map),
           };
         });
         rowsRef.current = map;
@@ -235,7 +259,13 @@ export function WholeQuizReview() {
                   const question = fresh
                     ? { ...q.question, reference_answer: fresh.reference_answer, accepted_answers: fresh.accepted_answers, grader_notes: fresh.grader_notes }
                     : q.question;
-                  return { ...q, question, stats, ruleBase: (stats.rule_matched ?? 0) - countRule(q.ids, merged) };
+                  return {
+                    ...q,
+                    question,
+                    stats,
+                    ruleBase: (stats.rule_matched ?? 0) - countRule(q.ids, merged),
+                    ...gradeBases(stats, q.ids, merged),
+                  };
                 }),
               }
             : prev,
@@ -452,7 +482,7 @@ export function WholeQuizReview() {
         </div>
       )}
 
-      {snapshot.questions.map(({ question: q, stats, ids, groups, ruleBase }) => {
+      {snapshot.questions.map(({ question: q, stats, ids, groups, ruleBase, gradedBase, correctBase }) => {
         const isText = q.type === 'text';
         const open = isText || openChoices.has(q.id);
         const rowList = ids.map((x) => rows.get(x)).filter((r): r is Row => Boolean(r));
@@ -519,6 +549,8 @@ export function WholeQuizReview() {
           .filter((members) => members.length > 0)
           .map((members) => ({ text: members[0].text_answer ?? '', members }));
         const ruleMatched = Math.max(0, ruleBase + countRule(ids, rows));
+        // Live: the shown rows as they are now plus the rest of the question as last loaded.
+        const shownGrades = countGrades(ids, rows);
         return (
           <QuestionReviewCard
             key={q.id}
@@ -527,6 +559,7 @@ export function WholeQuizReview() {
             lang={contentLanguage}
             base={base}
             choiceCounts={isText ? undefined : stats.choice_counts}
+            badge={<DifficultBadge correct={correctBase + shownGrades.correct} graded={gradedBase + shownGrades.graded} />}
           >
             {/* Always one line, so the card keeps its height when the last participant submits. */}
             <p className="grade-muted review-card__pending">

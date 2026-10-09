@@ -10,6 +10,7 @@ import { ParticipantTable } from '../../components/grader/ParticipantTable';
 import { FlagIcon } from '../../components/grader/icons';
 import { formatPercent } from '../../components/grader/format';
 import { AiGradingBar } from '../../components/grader/AiGradingBar';
+import { DifficultBadge, DifficultLegend } from '../../components/grader/DifficultBadge';
 import { useAiBlindMode } from '../../lib/useAiBlindMode';
 import '../../components/grader/grader.css';
 
@@ -139,7 +140,13 @@ export function GradingDashboard() {
                     {i + 1}
                   </th>
                   <td className="num">{t('grader.tiles.ofTotal', { n: q.answered_count, total: counters.participants_joined })}</td>
-                  <td className="num">{q.correct_rate === null ? '–' : formatPercent(q.correct_rate, uiLanguage)}</td>
+                  <td className="num">
+                    <span className="rate-cell">
+                      {q.correct_rate === null ? '–' : formatPercent(q.correct_rate, uiLanguage)}
+                      {/* Wish 8 (S15): under 35 % correct of at least 5 graded answers; its place is kept. */}
+                      <DifficultBadge correct={q.correct_count} graded={q.graded_count ?? 0} />
+                    </span>
+                  </td>
                   <td className="num">
                     {q.needs_review_count > 0 ? (
                       <Link
@@ -158,6 +165,7 @@ export function GradingDashboard() {
             </tbody>
           </table>
         </div>
+        <DifficultLegend />
       </section>
     </div>
   );
