@@ -35,3 +35,7 @@ export function gradeAnswer(sessionId: number, answerId: number, pointsAwarded: 
     body: JSON.stringify({ points_awarded: pointsAwarded }),
   });
 }
+
+export function allowRejoin(sessionId: number, participantId: number) {
+  return api<{ ok: true }>(`/sessions/${sessionId}/participants/${participantId}/allow-rejoin`, { method: 'PUT' });
+}

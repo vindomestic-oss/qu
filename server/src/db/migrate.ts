@@ -11,8 +11,12 @@ const ADDED_COLUMNS: Record<string, { name: string; type: string }[]> = {
   ],
   questions: CONTENT_LANGS.map((lang) => ({ name: `text_${lang}`, type: 'TEXT' })),
   choices: CONTENT_LANGS.map((lang) => ({ name: `text_${lang}`, type: 'TEXT' })),
-  // NULL means the participant hasn't clicked "Finish" yet; set once, never cleared.
-  participants: [{ name: 'submitted_at', type: 'TEXT' }],
+  participants: [
+    // NULL means the participant hasn't clicked "Finish" yet; set once, never cleared.
+    { name: 'submitted_at', type: 'TEXT' },
+    // sha256 hex of the participant's rejoin secret; NULL = the name can be claimed (legacy row or "Allow rejoin").
+    { name: 'rejoin_hash', type: 'TEXT' },
+  ],
 };
 
 // Quizzes whose questions are written directly in a non-English base language. Backfilled into

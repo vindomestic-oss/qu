@@ -64,8 +64,14 @@ Open `http://localhost:4000`.
 
 ## Data & backups
 
-- All data lives in `server/quiz.db` (a single SQLite file; `QUIZ_DB_PATH` moves it) and uploaded question images in `server/uploads/`. Back up both together; they're not tied to any external service.
-- `server/.env` holds the signing secret for login tokens (`JWT_SECRET`) and the seed admin credentials. It's already generated and gitignored — don't delete/regenerate it while a quiz is actively running, or existing logins will be invalidated (harmless, just re-login).
+- All data lives in one SQLite file, `server/quiz.db` by default, and uploaded question images in `server/uploads/`. Three environment variables move them, for example onto a persistent disk:
+  - `QUIZ_DB_PATH` (e.g. `/var/data/quiz.db`)
+  - `UPLOAD_DIR` (e.g. `/var/data/uploads`)
+  - `BACKUP_DIR` (default: a `backups` folder next to the database)
+- The server writes a daily copy of the database (`quiz-YYYY-MM-DD.db`, UTC date) 60 seconds after it starts and then every 24 hours, and keeps the 14 newest. On Render's free plan these copies vanish with every restart, like the database itself; they only last on a persistent disk.
+- Admins can download a fresh copy from the dashboard ("Download database backup"). It contains participants' names and answers: keep it only on EJKA's OneDrive.
+- Restore without touching the live file: copy a backup next to it (e.g. `/var/data/restore-2026-10-20.db`), point `QUIZ_DB_PATH` at the copy and restart.
+- `server/.env` holds the signing secret for login tokens (`JWT_SECRET`) and, locally, the seed admin credentials. It's gitignored — don't delete/regenerate it while a quiz is actively running, or existing logins will be invalidated (harmless, just re-login).
 
 ## Notes on scale/behavior
 

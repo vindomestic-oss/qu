@@ -1,8 +1,11 @@
 import multer from 'multer';
+import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
 
-const UPLOAD_DIR = path.join(__dirname, '..', '..', 'uploads');
+// On a persistent disk: UPLOAD_DIR=/var/data/uploads (next to QUIZ_DB_PATH).
+const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(__dirname, '..', '..', 'uploads');
+fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, UPLOAD_DIR),

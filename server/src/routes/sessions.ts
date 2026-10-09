@@ -123,6 +123,15 @@ sessionsRouter.get('/:id/live', (req, res) => {
   res.json({ session, participants, questions });
 });
 
+// Lets a participant's name be claimed again without its rejoin secret (e.g. after switching devices).
+sessionsRouter.put('/:id/participants/:participantId/allow-rejoin', (req, res) => {
+  const result = db
+    .prepare('UPDATE participants SET rejoin_hash = NULL WHERE id = ? AND session_id = ?')
+    .run(Number(req.params.participantId), Number(req.params.id));
+  if (result.changes === 0) return res.status(404).json({ error: 'Participant not found in this session' });
+  res.json({ ok: true });
+});
+
 sessionsRouter.get('/:id/results', (req, res) => {
   const session = getSession(Number(req.params.id));
   if (!session) return res.status(404).json({ error: 'Session not found' });
@@ -142,7 +151,7 @@ sessionsRouter.get('/:id/results', (req, res) => {
   }));
 
   const participants = db
-    .prepare('SELECT * FROM participants WHERE session_id = ? ORDER BY joined_at')
+    .prepare('SELECT id, session_id, display_name, joined_at, submitted_at FROM participants WHERE session_id = ? ORDER BY joined_at')
     .all(session.id) as ParticipantRow[];
   const answers = db.prepare('SELECT * FROM answers WHERE session_id = ?').all(session.id) as AnswerRow[];
 

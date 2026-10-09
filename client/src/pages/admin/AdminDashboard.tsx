@@ -4,7 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthContext';
 import { createQuiz, deleteQuiz, listQuizzes } from '../../api/quizzes';
 import type { Quiz } from '../../types';
-import { ApiError } from '../../api/client';
+import { ApiError, downloadAdminFile } from '../../api/client';
 
 export function AdminDashboard() {
   const { admin, logout } = useAuth();
@@ -17,6 +17,7 @@ export function AdminDashboard() {
   const [description, setDescription] = useState('');
   const [timeLimitMinutes, setTimeLimitMinutes] = useState(10);
   const [creating, setCreating] = useState(false);
+  const [downloading, setDownloading] = useState(false);
 
   async function refresh() {
     setLoading(true);
@@ -57,6 +58,18 @@ export function AdminDashboard() {
       setError(err instanceof ApiError ? err.message : 'Failed to create quiz');
     } finally {
       setCreating(false);
+    }
+  }
+
+  async function handleDownloadBackup() {
+    setError(null);
+    setDownloading(true);
+    try {
+      await downloadAdminFile('/admin/backups/latest', `quiz-backup-${new Date().toISOString().slice(0, 10)}.db`);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Failed to download the backup');
+    } finally {
+      setDownloading(false);
     }
   }
 
@@ -144,6 +157,15 @@ export function AdminDashboard() {
           ))}
         </ul>
       )}
+
+      <h2 style={{ marginTop: 32 }}>Backup</h2>
+      <p style={{ color: 'var(--text-muted)' }}>
+        A copy of the whole database as it is right now. It contains participants' names and answers: store it only on
+        EJKA's OneDrive.
+      </p>
+      <button type="button" onClick={handleDownloadBackup} disabled={downloading}>
+        {downloading ? 'Preparing…' : 'Download database backup'}
+      </button>
     </div>
   );
 }

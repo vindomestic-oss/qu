@@ -8,6 +8,7 @@ import { questionsRouter } from './routes/questions';
 import { sessionsRouter } from './routes/sessions';
 import { joinRouter } from './routes/join';
 import { myRouter } from './routes/my';
+import { adminRouter } from './routes/admin';
 import { UPLOAD_DIR } from './middleware/upload';
 
 const CLIENT_DIST = path.join(__dirname, '..', '..', 'client', 'dist');
@@ -29,6 +30,7 @@ export function createApp(): express.Express {
   app.use('/api/sessions', sessionsRouter);
   app.use('/api', joinRouter);
   app.use('/api/my', myRouter);
+  app.use('/api/admin', adminRouter);
 
   app.use('/api', (_req, res) => {
     res.status(404).json({ error: 'Not found' });

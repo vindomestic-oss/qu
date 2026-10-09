@@ -1,13 +1,22 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthContext';
 import { ApiError } from '../../api/client';
 import { Logo } from '../../components/Logo';
 
+/** Only same-app admin paths, so ?next= cannot send anyone to another site. */
+function safeNext(next: string | null): string {
+  if (!next || !next.startsWith('/admin') || next.startsWith('//') || next.includes('\\')) return '/admin';
+  if (next.startsWith('/admin/login')) return '/admin';
+  return next;
+}
+
 export function AdminLogin() {
   const { login } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const expired = searchParams.get('expired') === '1';
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -19,7 +28,7 @@ export function AdminLogin() {
     setSubmitting(true);
     try {
       await login(username, password);
-      navigate('/admin');
+      navigate(safeNext(searchParams.get('next')));
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Login failed');
     } finally {
@@ -31,6 +40,7 @@ export function AdminLogin() {
     <div style={{ maxWidth: 360, margin: '80px auto' }}>
       <Logo />
       <h1 style={{ textAlign: 'center' }}>Admin Login</h1>
+      {expired && <p role="status">Your session has expired. Please log in again.</p>}
       <form onSubmit={handleSubmit}>
         <div style={{ marginBottom: 12 }}>
           <label>

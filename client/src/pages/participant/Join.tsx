@@ -24,7 +24,8 @@ export function Join() {
       await join(joinCode.trim().toUpperCase(), displayName.trim());
       navigate('/play');
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to join');
+      if (err instanceof ApiError && err.code === 'NAME_TAKEN') setError(t('join.error.NAME_TAKEN'));
+      else setError(err instanceof ApiError ? err.message : 'Failed to join');
     } finally {
       setSubmitting(false);
     }

@@ -39,6 +39,7 @@ const en: Dict = {
   'join.yourName': 'Your name',
   'join.joining': 'Joining…',
   'join.join': 'Join',
+  'join.error.NAME_TAKEN': 'This name is already taken. Choose another name or ask the host.',
 
   'play.loading': 'Loading…',
   'play.youreIn': "You're in!",
@@ -86,6 +87,7 @@ const de: Dict = {
   'join.yourName': 'Dein Name',
   'join.joining': 'Trete bei…',
   'join.join': 'Beitreten',
+  'join.error.NAME_TAKEN': 'Dieser Name ist schon vergeben. Wähle einen anderen Namen oder wende dich an die Spielleitung.',
 
   'play.loading': 'Lädt…',
   'play.youreIn': 'Du bist dabei!',
@@ -133,6 +135,7 @@ const ru: Dict = {
   'join.yourName': 'Ваше имя',
   'join.joining': 'Подключение…',
   'join.join': 'Войти',
+  'join.error.NAME_TAKEN': 'Это имя уже занято. Выберите другое или обратитесь к ведущему.',
 
   'play.loading': 'Загрузка…',
   'play.youreIn': 'Вы подключились!',
@@ -295,6 +298,7 @@ const he: Dict = {
   'join.yourName': 'השם שלך',
   'join.joining': 'מתחבר…',
   'join.join': 'הצטרפות',
+  'join.error.NAME_TAKEN': 'השם הזה כבר תפוס. בחרו שם אחר או פנו למנחה.',
 
   'play.loading': 'טוען…',
   'play.youreIn': 'הצטרפת בהצלחה!',
