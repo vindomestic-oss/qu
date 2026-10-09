@@ -283,7 +283,7 @@ export function QuestionForm({
               onChange={(e) => setGraderNotes(e.target.value)}
               rows={2}
               maxLength={2000}
-              placeholder="e.g. only one of the two named: 0.5 points"
+              placeholder="e.g. partial answer (only one of the two named): grader decides the points"
               style={{ display: 'block', width: '100%' }}
             />
           </label>

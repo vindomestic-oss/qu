@@ -526,17 +526,20 @@ describe('migrations', () => {
     const q = (text: string) =>
       mem.prepare('SELECT accepted_answers, grader_notes FROM questions WHERE text = ?').get(text) as { accepted_answers: string; grader_notes: string | null };
     assert.equal(q(CHIDON_5787_ANFAENGER_KEY[0].text).accepted_answers, '["my own"]');
-    assert.deepEqual(JSON.parse(q(CHIDON_5787_ANFAENGER_KEY[7].text).accepted_answers), ['Nach Ägypten', 'Ägypten', 'Aegypten', 'Mizrajim']);
-    assert.deepEqual(JSON.parse(q(CHIDON_5787_FORTGESCHRITTENE_KEY[9].text).accepted_answers).slice(0, 2), ['70', 'siebzig']);
+    assert.deepEqual(JSON.parse(q(CHIDON_5787_ANFAENGER_KEY[7].text).accepted_answers), ['Nach Ägypten', 'Ägypten', 'Aegypten']);
+    assert.deepEqual(JSON.parse(q(CHIDON_5787_FORTGESCHRITTENE_KEY[9].text).accepted_answers), ['70', 'siebzig']);
+    // Only spec-listed short forms and spellings of the same answer: no synonyms or partial forms.
+    assert.equal(q(CHIDON_5787_FORTGESCHRITTENE_KEY[5].text).accepted_answers, '["Mit Aussatz (Zaraat)"]');
     assert.deepEqual(JSON.parse(q(CHIDON_5786_KEY[1].text).accepted_answers), ['Yishmael', 'Ishmael']);
     // Multi-item answers: no partial forms, a partial-credit sentence in the notes.
     const fortgeschritten5 = q(CHIDON_5787_FORTGESCHRITTENE_KEY[4].text);
     assert.equal(fortgeschritten5.grader_notes, 'my note', 'an edited note stays');
     const fortgeschritten7 = q(CHIDON_5787_FORTGESCHRITTENE_KEY[6].text);
-    assert.match(fortgeschritten7.grader_notes!, /^Bamidbar 14,6-9\. Nur einer der beiden genannt/);
+    assert.equal(fortgeschritten7.grader_notes, 'Bamidbar 14,6-9. Teilantwort (nur einer der beiden genannt): die Prüfenden entscheiden über die Punkte.');
     assert.ok(!JSON.parse(fortgeschritten7.accepted_answers).some((x: string) => /^(Jehoschua|Kalev)$/.test(x)));
-    assert.match(q(CHIDON_5786_KEY[11].text).grader_notes!, /^Only one of the two named/);
-    assert.match(q(CHIDON_5787_ANFAENGER_KEY[2].text).grader_notes!, /^Bereschit 37,9\. Nur ein Teil genannt/);
+    assert.equal(q(CHIDON_5786_KEY[11].text).grader_notes, 'Partial answer (only one of the two named): the grader decides the points.');
+    assert.match(q(CHIDON_5787_ANFAENGER_KEY[2].text).grader_notes!, /^Bereschit 37,9\. Teilantwort/);
+    for (const { entries } of CHIDON_ANSWER_KEYS) for (const e of entries) assert.ok(!/0[.,]5/.test(e.notes ?? ''), 'notes set no points');
 
     // The S12 backfill on a database that never had keys writes the extended values directly.
     const fresh = freshDb();

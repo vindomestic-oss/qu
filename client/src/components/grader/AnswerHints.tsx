@@ -4,6 +4,7 @@ import { useLanguage } from '../../i18n/LanguageContext';
 import type { Precedent } from '../../types';
 import { CheckIcon, HistoryIcon } from './icons';
 import { formatPoints } from './format';
+import { Interpolate } from './Interpolate';
 
 // Hints of the reference check (wish 7, S13) next to a text answer: the rule label, earlier grades
 // of the same answer in other runs, and the admin's "Add to accepted answers".
@@ -27,7 +28,13 @@ export function PrecedentHint({ precedent }: { precedent: Precedent | undefined 
   return (
     <p className={`answer-hint${agreed ? '' : ' answer-hint--disagree'}`}>
       <HistoryIcon size={14} />{' '}
-      <bdi>{t(agreed ? 'grader.ai.precedent' : 'grader.ai.precedentDisagree', { points, n: precedent.n })}</bdi>
+      <span>
+        {/* Points and "3×" as LTR isolates, so "(3×)" never mirrors to "(×3)" in Hebrew. */}
+        <Interpolate
+          template={t(agreed ? 'grader.ai.precedent' : 'grader.ai.precedentDisagree')}
+          values={{ points: <bdi dir="ltr">{points}</bdi>, count: <bdi dir="ltr">{`${precedent.n}×`}</bdi> }}
+        />
+      </span>
     </p>
   );
 }

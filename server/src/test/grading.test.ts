@@ -749,12 +749,7 @@ describe('migrations and answer keys', () => {
     assert.deepEqual(backfillAnswerKeys(mem), [29, 10, 10]);
     assert.deepEqual(backfillAnswerKeys(mem), [0, 0, 0]);
     const kayin = mem.prepare("SELECT reference_answer, accepted_answers, grader_notes FROM questions WHERE text = ? AND type = 'text'").get(CHIDON_5786_KEY[0].text);
-    // S13 (wish 7) appends hand-written short forms to the S12 split of the model answer.
-    assert.deepEqual(kayin, {
-      reference_answer: 'Farmer / worker of the soil',
-      accepted_answers: '["Farmer","worker of the soil","tiller of the ground","worker of the ground"]',
-      grader_notes: null,
-    });
+    assert.deepEqual(kayin, { reference_answer: 'Farmer / worker of the soil', accepted_answers: '["Farmer","worker of the soil"]', grader_notes: null });
     assert.equal((mem.prepare('SELECT reference_answer FROM questions WHERE text = ?').get(CHIDON_5786_KEY[1].text) as { reference_answer: string }).reference_answer, 'my own');
     assert.equal(mem.prepare("SELECT COUNT(*) AS n FROM questions WHERE type = 'single' AND reference_answer IS NOT NULL").pluck().get(), 0);
     const kain = mem.prepare('SELECT reference_answer, grader_notes FROM questions WHERE text = ?').get(CHIDON_5787_ANFAENGER_KEY[1].text);

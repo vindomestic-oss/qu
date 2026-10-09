@@ -132,14 +132,14 @@ export const GRADER_EN: Dict = {
   'grader.quiz.chosenBy': 'chosen {n}×',
   'grader.quiz.noRows': 'No submitted answers yet.',
 
-  // Reference check (wish 7, S13).
+  // Reference check (wish 7, S13). {count} is "3×" / "×3", rendered as an LTR isolate so it never mirrors in Hebrew.
   'grader.ai.ruleMatched': 'Auto: matches the model answer',
-  'grader.ai.precedent': 'Same answer graded before: {points} pt ({n}×)',
-  'grader.ai.precedentDisagree': 'Graders disagreed before: {points} pt ({n}×)',
+  'grader.ai.precedent': 'Same answer graded before: {points} pt ({count})',
+  'grader.ai.precedentDisagree': 'Graders disagreed before: {points} pt ({count})',
   'grader.quiz.accepted': 'Also accepted',
   'grader.quiz.ruleMatched': 'Credited automatically (matches the model answer): {n}',
   'grader.quiz.ruleShowAll': 'Show all',
-  'grader.group.heading': 'Same answer ×{n}',
+  'grader.group.heading': 'Same answer {count}',
   'grader.group.show': 'Show the {n} answers',
   'grader.group.hide': 'Hide the answers',
   'grader.group.points': 'Points for all (0–{max})',
@@ -283,12 +283,12 @@ export const GRADER_DE: Dict = {
 
   // Reference check (wish 7, S13).
   'grader.ai.ruleMatched': 'Automatisch: stimmt mit der Musterantwort überein',
-  'grader.ai.precedent': 'Gleiche Antwort früher bewertet: {points} P. ({n}×)',
-  'grader.ai.precedentDisagree': 'Früher unterschiedlich bewertet: {points} P. ({n}×)',
+  'grader.ai.precedent': 'Gleiche Antwort früher bewertet: {points} P. ({count})',
+  'grader.ai.precedentDisagree': 'Früher unterschiedlich bewertet: {points} P. ({count})',
   'grader.quiz.accepted': 'Ebenfalls akzeptiert',
   'grader.quiz.ruleMatched': 'Automatisch gewertet (stimmt mit der Musterantwort überein): {n}',
   'grader.quiz.ruleShowAll': 'Alle zeigen',
-  'grader.group.heading': 'Gleiche Antwort ×{n}',
+  'grader.group.heading': 'Gleiche Antwort {count}',
   'grader.group.show': 'Die {n} Antworten zeigen',
   'grader.group.hide': 'Antworten ausblenden',
   'grader.group.points': 'Punkte für alle (0–{max})',
@@ -432,12 +432,12 @@ export const GRADER_RU: Dict = {
 
   // Reference check (wish 7, S13).
   'grader.ai.ruleMatched': 'Авто: совпадает с эталоном',
-  'grader.ai.precedent': 'Такой же ответ уже оценивали: {points} б. ({n}×)',
-  'grader.ai.precedentDisagree': 'Раньше оценивали по-разному: {points} б. ({n}×)',
+  'grader.ai.precedent': 'Такой же ответ уже оценивали: {points} б. ({count})',
+  'grader.ai.precedentDisagree': 'Раньше оценивали по-разному: {points} б. ({count})',
   'grader.quiz.accepted': 'Также принимается',
   'grader.quiz.ruleMatched': 'Засчитано автоматически (совпадает с эталоном): {n}',
   'grader.quiz.ruleShowAll': 'Показать все',
-  'grader.group.heading': 'Одинаковый ответ ×{n}',
+  'grader.group.heading': 'Одинаковый ответ {count}',
   'grader.group.show': 'Показать ответы ({n})',
   'grader.group.hide': 'Скрыть ответы',
   'grader.group.points': 'Баллы всем (0–{max})',
@@ -581,12 +581,12 @@ export const GRADER_HE: Dict = {
 
   // Reference check (wish 7, S13).
   'grader.ai.ruleMatched': 'אוטומטי: תואם לתשובה הנכונה',
-  'grader.ai.precedent': 'אותה תשובה נבדקה בעבר: {points} נק׳ ({n}×)',
-  'grader.ai.precedentDisagree': 'בעבר ניתנו לה ציונים שונים: {points} נק׳ ({n}×)',
+  'grader.ai.precedent': 'אותה תשובה נבדקה בעבר: {points} נק׳ ({count})',
+  'grader.ai.precedentDisagree': 'בעבר ניתנו לה ציונים שונים: {points} נק׳ ({count})',
   'grader.quiz.accepted': 'מתקבלות גם',
   'grader.quiz.ruleMatched': 'נבדקו אוטומטית (תואמות לתשובה הנכונה): {n}',
   'grader.quiz.ruleShowAll': 'הצגת הכול',
-  'grader.group.heading': 'אותה תשובה ×{n}',
+  'grader.group.heading': 'אותה תשובה {count}',
   'grader.group.show': 'הצגת {n} התשובות',
   'grader.group.hide': 'הסתרת התשובות',
   'grader.group.points': 'נקודות לכולן (0–{max})',

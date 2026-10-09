@@ -184,7 +184,9 @@ export function AnswerGroupRow({ sessionId, members, maxPoints, text, hints, act
       <div className="answer-row answer-row--group" role="group" aria-labelledby={`${id}-h`}>
         <div className="answer-row__content">
           <div id={`${id}-h`} className="answer-row__heading">
-            <span className="group-count">{t('grader.group.heading', { n })}</span>
+            <span className="group-count">
+              <Interpolate template={t('grader.group.heading')} values={{ count: <bdi dir="ltr">{`×${n}`}</bdi> }} />
+            </span>
           </div>
           {text}
           {hints}
