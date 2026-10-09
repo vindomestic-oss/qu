@@ -129,7 +129,7 @@ export function SessionResults() {
       ) : (
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
-            <tr style={{ textAlign: 'left', borderBottom: '2px solid var(--border-strong)' }}>
+            <tr style={{ textAlign: 'left', borderBottom: '2px solid var(--text)' }}>
               <th>Name</th>
               <th>Status</th>
               <th>Score</th>
@@ -175,7 +175,7 @@ export function SessionResults() {
                 ) : (
                   <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                     <thead>
-                      <tr style={{ textAlign: 'left', borderBottom: '2px solid var(--border-strong)' }}>
+                      <tr style={{ textAlign: 'left', borderBottom: '2px solid var(--text)' }}>
                         <th>Participant</th>
                         <th>Answer</th>
                         <th>Points (0–{q.points})</th>
