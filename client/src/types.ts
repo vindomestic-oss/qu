@@ -24,7 +24,7 @@ export interface Question extends WithTranslations<'text'> {
   choices: Choice[];
   /** Text questions only, for graders (wish 8); never sent to participants. */
   reference_answer?: string | null;
-  /** JSON array of accepted variants (filled by the Chidon answer keys; edited from S13). */
+  /** JSON array of accepted answers / spellings (wish 7); read it with parseAccepted(). */
   accepted_answers?: string | null;
   grader_notes?: string | null;
 }
@@ -87,6 +87,8 @@ export interface QuestionInput extends WithTranslationInputs<'text'> {
   /** Text questions only; omitted keys keep the stored value. */
   reference_answer?: string;
   grader_notes?: string;
+  /** Accepted answers / spellings (wish 7); the server trims them and drops normalized duplicates. */
+  accepted_answers?: string[];
 }
 
 /** Name of a rubric with all 14 translations (the editor always sends every key). */
@@ -291,7 +293,17 @@ export interface GradingQuestion extends WithTranslations<'text'> {
   points: number;
   reference_answer: string | null;
   grader_notes: string | null;
+  /** Accepted answers / spellings (wish 7); empty for choice questions. */
+  accepted_answers: string[];
   choices: GradingChoice[];
+  /** Text questions: earlier grades by people of the same answer in other runs, by answer_norm (wish 7). */
+  precedents?: Record<string, Precedent>;
+}
+
+/** How people graded the same answer in other runs: the distinct points (one value = they agreed). */
+export interface Precedent {
+  points: number[];
+  n: number;
 }
 
 /** The grading fields of an answer (also the `current` of a 409 conflict). */
@@ -308,11 +320,18 @@ export interface AnswerGrade {
 export interface GradingAnswer extends AnswerGrade {
   text_answer?: string;
   selected_choice_ids?: number[];
+  /** Text answers: the comparison form, for grouping identical answers only (never displayed). */
+  answer_norm?: string | null;
+  /** Text answers: the model answer or an accepted answer matches it (wish 7). */
+  matches_reference?: boolean;
 }
+
+export type StaffViewer = { kind: 'admin' | 'grader'; name: string };
 
 export interface ParticipantReviewResponse {
   session: { id: number; status: SessionStatus; ends_at: string | null };
   quiz: GradingQuizMeta;
+  viewer: StaffViewer;
   participant: {
     id: number;
     number: number;
@@ -339,6 +358,8 @@ export interface WholeQuizQuestion {
     no_answer: number;
     not_submitted_participants: number;
     choice_counts?: Record<string, number>;
+    /** Text questions: answers of this run credited by the reference check (wish 7). */
+    rule_matched?: number;
   };
   answers: (GradingAnswer & { label: number })[];
 }
@@ -346,6 +367,7 @@ export interface WholeQuizQuestion {
 export interface WholeQuizResponse {
   session: { id: number; status: SessionStatus; started_at: string | null; ends_at: string | null };
   quiz: GradingQuizMeta;
+  viewer: StaffViewer;
   filter: 'needs_review' | 'all';
   progress: { graded: number; total: number };
   questions: WholeQuizQuestion[];

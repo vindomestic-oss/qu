@@ -149,13 +149,18 @@ export function gradeAnswer(db: Db, sessionId: number, input: GradeInput): Grade
   })();
 }
 
+export type GradeEventAction = 'manual' | 'regrade_points' | 'rule_match' | 'rule_revert' | 'accept_variant';
+
 export interface GradeEventInput {
   answerId: number;
   sessionId: number;
   questionId: number;
   participantId: number;
   actor: string | null;
-  action: 'manual' | 'regrade_points';
+  /** 'manual' (a grader), 'regrade_points' (question points or key changed), 'rule_match' /
+   *  'rule_revert' (the reference check, wish 7), 'accept_variant' (an admin added the answer to
+   *  the accepted answers; the grade itself is unchanged). */
+  action: GradeEventAction;
   oldPoints: number | null;
   newPoints: number | null;
   oldIsCorrect: number | null;

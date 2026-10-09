@@ -151,7 +151,9 @@ test('seeded quizzes declare exactly the languages they contain; the 5787 quizze
         )
         .all();
       const choiceWithKey = db.prepare("SELECT COUNT(*) FROM questions WHERE type <> 'text' AND reference_answer IS NOT NULL").pluck().get();
-      return { missing, filled, choiceWithKey };
+      // S13 (wish 7): fresh seeds already carry the hand-written short forms.
+      const rippe = db.prepare("SELECT accepted_answers FROM questions WHERE text = 'Was nahm G-tt von Adam, um daraus die Frau zu bauen?'").pluck().get();
+      return { missing, filled, choiceWithKey, rippe };
     } finally {
       db.close();
     }
@@ -159,6 +161,7 @@ test('seeded quizzes declare exactly the languages they contain; the 5787 quizze
   const keyState = keys();
   assert.equal(keyState.missing, 0);
   assert.equal(keyState.choiceWithKey, 0);
+  assert.equal(keyState.rippe, JSON.stringify(['Eine Rippe (Seite)', 'Rippe', 'eine Rippe', 'Seite']));
   assert.deepEqual(keyState.filled, [
     { title: 'Chidon HaTanach 5787 – Anfänger (München)', n: 10 },
     { title: 'Chidon HaTanach 5787 – Fortgeschrittene (München)', n: 10 },

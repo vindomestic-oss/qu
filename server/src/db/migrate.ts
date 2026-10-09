@@ -3,7 +3,8 @@ import { CONTENT_LANGS, isQuizLang } from '../lib/languages';
 import { computeUsedLanguages } from '../lib/quizLanguages';
 import { CHIDON_5787_ANFAENGER_TITLE, CHIDON_5787_FORTGESCHRITTENE_TITLE } from './quizTitles';
 import { backfillSeededSections } from './chidonSections';
-import { CHIDON_ANSWER_KEYS } from './chidonAnswerKey';
+import { CHIDON_ANSWER_KEYS, s12OriginalOf } from './chidonAnswerKey';
+import { normalizeForMatch } from '../lib/aiGrading/normalize';
 
 const ADDED_COLUMNS: Record<string, { name: string; type: string }[]> = {
   // ISO time; admin tokens issued before it are rejected (set on creation and on every password change).
@@ -53,6 +54,9 @@ const ADDED_COLUMNS: Record<string, { name: string; type: string }[]> = {
     { name: 'graded_by_link_id', type: 'INTEGER' },
     // Optimistic concurrency for grading: every write to the answer or its grade raises it.
     { name: 'grade_version', type: 'INTEGER NOT NULL DEFAULT 0' },
+    // normalizeForMatch(trimmed text_answer) for the reference check and grouping (wish 7, S13);
+    // NULL for blank and choice answers. Never shown; text_answer itself is never changed.
+    { name: 'answer_norm', type: 'TEXT' },
   ],
 };
 
@@ -145,6 +149,59 @@ export function runMigrations(db: Database.Database) {
   if (filled.some((n) => n > 0)) {
     console.log(`Chidon answer keys filled: ${CHIDON_ANSWER_KEYS.map((k, i) => `${k.name} ${filled[i]}`).join(', ')}`);
   }
+  const extended = backfillAnswerKeyShortForms(db);
+  if (extended.some((n) => n > 0)) {
+    console.log(`Chidon answer keys extended: ${CHIDON_ANSWER_KEYS.map((k, i) => `${k.name} ${extended[i]}`).join(', ')}`);
+  }
+
+  backfillAnswerNorms(db);
+
+  // Indexes on new columns of existing tables come last (the columns exist by now).
+  db.exec('CREATE INDEX IF NOT EXISTS idx_answers_q_norm ON answers(question_id, answer_norm)');
+}
+
+/**
+ * answers.answer_norm of non-blank answers saved before S13, in one transaction. Guarded by IS NULL
+ * (an answer that normalizes to nothing is stored as ''), so a second run updates nothing.
+ */
+export function backfillAnswerNorms(db: Database.Database): number {
+  const rows = db
+    .prepare("SELECT id, text_answer FROM answers WHERE answer_norm IS NULL AND trim(coalesce(text_answer, '')) <> ''")
+    .all() as { id: number; text_answer: string }[];
+  if (rows.length === 0) return 0;
+  const set = db.prepare('UPDATE answers SET answer_norm = ? WHERE id = ? AND answer_norm IS NULL');
+  return db.transaction(() => rows.reduce((n, r) => n + set.run(normalizeForMatch(r.text_answer.trim()), r.id).changes, 0))();
+}
+
+/**
+ * S13 extends the Chidon keys with hand-written short forms and partial-credit notes (wish 7). Per
+ * entry, the accepted list and the note are replaced only while they still hold exactly what S12
+ * wrote, so a list or note an author edited is never overwritten and a second run updates 0 rows.
+ * Fresh seeds and the S12 backfill already write the extended values. Returns the questions changed
+ * per key.
+ */
+export function backfillAnswerKeyShortForms(db: Database.Database): number[] {
+  const setAccepted = db.prepare(
+    "UPDATE questions SET accepted_answers = ? WHERE type = 'text' AND text = ? AND accepted_answers = ?",
+  );
+  // `IS ?` so that a note S12 left NULL counts as unedited too.
+  const setNotes = db.prepare("UPDATE questions SET grader_notes = ? WHERE type = 'text' AND text = ? AND grader_notes IS ?");
+  return db.transaction(() =>
+    CHIDON_ANSWER_KEYS.map(({ entries }) =>
+      entries.reduce((n, e) => {
+        const before = s12OriginalOf(e);
+        let changed = 0;
+        const accepted = JSON.stringify(e.accepted);
+        if (accepted !== JSON.stringify(before.accepted)) {
+          changed += setAccepted.run(accepted, e.text, JSON.stringify(before.accepted)).changes;
+        }
+        if ((e.notes ?? null) !== (before.notes ?? null)) {
+          changed += setNotes.run(e.notes ?? null, e.text, before.notes ?? null).changes;
+        }
+        return n + (changed > 0 ? 1 : 0);
+      }, 0),
+    ),
+  )();
 }
 
 /**

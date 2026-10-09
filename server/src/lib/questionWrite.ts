@@ -3,6 +3,7 @@ import type { QuestionInput } from './questionInput';
 import { translationColumns, translationValues } from './sqlTranslations';
 import { gradeChoiceAnswer, insertGradeEvent } from './grading';
 import { SECTION_NOT_IN_QUIZ, sectionBelongsToQuiz } from './sections';
+import { requeueQuestion } from './aiGrading/process';
 
 // Imports only better-sqlite3 types and lib modules, never '../db' (that module opens quiz.db on import).
 
@@ -26,6 +27,10 @@ export interface QuestionWriteResult {
   /** Answers whose grade changed because points or the correct choices changed, grouped by session
    *  (for live and grading notifications after the commit). */
   regradedBySession: Map<number, number[]>;
+  /** The model answer or the accepted answers changed (wish 7): the reference check ran again. */
+  gradingInputsChanged: boolean;
+  /** Answers the reference check credited or sent back to review, grouped by session. */
+  ruleChangedBySession: Map<number, number[]>;
 }
 
 interface AnswerGradeRow {
@@ -68,7 +73,10 @@ function parseSelected(raw: string | null): number[] {
  * which no longer exists (kept as graded); human grades that had full points move to the new
  * maximum, other human grades are clamped to it, and their verdict (is_correct) is kept.
  * Every grade it changes gets a grade_events row ('regrade_points') in the same transaction.
- * Model-answer fields (wish 8) apply to text questions only and are cleared for choice types.
+ * Model-answer fields (wish 8) and accepted answers (wish 7) apply to text questions only and are
+ * cleared for choice types. When the model answer or the accepted answers of a text question change,
+ * the reference check runs again in the same transaction (requeueQuestion): rule grades that no
+ * longer match go back to review, newly matching answers are credited; human grades stay.
  */
 export function updateQuestionWithChoices(
   db: Database.Database,
@@ -78,8 +86,10 @@ export function updateQuestionWithChoices(
   actor: string | null = null,
 ): QuestionWriteResult {
   const run = db.transaction((): QuestionWriteResult => {
-    const question = db.prepare('SELECT id, quiz_id, type, points FROM questions WHERE id = ?').get(questionId) as
-      | { id: number; quiz_id: number; type: string; points: number }
+    const question = db
+      .prepare('SELECT id, quiz_id, type, points, reference_answer, accepted_answers FROM questions WHERE id = ?')
+      .get(questionId) as
+      | { id: number; quiz_id: number; type: string; points: number; reference_answer: string | null; accepted_answers: string | null }
       | undefined;
     if (!question) throw new QuestionWriteError(404, 'Question not found');
 
@@ -118,6 +128,10 @@ export function updateQuestionWithChoices(
         if (parsed[key] === undefined) continue;
         setClauses.push(`${key} = ?`);
         graderValues.push(parsed[key]!);
+      }
+      if (parsed.accepted_answers !== undefined) {
+        setClauses.push('accepted_answers = ?');
+        graderValues.push(JSON.stringify(parsed.accepted_answers));
       }
     } else {
       // Model answers belong to text questions only.
@@ -164,61 +178,87 @@ export function updateQuestionWithChoices(
       );
     }
 
-    const result: QuestionWriteResult = { quizId: question.quiz_id, regradedBySession: new Map() };
+    const after = db.prepare('SELECT reference_answer, accepted_answers FROM questions WHERE id = ?').get(questionId) as {
+      reference_answer: string | null;
+      accepted_answers: string | null;
+    };
+    const result: QuestionWriteResult = {
+      quizId: question.quiz_id,
+      regradedBySession: new Map(),
+      gradingInputsChanged:
+        isText && (after.reference_answer !== question.reference_answer || after.accepted_answers !== question.accepted_answers),
+      ruleChangedBySession: new Map(),
+    };
     const pointsChanged = !samePoints(question.points, parsed.points);
-    if (!pointsChanged && correctIds() === correctBefore) return result;
-
-    const choices = isText
-      ? []
-      : (db.prepare('SELECT id, is_correct FROM choices WHERE question_id = ?').all(questionId) as { id: number; is_correct: number }[]);
-    const choiceIds = new Set(choices.map((c) => c.id));
-    const answers = db
-      .prepare(
-        'SELECT id, session_id, participant_id, selected_choice_ids, is_correct, points_awarded, grade_source FROM answers WHERE question_id = ?',
-      )
-      .all(questionId) as AnswerGradeRow[];
-    const setGrade = db.prepare(
-      'UPDATE answers SET is_correct = ?, points_awarded = ?, grade_version = grade_version + 1 WHERE id = ?',
-    );
-    for (const a of answers) {
-      let next: { isCorrect: number | null; points: number | null } | null = null;
-      if (a.grade_source === 'auto_choice' || a.grade_source === 'rule') {
-        if (!isText) {
-          const selected = parseSelected(a.selected_choice_ids);
-          // An answer whose choice was deleted cannot be graded against the new key: keep its grade.
-          if (selected.some((id) => !choiceIds.has(id))) continue;
-          const g = gradeChoiceAnswer(choices, selected, parsed.points);
-          next = { isCorrect: g.isCorrect ? 1 : 0, points: g.pointsAwarded };
-        } else if (a.points_awarded !== null) {
-          next = { isCorrect: a.is_correct, points: a.is_correct === 1 ? parsed.points : 0 };
-        }
-      } else if (a.grade_source !== 'auto_blank' && a.points_awarded !== null) {
-        // Human (or later AI-confirmed) grades: a full-points correct grade follows the new maximum,
-        // any other grade is only clamped to it. The verdict is the grader's and never changes here.
-        const wasFull = a.is_correct === 1 && samePoints(a.points_awarded, question.points);
-        const points = wasFull ? parsed.points : Math.min(a.points_awarded, parsed.points);
-        next = { isCorrect: a.is_correct, points };
-      }
-      if (!next || (next.isCorrect === a.is_correct && samePoints(next.points, a.points_awarded))) continue;
-      setGrade.run(next.isCorrect, next.points, a.id);
-      insertGradeEvent(db, {
-        answerId: a.id,
-        sessionId: a.session_id,
-        questionId,
-        participantId: a.participant_id,
-        actor,
-        action: 'regrade_points',
-        oldPoints: a.points_awarded,
-        newPoints: next.points,
-        oldIsCorrect: a.is_correct,
-        isCorrect: next.isCorrect,
-        gradeSource: a.grade_source,
-      });
-      const ids = result.regradedBySession.get(a.session_id) ?? [];
-      ids.push(a.id);
-      result.regradedBySession.set(a.session_id, ids);
-    }
+    if (pointsChanged || correctIds() !== correctBefore) regrade(db, questionId, question.points, parsed, isText, actor, result);
+    // The reference check again (wish 7), after the points regrade so new grades use the new points.
+    if (result.gradingInputsChanged) result.ruleChangedBySession = requeueQuestion(db, questionId);
     return result;
   });
   return run();
+}
+
+/**
+ * The regrade of a question's answers after its points or correct choices changed (see
+ * updateQuestionWithChoices); records every changed grade in result.regradedBySession.
+ */
+function regrade(
+  db: Database.Database,
+  questionId: number,
+  oldPoints: number,
+  parsed: QuestionInput,
+  isText: boolean,
+  actor: string | null,
+  result: QuestionWriteResult,
+): void {
+  const choices = isText
+    ? []
+    : (db.prepare('SELECT id, is_correct FROM choices WHERE question_id = ?').all(questionId) as { id: number; is_correct: number }[]);
+  const choiceIds = new Set(choices.map((c) => c.id));
+  const answers = db
+    .prepare(
+      'SELECT id, session_id, participant_id, selected_choice_ids, is_correct, points_awarded, grade_source FROM answers WHERE question_id = ?',
+    )
+    .all(questionId) as AnswerGradeRow[];
+  const setGrade = db.prepare(
+    'UPDATE answers SET is_correct = ?, points_awarded = ?, grade_version = grade_version + 1 WHERE id = ?',
+  );
+  for (const a of answers) {
+    let next: { isCorrect: number | null; points: number | null } | null = null;
+    if (a.grade_source === 'auto_choice' || a.grade_source === 'rule') {
+      if (!isText) {
+        const selected = parseSelected(a.selected_choice_ids);
+        // An answer whose choice was deleted cannot be graded against the new key: keep its grade.
+        if (selected.some((id) => !choiceIds.has(id))) continue;
+        const g = gradeChoiceAnswer(choices, selected, parsed.points);
+        next = { isCorrect: g.isCorrect ? 1 : 0, points: g.pointsAwarded };
+      } else if (a.points_awarded !== null) {
+        next = { isCorrect: a.is_correct, points: a.is_correct === 1 ? parsed.points : 0 };
+      }
+    } else if (a.grade_source !== 'auto_blank' && a.points_awarded !== null) {
+      // Human (or later AI-confirmed) grades: a full-points correct grade follows the new maximum,
+      // any other grade is only clamped to it. The verdict is the grader's and never changes here.
+      const wasFull = a.is_correct === 1 && samePoints(a.points_awarded, oldPoints);
+      const points = wasFull ? parsed.points : Math.min(a.points_awarded, parsed.points);
+      next = { isCorrect: a.is_correct, points };
+    }
+    if (!next || (next.isCorrect === a.is_correct && samePoints(next.points, a.points_awarded))) continue;
+    setGrade.run(next.isCorrect, next.points, a.id);
+    insertGradeEvent(db, {
+      answerId: a.id,
+      sessionId: a.session_id,
+      questionId,
+      participantId: a.participant_id,
+      actor,
+      action: 'regrade_points',
+      oldPoints: a.points_awarded,
+      newPoints: next.points,
+      oldIsCorrect: a.is_correct,
+      isCorrect: next.isCorrect,
+      gradeSource: a.grade_source,
+    });
+    const ids = result.regradedBySession.get(a.session_id) ?? [];
+    ids.push(a.id);
+    result.regradedBySession.set(a.session_id, ids);
+  }
 }

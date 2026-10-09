@@ -131,6 +131,26 @@ export const GRADER_EN: Dict = {
   'grader.quiz.allGraded': 'Everything is graded ✓',
   'grader.quiz.chosenBy': 'chosen {n}×',
   'grader.quiz.noRows': 'No submitted answers yet.',
+
+  // Reference check (wish 7, S13).
+  'grader.ai.ruleMatched': 'Auto: matches the model answer',
+  'grader.ai.precedent': 'Same answer graded before: {points} pt ({n}×)',
+  'grader.ai.precedentDisagree': 'Graders disagreed before: {points} pt ({n}×)',
+  'grader.quiz.accepted': 'Also accepted',
+  'grader.quiz.ruleMatched': 'Credited automatically (matches the model answer): {n}',
+  'grader.quiz.ruleShowAll': 'Show all',
+  'grader.group.heading': 'Same answer ×{n}',
+  'grader.group.show': 'Show the {n} answers',
+  'grader.group.hide': 'Hide the answers',
+  'grader.group.points': 'Points for all (0–{max})',
+  'grader.group.mixed': 'Graded differently: {graded} of {n} graded',
+  'grader.group.allRule': 'Auto: matches the model answer (all {n})',
+  'grader.group.conflict': '{n} of these answers were just graded by someone else.',
+  'grader.accept.add': 'Add to accepted answers',
+  'grader.accept.adding': 'Adding…',
+  'grader.accept.added': 'Added to accepted answers ✓',
+  'grader.accept.addedMore': 'Added ✓ · also credited automatically now: {n}',
+  'grader.accept.failed': 'Could not add. Please try again.',
 };
 
 export const GRADER_DE: Dict = {
@@ -260,6 +280,26 @@ export const GRADER_DE: Dict = {
   'grader.quiz.allGraded': 'Alles ist bewertet ✓',
   'grader.quiz.chosenBy': '{n}× gewählt',
   'grader.quiz.noRows': 'Noch keine abgegebenen Antworten.',
+
+  // Reference check (wish 7, S13).
+  'grader.ai.ruleMatched': 'Automatisch: stimmt mit der Musterantwort überein',
+  'grader.ai.precedent': 'Gleiche Antwort früher bewertet: {points} P. ({n}×)',
+  'grader.ai.precedentDisagree': 'Früher unterschiedlich bewertet: {points} P. ({n}×)',
+  'grader.quiz.accepted': 'Ebenfalls akzeptiert',
+  'grader.quiz.ruleMatched': 'Automatisch gewertet (stimmt mit der Musterantwort überein): {n}',
+  'grader.quiz.ruleShowAll': 'Alle zeigen',
+  'grader.group.heading': 'Gleiche Antwort ×{n}',
+  'grader.group.show': 'Die {n} Antworten zeigen',
+  'grader.group.hide': 'Antworten ausblenden',
+  'grader.group.points': 'Punkte für alle (0–{max})',
+  'grader.group.mixed': 'Unterschiedlich bewertet: {graded} von {n} bewertet',
+  'grader.group.allRule': 'Automatisch: stimmt mit der Musterantwort überein (alle {n})',
+  'grader.group.conflict': '{n} dieser Antworten wurden gerade von jemand anderem bewertet.',
+  'grader.accept.add': 'Zu den akzeptierten Antworten hinzufügen',
+  'grader.accept.adding': 'Wird hinzugefügt…',
+  'grader.accept.added': 'Zu den akzeptierten Antworten hinzugefügt ✓',
+  'grader.accept.addedMore': 'Hinzugefügt ✓ · dadurch automatisch gewertet: {n}',
+  'grader.accept.failed': 'Hinzufügen fehlgeschlagen. Bitte erneut versuchen.',
 };
 
 export const GRADER_RU: Dict = {
@@ -389,6 +429,26 @@ export const GRADER_RU: Dict = {
   'grader.quiz.allGraded': 'Всё проверено ✓',
   'grader.quiz.chosenBy': 'выбрали: {n}',
   'grader.quiz.noRows': 'Сданных ответов пока нет.',
+
+  // Reference check (wish 7, S13).
+  'grader.ai.ruleMatched': 'Авто: совпадает с эталоном',
+  'grader.ai.precedent': 'Такой же ответ уже оценивали: {points} б. ({n}×)',
+  'grader.ai.precedentDisagree': 'Раньше оценивали по-разному: {points} б. ({n}×)',
+  'grader.quiz.accepted': 'Также принимается',
+  'grader.quiz.ruleMatched': 'Засчитано автоматически (совпадает с эталоном): {n}',
+  'grader.quiz.ruleShowAll': 'Показать все',
+  'grader.group.heading': 'Одинаковый ответ ×{n}',
+  'grader.group.show': 'Показать ответы ({n})',
+  'grader.group.hide': 'Скрыть ответы',
+  'grader.group.points': 'Баллы всем (0–{max})',
+  'grader.group.mixed': 'Оценены по-разному: проверено {graded} из {n}',
+  'grader.group.allRule': 'Авто: совпадает с эталоном (все {n})',
+  'grader.group.conflict': 'Часть этих ответов ({n}) только что оценил кто-то другой.',
+  'grader.accept.add': 'Добавить в допустимые ответы',
+  'grader.accept.adding': 'Добавляется…',
+  'grader.accept.added': 'Добавлено в допустимые ответы ✓',
+  'grader.accept.addedMore': 'Добавлено ✓ · ещё засчитано автоматически: {n}',
+  'grader.accept.failed': 'Не удалось добавить. Попробуйте ещё раз.',
 };
 
 export const GRADER_HE: Dict = {
@@ -518,4 +578,24 @@ export const GRADER_HE: Dict = {
   'grader.quiz.allGraded': 'הכול נבדק ✓',
   'grader.quiz.chosenBy': 'נבחר {n} פעמים',
   'grader.quiz.noRows': 'אין עדיין תשובות שהוגשו.',
+
+  // Reference check (wish 7, S13).
+  'grader.ai.ruleMatched': 'אוטומטי: תואם לתשובה הנכונה',
+  'grader.ai.precedent': 'אותה תשובה נבדקה בעבר: {points} נק׳ ({n}×)',
+  'grader.ai.precedentDisagree': 'בעבר ניתנו לה ציונים שונים: {points} נק׳ ({n}×)',
+  'grader.quiz.accepted': 'מתקבלות גם',
+  'grader.quiz.ruleMatched': 'נבדקו אוטומטית (תואמות לתשובה הנכונה): {n}',
+  'grader.quiz.ruleShowAll': 'הצגת הכול',
+  'grader.group.heading': 'אותה תשובה ×{n}',
+  'grader.group.show': 'הצגת {n} התשובות',
+  'grader.group.hide': 'הסתרת התשובות',
+  'grader.group.points': 'נקודות לכולן (0–{max})',
+  'grader.group.mixed': 'ציונים שונים: נבדקו {graded} מתוך {n}',
+  'grader.group.allRule': 'אוטומטי: תואם לתשובה הנכונה (כל {n})',
+  'grader.group.conflict': '{n} מהתשובות האלה נבדקו הרגע על ידי מישהו אחר.',
+  'grader.accept.add': 'הוספה לתשובות המתקבלות',
+  'grader.accept.adding': 'מוסיף…',
+  'grader.accept.added': 'נוסף לתשובות המתקבלות ✓',
+  'grader.accept.addedMore': 'נוסף ✓ · נבדקו אוטומטית בעקבות זאת: {n}',
+  'grader.accept.failed': 'ההוספה נכשלה. נסו שוב.',
 };

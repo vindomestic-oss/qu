@@ -17,6 +17,8 @@ import {
   type GradeResult,
 } from '../lib/grading';
 import { broadcastGradingChanged } from '../socket';
+import { matchesKeys, parseAccepted, referenceKeys } from '../lib/aiGrading/accepted';
+import { loadPrecedents, type Precedent } from '../lib/aiGrading/precedents';
 
 /**
  * The grading panel's API (wish 8), mounted on /api/grading/:sessionId behind requireStaffForSession:
@@ -26,6 +28,11 @@ import { broadcastGradingChanged } from '../socket';
  * Names (decision Q-names, wish 8): admins and graders see participants' names in the participant
  * list and on the participant page. Whole-quiz mode never carries names or participant ids for
  * anyone: its rows are "Answer 1, 2…" in a hash order. The projector shows counts only (S6).
+ *
+ * Reference check (wish 7, S13): text answers carry answer_norm (for grouping identical answers on
+ * the client; never displayed) and matches_reference; text questions carry their parsed
+ * accepted_answers and `precedents` (earlier human grades of the same normalized answer in other
+ * runs: points and counts only); whole-quiz stats carry rule_matched (credited by the rule here).
  */
 export const gradingRouter = Router({ mergeParams: true });
 
@@ -59,7 +66,18 @@ function loadQuiz(quizId: number) {
 
 // --- Question and answer shapes ---------------------------------------------------------------
 
-const QUESTION_COLUMNS = ['id', 'sort_order', 'type', 'text', ...translationColumns('text'), 'image_path', 'points', 'reference_answer', 'grader_notes'];
+const QUESTION_COLUMNS = [
+  'id',
+  'sort_order',
+  'type',
+  'text',
+  ...translationColumns('text'),
+  'image_path',
+  'points',
+  'reference_answer',
+  'accepted_answers',
+  'grader_notes',
+];
 const CHOICE_COLUMNS = ['id', 'question_id', 'text', ...translationColumns('text'), 'is_correct', 'sort_order'];
 
 interface QuestionRow {
@@ -67,6 +85,8 @@ interface QuestionRow {
   sort_order: number;
   type: 'single' | 'multiple' | 'text';
   points: number;
+  reference_answer: string | null;
+  accepted_answers: string | null;
   [column: string]: unknown;
 }
 interface ChoiceRow {
@@ -75,7 +95,10 @@ interface ChoiceRow {
   [column: string]: unknown;
 }
 
-/** The quiz's questions with their choices and the graders' fields, in order. */
+/**
+ * The quiz's questions with their choices and the graders' fields, in order: accepted_answers parsed
+ * (empty for choice types) and `keys`, the match keys of the reference check (server side only).
+ */
 function loadQuestions(quizId: number) {
   const questions = db
     .prepare(`SELECT ${QUESTION_COLUMNS.join(', ')} FROM questions WHERE quiz_id = ? ORDER BY sort_order`)
@@ -93,7 +116,20 @@ function loadQuestions(quizId: number) {
     list.push(rest as ChoiceRow);
     byQuestion.set(c.question_id, list);
   }
-  return questions.map((q) => ({ ...q, choices: q.type === 'text' ? [] : (byQuestion.get(q.id) ?? []) }));
+  return questions.map((q) => ({
+    ...q,
+    accepted_answers: q.type === 'text' ? parseAccepted(q.accepted_answers) : [],
+    choices: q.type === 'text' ? [] : (byQuestion.get(q.id) ?? []),
+    keys: q.type === 'text' ? referenceKeys(q) : new Set<string>(),
+  }));
+}
+
+type LoadedQuestion = ReturnType<typeof loadQuestions>[number];
+
+/** A question as the panel receives it: without the server-side match keys, with its precedents. */
+function questionOut(q: LoadedQuestion, precedents: Map<number, Record<string, Precedent>>) {
+  const { keys: _keys, ...rest } = q;
+  return q.type === 'text' ? { ...rest, precedents: precedents.get(q.id) ?? {} } : rest;
 }
 
 interface AnswerRow {
@@ -108,10 +144,11 @@ interface AnswerRow {
   graded_by: string | null;
   grade_source: string | null;
   grade_version: number;
+  answer_norm: string | null;
 }
 
 const ANSWER_COLUMNS =
-  'a.id, a.question_id, a.participant_id, a.selected_choice_ids, a.text_answer, a.is_correct, a.points_awarded, a.graded_at, a.graded_by, a.grade_source, a.grade_version';
+  'a.id, a.question_id, a.participant_id, a.selected_choice_ids, a.text_answer, a.answer_norm, a.is_correct, a.points_awarded, a.graded_at, a.graded_by, a.grade_source, a.grade_version';
 
 function parseIds(raw: string | null): number[] {
   try {
@@ -123,10 +160,12 @@ function parseIds(raw: string | null): number[] {
 }
 
 /** The grading fields of an answer for the panel; never the participant. */
-function answerOut(a: AnswerRow, type: string) {
+function answerOut(a: AnswerRow, q: { type: string; keys: Set<string> }) {
   return {
     id: a.id,
-    ...(type === 'text' ? { text_answer: a.text_answer ?? '' } : { selected_choice_ids: parseIds(a.selected_choice_ids) }),
+    ...(q.type === 'text'
+      ? { text_answer: a.text_answer ?? '', answer_norm: a.answer_norm, matches_reference: matchesKeys(a.answer_norm, q.keys) }
+      : { selected_choice_ids: parseIds(a.selected_choice_ids) }),
     is_correct: a.is_correct,
     points_awarded: a.points_awarded,
     graded_at: a.graded_at,
@@ -267,6 +306,7 @@ gradingRouter.get('/participants/:participantId', (req: StaffRequest, res) => {
   const p = order[index];
 
   const questions = loadQuestions(session.quiz_id);
+  const precedents = loadPrecedents(db, session.id, p.id);
   const answers = db
     .prepare(`SELECT ${ANSWER_COLUMNS} FROM answers a WHERE a.participant_id = ? AND a.session_id = ?`)
     .all(p.id, session.id) as AnswerRow[];
@@ -282,12 +322,13 @@ gradingRouter.get('/participants/:participantId', (req: StaffRequest, res) => {
     if (a?.points_awarded != null) score += a.points_awarded;
     if (q.type === 'text' && given && a!.points_awarded == null && p.submitted_at) needsReview += 1;
     // A blank answer counts as no answer (it scored 0 automatically).
-    return { question: q, answer: given ? answerOut(a!, q.type) : null };
+    return { question: questionOut(q, precedents), answer: given ? answerOut(a!, q) : null };
   });
 
   res.json({
     session: { id: session.id, status: session.status, ends_at: session.ends_at },
     quiz,
+    viewer: { kind: req.staff!.kind, name: req.staff!.name },
     participant: {
       id: p.id,
       number: index + 1,
@@ -319,6 +360,7 @@ gradingRouter.get('/quiz', (req: StaffRequest, res) => {
   const filter = req.query.filter === 'needs_review' ? 'needs_review' : 'all';
 
   const questions = loadQuestions(session.quiz_id);
+  const precedents = loadPrecedents(db, session.id);
   const { not_submitted: notSubmitted, submitted } = db
     .prepare(
       `SELECT coalesce(SUM(CASE WHEN submitted_at IS NULL THEN 1 ELSE 0 END), 0) AS not_submitted,
@@ -366,6 +408,7 @@ gradingRouter.get('/quiz', (req: StaffRequest, res) => {
       no_answer: Math.max(0, submitted - fromSubmitted.length),
       not_submitted_participants: notSubmitted,
     };
+    if (q.type === 'text') stats.rule_matched = fromSubmitted.filter(({ a }) => a.grade_source === 'rule').length;
     if (q.type !== 'text') {
       const counts: Record<number, number> = {};
       for (const c of q.choices) counts[c.id] = 0;
@@ -376,15 +419,16 @@ gradingRouter.get('/quiz', (req: StaffRequest, res) => {
     if (filter === 'needs_review' && (q.type !== 'text' || needsReview === 0)) continue;
     const shown = filter === 'needs_review' ? fromSubmitted.filter(({ a }) => a.points_awarded == null) : fromSubmitted;
     out.push({
-      question: q,
+      question: questionOut(q, precedents),
       stats,
-      answers: shown.map(({ a, label }) => ({ label, ...answerOut(a, q.type) })),
+      answers: shown.map(({ a, label }) => ({ label, ...answerOut(a, q) })),
     });
   }
 
   res.json({
     session: { id: session.id, status: session.status, started_at: session.started_at, ends_at: session.ends_at },
     quiz,
+    viewer: { kind: req.staff!.kind, name: req.staff!.name },
     filter,
     progress: { graded, total },
     questions: out,

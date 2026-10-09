@@ -48,6 +48,7 @@ const EXPECTED_ADMIN_ROUTES = [
   'PUT /api/questions/:id',
   'DELETE /api/questions/:id',
   'POST /api/questions/:id/image',
+  'POST /api/questions/:id/accepted-answers',
   'DELETE /api/questions/:id/image',
   'GET /api/sessions/:id',
   'PUT /api/sessions/:id/start',

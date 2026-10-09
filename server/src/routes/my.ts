@@ -7,6 +7,8 @@ import { broadcastGradingChanged, broadcastLiveUpdate } from '../socket';
 import { nowIso } from '../lib/time';
 import { translationColumns } from '../lib/sqlTranslations';
 import { getQuizLanguageInfo } from '../lib/quizLanguages';
+import { normalizeForMatch } from '../lib/aiGrading/normalize';
+import { autoCheckParticipant } from '../lib/autoCheck';
 import {
   PARTICIPANT_CHOICE_COLUMNS,
   PARTICIPANT_QUESTION_COLUMNS,
@@ -105,6 +107,8 @@ myRouter.post('/submit', (req: ParticipantRequest, res) => {
   if (r.changes > 0) {
     broadcastLiveUpdate(session.id);
     broadcastGradingChanged(session.id, { kind: 'submit', participantId });
+    // Wish 7 (S13): answers that match the model answer are credited now (staff room only).
+    autoCheckParticipant(session.id, participantId);
   }
 
   res.json({ submitted_at: getSubmittedAt(participantId) });
@@ -210,12 +214,15 @@ myRouter.post('/answers/:questionId', (req: ParticipantRequest, res) => {
     const isCorrect = trimmed ? null : 0;
     const pointsAwarded = trimmed ? null : 0;
     const gradeSource = trimmed ? null : 'auto_blank';
+    // The comparison form for the reference check and grouping (wish 7); NULL for a blank answer.
+    const answerNorm = trimmed ? normalizeForMatch(trimmed) : null;
     db.prepare(
-      `INSERT INTO answers (session_id, question_id, participant_id, text_answer, is_correct, points_awarded,
+      `INSERT INTO answers (session_id, question_id, participant_id, text_answer, answer_norm, is_correct, points_awarded,
          grade_source, submitted_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
        ON CONFLICT(participant_id, question_id) DO UPDATE SET
          text_answer = excluded.text_answer,
+         answer_norm = excluded.answer_norm,
          is_correct = excluded.is_correct,
          points_awarded = excluded.points_awarded,
          grade_source = excluded.grade_source,
@@ -224,7 +231,7 @@ myRouter.post('/answers/:questionId', (req: ParticipantRequest, res) => {
          graded_by_link_id = NULL,
          grade_version = grade_version + 1,
          submitted_at = excluded.submitted_at`,
-    ).run(session.id, questionId, participantId, trimmed, isCorrect, pointsAwarded, gradeSource);
+    ).run(session.id, questionId, participantId, trimmed, answerNorm, isCorrect, pointsAwarded, gradeSource);
     broadcastLiveUpdate(session.id);
     return res.json({ ok: true });
   }

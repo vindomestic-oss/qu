@@ -8,6 +8,7 @@ import type { AnswerGrade } from '../../types';
 import { CheckIcon, CrossIcon } from './icons';
 import { AUTO_SOURCES, formatPoints, graderIdentity } from './format';
 import { Interpolate } from './Interpolate';
+import { RuleMatchedLabel } from './AnswerHints';
 
 interface Attempt {
   is_correct: boolean;
@@ -142,6 +143,8 @@ export function AnswerGradeRow({ sessionId, answer, maxPoints, disabled = false,
   const pointsValue = draft ?? (graded ? String(answer.points_awarded) : '');
   const meta = (() => {
     if (!graded) return t('grader.row.notGraded');
+    // Wish 7: credited because it matches the model answer or an accepted answer.
+    if (answer.grade_source === 'rule') return <RuleMatchedLabel />;
     if (answer.grade_source && AUTO_SOURCES.has(answer.grade_source)) return t('grader.row.auto');
     return (
       <Interpolate

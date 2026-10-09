@@ -32,6 +32,45 @@ export function formatPercent(rate: number, locale: string): string {
 
 export const AUTO_SOURCES = new Set(['auto_choice', 'auto_blank', 'rule']);
 
+const samePoints = (a: number | null, b: number | null) => a === b || (a !== null && b !== null && Math.abs(a - b) < 1e-9);
+
+/**
+ * Admins may add a text answer to the accepted answers (wish 7) once a person credited it in full
+ * and the key does not cover it yet.
+ */
+export function offersAcceptVariant(
+  viewer: { kind: 'admin' | 'grader' } | null | undefined,
+  answer: { matches_reference?: boolean; grade_source: string | null; is_correct: number | null; points_awarded: number | null },
+  maxPoints: number,
+): boolean {
+  return (
+    viewer?.kind === 'admin' &&
+    answer.matches_reference === false &&
+    answer.grade_source === 'human' &&
+    answer.is_correct === 1 &&
+    samePoints(answer.points_awarded, maxPoints)
+  );
+}
+
+/** The shared grade of a group of identical answers, or how far it is graded (wish 7). */
+export function groupGrade(members: { is_correct: number | null; points_awarded: number | null; grade_source: string | null }[]): {
+  graded: number;
+  /** Every member has the same verdict and points. */
+  uniform: { is_correct: number | null; points_awarded: number } | null;
+  /** Every member was credited by the reference check. */
+  allRule: boolean;
+} {
+  const graded = members.filter((m) => m.points_awarded !== null).length;
+  const first = members[0];
+  const uniform =
+    graded === members.length &&
+    first !== undefined &&
+    members.every((m) => m.is_correct === first.is_correct && samePoints(m.points_awarded, first.points_awarded))
+      ? { is_correct: first.is_correct, points_awarded: first.points_awarded as number }
+      : null;
+  return { graded, uniform, allRule: graded === members.length && members.every((m) => m.grade_source === 'rule') };
+}
+
 /** The participant's name, or "Participant N" if the server sent none. */
 export function participantLabel(
   p: { number: number; display_name?: string },

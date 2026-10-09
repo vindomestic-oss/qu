@@ -12,7 +12,8 @@ import { QuestionReviewCard } from '../../components/grader/QuestionReviewCard';
 import { AnswerGradeRow } from '../../components/grader/AnswerGradeRow';
 import { StatusTag } from '../../components/grader/StatusTag';
 import { QuestionLanguageBar } from '../../components/participant/QuestionLanguageBar';
-import { formatPoints, participantLabel } from '../../components/grader/format';
+import { formatPoints, offersAcceptVariant, participantLabel } from '../../components/grader/format';
+import { AcceptVariantSlot, PrecedentHint } from '../../components/grader/AnswerHints';
 import type { AnswerGrade, ParticipantReviewResponse } from '../../types';
 import '../../components/grader/grader.css';
 
@@ -158,9 +159,23 @@ export function ParticipantReview() {
               onGrade={mergeGrade}
             >
               {q.type === 'text' ? (
-                <p className="answer-row__text" dir="auto">
-                  {answer.text_answer}
-                </p>
+                <>
+                  <p className="answer-row__text" dir="auto">
+                    {answer.text_answer}
+                  </p>
+                  {/* Wish 7: earlier grades of the same answer, and the admin's accept action. */}
+                  <PrecedentHint precedent={answer.answer_norm ? q.precedents?.[answer.answer_norm] : undefined} />
+                  {data.viewer?.kind === 'admin' && data.gradable && (
+                    <div className="answer-row__tools">
+                      <AcceptVariantSlot
+                        key={answer.id}
+                        questionId={q.id}
+                        answerId={answer.id}
+                        offered={offersAcceptVariant(data.viewer, answer, q.points)}
+                      />
+                    </div>
+                  )}
+                </>
               ) : (
                 <p className="answer-row__text">
                   {(answer.selected_choice_ids ?? [])

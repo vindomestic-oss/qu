@@ -12,6 +12,8 @@ import {
 } from '../../i18n/contentLanguages';
 import { LanguagePairTabs } from './LanguagePairTabs';
 import { PairField } from './PairField';
+import { AcceptedAnswersInput } from './AcceptedAnswersInput';
+import { parseAccepted, withDraft } from '../../lib/acceptedAnswers';
 
 interface Props {
   initial?: Question;
@@ -75,6 +77,9 @@ export function QuestionForm({
   // Text questions only, for graders (wish 8): never shown to participants.
   const [referenceAnswer, setReferenceAnswer] = useState(initial?.reference_answer ?? '');
   const [graderNotes, setGraderNotes] = useState(initial?.grader_notes ?? '');
+  // Accepted answers / spellings (wish 7): matching answers are credited automatically.
+  const [accepted, setAccepted] = useState<string[]>(() => parseAccepted(initial?.accepted_answers));
+  const [acceptedDraft, setAcceptedDraft] = useState('');
   const [choices, setChoices] = useState<ChoiceState[]>(
     initial && initial.choices.length > 0
       ? initial.choices.map((c) => ({
@@ -145,6 +150,8 @@ export function QuestionForm({
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
+    // A variant typed but not added with Enter is saved too (unless it is a duplicate or invalid).
+    const acceptedToSave = withDraft(accepted, acceptedDraft).list;
     setSubmitting(true);
     try {
       await onSubmit({
@@ -154,7 +161,7 @@ export function QuestionForm({
         points: Number(pointsText),
         // Always sent: "— none —" clears the rubric.
         section_id: effectiveSectionId,
-        ...(type === 'text' ? { reference_answer: referenceAnswer, grader_notes: graderNotes } : {}),
+        ...(type === 'text' ? { reference_answer: referenceAnswer, accepted_answers: acceptedToSave, grader_notes: graderNotes } : {}),
         choices:
           type === 'text'
             ? []
@@ -268,6 +275,7 @@ export function QuestionForm({
               style={{ display: 'block', width: '100%' }}
             />
           </label>
+          <AcceptedAnswersInput value={accepted} onChange={setAccepted} draft={acceptedDraft} onDraftChange={setAcceptedDraft} />
           <label>
             Grader notes
             <textarea
@@ -275,7 +283,7 @@ export function QuestionForm({
               onChange={(e) => setGraderNotes(e.target.value)}
               rows={2}
               maxLength={2000}
-              placeholder="e.g. also accept Ishmael"
+              placeholder="e.g. only one of the two named: 0.5 points"
               style={{ display: 'block', width: '100%' }}
             />
           </label>

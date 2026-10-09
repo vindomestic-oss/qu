@@ -4,6 +4,13 @@ import type { QuizLang } from '../../i18n/contentLanguages';
 import type { GradingQuestion } from '../../types';
 import { CheckIcon } from './icons';
 import { formatPoints } from './format';
+import { normalizeForMatch } from '../../lib/acceptedAnswers';
+
+/** Accepted answers that say more than the model answer itself (or one of its " / " parts). */
+function extraAccepted(reference: string | null, accepted: string[] | undefined): string[] {
+  const covered = new Set([reference ?? '', ...(reference ?? '').split(' / ')].map(normalizeForMatch));
+  return (accepted ?? []).filter((a) => !covered.has(normalizeForMatch(a)));
+}
 
 interface Props {
   question: GradingQuestion;
@@ -20,8 +27,8 @@ interface Props {
 
 /**
  * A question as graders see it: number, type, picture, text in the chosen content language (base
- * fallback), max points, and the answer key: correct options, or the model answer and notes of a
- * text question. Grading rows go in `children`.
+ * fallback), max points, and the answer key: correct options, or the model answer, the accepted
+ * answers (wish 7) and the notes of a text question. Grading rows go in `children`.
  */
 export function QuestionReviewCard({ question: q, number, lang, base, selectedIds, choiceCounts, children }: Props) {
   const { t, uiLanguage } = useLanguage();
@@ -29,6 +36,7 @@ export function QuestionReviewCard({ question: q, number, lang, base, selectedId
   const known = new Set(q.choices.map((c) => c.id));
   const deletedSelections = (selectedIds ?? []).filter((id) => !known.has(id)).length;
   const maxCount = choiceCounts ? Math.max(1, ...Object.values(choiceCounts)) : 1;
+  const alsoAccepted = q.type === 'text' ? extraAccepted(q.reference_answer, q.accepted_answers) : [];
 
   return (
     <article className="review-card" id={`q-${q.id}`} aria-labelledby={`q-${q.id}-title`}>
@@ -56,6 +64,17 @@ export function QuestionReviewCard({ question: q, number, lang, base, selectedId
             </p>
           ) : (
             <p className="grade-muted">{t('grader.quiz.noReference')}</p>
+          )}
+          {alsoAccepted.length > 0 && (
+            <p className="review-card__accepted">
+              <span className="review-card__key-label">{t('grader.quiz.accepted')}:</span>{' '}
+              {alsoAccepted.map((a, i) => (
+                <span key={`${a}-${i}`}>
+                  {i > 0 && ' · '}
+                  <bdi dir="auto">{a}</bdi>
+                </span>
+              ))}
+            </p>
           )}
           {q.grader_notes && (
             <p className="review-card__notes">

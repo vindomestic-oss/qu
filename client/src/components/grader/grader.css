@@ -632,6 +632,86 @@
   opacity: 1;
 }
 
+/* --- Reference check (wish 7): rule label, precedent hints, groups of identical answers ---------- */
+.rule-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: var(--success-bg);
+  color: var(--on-success-bg);
+  font-weight: 600;
+}
+.answer-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 6px 0 0;
+  padding: 2px 10px;
+  border-radius: 8px;
+  font-size: 14px;
+  background: var(--selected-bg);
+  color: var(--selected-text);
+}
+.answer-hint--disagree {
+  background: var(--warning-bg);
+  color: var(--on-warning-bg);
+}
+/* Under the answer: "Show the N answers" and the admin's "Add to accepted answers". The accept
+   button keeps its place (hidden, not removed) while it is not offered, so rows never grow when a
+   grade arrives. */
+.answer-row__tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-block-start: 6px;
+}
+.accept-slot {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  min-height: 44px;
+}
+.accept-slot__unused {
+  visibility: hidden;
+}
+.accept-slot__status:empty {
+  display: none;
+}
+.group-count {
+  display: inline-block;
+  padding: 1px 10px;
+  border-radius: 999px;
+  background: var(--selected-bg);
+  color: var(--selected-text);
+  font-weight: 700;
+}
+/* The answers of an opened group, one by one, indented under it. */
+.answer-group__members {
+  margin-inline-start: 12px;
+  padding-inline-start: 12px;
+  border-inline-start: 3px solid var(--selected-border);
+}
+.review-card__accepted {
+  overflow-wrap: anywhere;
+}
+.review-card__rule {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  min-height: 44px;
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-muted);
+}
+.review-card__rule .grade-icon {
+  color: var(--success);
+}
+
 /* --- Whole quiz -------------------------------------------------------------------------------- */
 .quiz-bar {
   position: sticky;
