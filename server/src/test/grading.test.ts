@@ -706,6 +706,24 @@ describe('reading the panel', () => {
   });
 });
 
+describe('"difficult" counts (wish 8, S15)', () => {
+  test('the badge counts submitted participants only; correct_rate counts everyone', async () => {
+    const fx = await startedFixture('Difficult counts quiz');
+    await participant(fx, 'Done right', { choice: fx.correctChoiceId, submit: true });
+    await participant(fx, 'Done wrong', { choice: fx.wrongChoiceId, submit: true });
+    await participant(fx, 'Still busy', { choice: fx.wrongChoiceId });
+    const r = await request(base, 'GET', `/api/grading/${fx.sessionId}/summary`, adminToken);
+    const choice = r.body.questions.find((q: { id: number }) => q.id === fx.singleQuestionId);
+    assert.deepEqual(
+      [choice.graded_count, choice.correct_count, choice.submitted_graded_count, choice.submitted_correct_count],
+      [3, 1, 2, 1],
+    );
+    const whole = await request(base, 'GET', `/api/grading/${fx.sessionId}/quiz?filter=all`, adminToken);
+    const stats = whole.body.questions.find((q: { question: { id: number } }) => q.question.id === fx.singleQuestionId).stats;
+    assert.deepEqual([stats.graded, stats.correct], [2, 1], 'both pages count the same answers');
+  });
+});
+
 describe('status rule', () => {
   test('participantStatus', () => {
     assert.equal(participantStatus({ submitted_at: null, answered_count: 0, needs_review_count: 0 }), 'not_started');

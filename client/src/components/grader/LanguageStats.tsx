@@ -1,5 +1,6 @@
 import { useLanguage } from '../../i18n/LanguageContext';
 import { localizedLanguageName } from '../../i18n/languageMeta';
+import type { QuizLang } from '../../i18n/contentLanguages';
 import type { GradingLanguageStat } from '../../types';
 import { formatPercent } from './format';
 
@@ -7,11 +8,24 @@ import { formatPercent } from './format';
  * Wish 8 (S15): the submitted free-text answers per answer language on the overview: how many, the
  * share correct among the graded ones, how often the AI suggestion agreed with the graders' final
  * grade (when the quiz has AI suggestions or there are any) and how often a grade kept the reference
- * check's credit (when it credited any). Not shown without free-text answers. Counts only.
+ * check's credit (when it credited any). Not shown without free-text answers, nor for a quiz offered
+ * in one language whose answers are all in that language (one row would repeat the overview).
+ * Counts only.
  */
-export function LanguageStats({ stats, aiEnabled }: { stats: GradingLanguageStat[]; aiEnabled: boolean }) {
+export function LanguageStats({
+  stats,
+  aiEnabled,
+  base,
+  offered,
+}: {
+  stats: GradingLanguageStat[];
+  aiEnabled: boolean;
+  base: QuizLang;
+  offered: QuizLang[];
+}) {
   const { t, uiLanguage } = useLanguage();
   if (stats.length === 0) return null;
+  if (offered.length < 2 && stats.every((s) => s.lang === base)) return null;
   const showAi = aiEnabled || stats.some((s) => s.ai.total > 0);
   const showRule = stats.some((s) => s.rule.total > 0);
   const share = (n: number, total: number) =>

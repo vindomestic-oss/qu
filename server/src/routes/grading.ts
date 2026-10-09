@@ -372,7 +372,9 @@ gradingRouter.get('/summary', (req: StaffRequest, res) => {
            ${sum(ANSWERED_SQL)} AS answered_count,
            ${sum(CORRECT_SQL)} AS correct_count,
            ${sum(INCORRECT_SQL)} AS incorrect_count,
-           ${sum(NEEDS_REVIEW_SQL)} AS needs_review_count
+           ${sum(NEEDS_REVIEW_SQL)} AS needs_review_count,
+           ${sum(`(${CORRECT_SQL} OR ${INCORRECT_SQL}) AND p.submitted_at IS NOT NULL`)} AS submitted_graded_count,
+           ${sum(`${CORRECT_SQL} AND p.submitted_at IS NOT NULL`)} AS submitted_correct_count
          FROM questions q
          LEFT JOIN answers a ON a.question_id = q.id AND a.session_id = ?
          LEFT JOIN participants p ON p.id = a.participant_id
@@ -390,11 +392,14 @@ gradingRouter.get('/summary', (req: StaffRequest, res) => {
       correct_count: number;
       incorrect_count: number;
       needs_review_count: number;
+      submitted_graded_count: number;
+      submitted_correct_count: number;
     }[]
   ).map(({ incorrect_count, ...q }) => {
     const graded = q.correct_count + incorrect_count;
-    // Share of correct among the graded answers; null until one is graded. graded_count is the
-    // denominator (the panel's "difficult" badge needs at least 5, wish 8).
+    // Share of correct among the graded answers; null until one is graded. graded_count is its
+    // denominator. The "difficult" badge (wish 8) counts submitted participants only
+    // (submitted_graded_count / submitted_correct_count), like the whole-quiz page.
     return { ...q, graded_count: graded, correct_rate: graded > 0 ? q.correct_count / graded : null };
   });
 

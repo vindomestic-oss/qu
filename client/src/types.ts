@@ -281,6 +281,9 @@ export interface GradingSummary {
     needs_review_count: number;
     /** Graded answers (correct + incorrect): the denominator of correct_rate. */
     graded_count: number;
+    /** The same of submitted participants only, and the correct ones among them (the "difficult" badge). */
+    submitted_graded_count?: number;
+    submitted_correct_count?: number;
     correct_rate: number | null;
   }[];
   /** Wish 8 (S15): submitted free-text answers per answer language (empty without any). */

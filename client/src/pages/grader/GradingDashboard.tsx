@@ -144,8 +144,9 @@ export function GradingDashboard() {
                   <td className="num">
                     <span className="rate-cell">
                       {q.correct_rate === null ? '–' : formatPercent(q.correct_rate, uiLanguage)}
-                      {/* Wish 8 (S15): under 35 % correct of at least 5 graded answers; its place is kept. */}
-                      <DifficultBadge correct={q.correct_count} graded={q.graded_count ?? 0} />
+                      {/* Wish 8 (S15): under 35 % correct of at least 5 graded answers of submitted
+                          participants (as on the whole-quiz page); its place is kept. */}
+                      <DifficultBadge correct={q.submitted_correct_count ?? 0} graded={q.submitted_graded_count ?? 0} />
                     </span>
                   </td>
                   <td className="num">
@@ -170,7 +171,12 @@ export function GradingDashboard() {
       </section>
 
       {/* Wish 8 (S15): free-text answers per answer language, with the AI's and the reference check's agreement. */}
-      <LanguageStats stats={data.languages ?? []} aiEnabled={quiz.ai_grading_enabled === true} />
+      <LanguageStats
+        stats={data.languages ?? []}
+        aiEnabled={quiz.ai_grading_enabled === true}
+        base={quiz.base_language}
+        offered={quiz.offered_languages}
+      />
     </div>
   );
 }
