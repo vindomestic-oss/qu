@@ -1,13 +1,19 @@
 import type { QuizLang } from '../../i18n/contentLanguages';
-import { LANGUAGE_META } from '../../i18n/languageMeta';
+import { LANGUAGE_META, dirOf } from '../../i18n/languageMeta';
 import { useLanguage } from '../../i18n/LanguageContext';
 import { LanguageMenu } from '../LanguageMenu';
 
 interface Props {
+  /** The quiz's offered languages (declared and complete), base first. */
   languages: QuizLang[];
   value: QuizLang;
   onChange: (lang: QuizLang) => void;
   idPrefix: string;
+  /**
+   * Defensive fallback only: "No Deutsch translation, shown in English" when the current question is
+   * not complete in the picked language. Pass a string (empty = nothing to say) where it can happen:
+   * the live region then exists before its text arrives, so screen readers announce it.
+   */
   note?: string;
   /** Centre the label and control when they wrap (waiting room). */
   centered?: boolean;
@@ -19,21 +25,33 @@ interface Props {
  */
 export function QuestionLanguageBar({ languages, value, onChange, idPrefix, note, centered }: Props) {
   const { t, tCount } = useLanguage();
+  const only = languages[0] ?? value;
+  const className = ['qlang', centered && 'qlang--center', note && 'qlang--note'].filter(Boolean).join(' ');
   return (
-    <div className={centered ? 'qlang qlang--center' : 'qlang'} role="group" aria-labelledby={`${idPrefix}-label`}>
+    <div className={className} role="group" aria-labelledby={`${idPrefix}-label`}>
       <span id={`${idPrefix}-label`} className="qlang__label">
         {t('play.questionLanguage')}
       </span>
       {languages.length <= 1 ? (
-        <span lang={languages[0] ?? value} className="qlang__static">
-          {LANGUAGE_META[languages[0] ?? value].endonym}
+        <span lang={only} dir={dirOf(only)} className="qlang__static">
+          {LANGUAGE_META[only].endonym}
         </span>
       ) : languages.length === 2 ? (
-        languages.map((l) => (
-          <button key={l} type="button" className="toggle-chip" lang={l} aria-pressed={l === value} onClick={() => onChange(l)}>
-            {LANGUAGE_META[l].endonym}
-          </button>
-        ))
+        <span className="qlang__chips">
+          {languages.map((l) => (
+            <button
+              key={l}
+              type="button"
+              className="toggle-chip"
+              lang={l}
+              dir={dirOf(l)}
+              aria-pressed={l === value}
+              onClick={() => onChange(l)}
+            >
+              {LANGUAGE_META[l].endonym}
+            </button>
+          ))}
+        </span>
       ) : (
         <LanguageMenu
           idPrefix={idPrefix}
@@ -45,7 +63,11 @@ export function QuestionLanguageBar({ languages, value, onChange, idPrefix, note
           countLabel={tCount('lang.count', languages.length)}
         />
       )}
-      {note && <span className="qlang__note">{note}</span>}
+      {note !== undefined && (
+        <span className="qlang__note" aria-live="polite" title={note || undefined}>
+          {note ? `⚠ ${note}` : null}
+        </span>
+      )}
     </div>
   );
 }

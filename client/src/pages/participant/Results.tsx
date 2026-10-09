@@ -4,7 +4,7 @@ import type { ResultsResponse } from '../../types';
 import { ApiError } from '../../api/client';
 import { useLanguage } from '../../i18n/LanguageContext';
 import { useContentLanguage } from '../../i18n/useContentLanguage';
-import { sanitizeOffered } from '../../i18n/contentLanguages';
+import { questionLanguages, sanitizeOffered } from '../../i18n/contentLanguages';
 import { resolveFieldWithLang } from '../../i18n/resolveText';
 import { dirOf } from '../../i18n/languageMeta';
 import { QuestionLanguageBar } from '../../components/participant/QuestionLanguageBar';
@@ -62,7 +62,9 @@ export function Results() {
 
       {results.breakdown.map((item, i) => {
         const correctChoiceIds = new Set(item.question.choices.filter((c) => c.is_correct).map((c) => c.id));
-        const questionText = resolveFieldWithLang(item.question, 'text', contentLanguage, base);
+        // Same rule as /play: the whole question in the picked language, or wholly in the base.
+        const shownLang = questionLanguages(item.question, base).includes(contentLanguage) ? contentLanguage : base;
+        const questionText = resolveFieldWithLang(item.question, 'text', shownLang, base);
         return (
           <div
             key={item.question.id}
@@ -76,11 +78,11 @@ export function Results() {
               {t('results.ptsSuffix', { points: item.question.points })}
             </p>
             {item.question.type !== 'text' ? (
-              <ul dir={dirOf(contentLanguage)}>
+              <ul dir={dirOf(shownLang)}>
                 {item.question.choices.map((c) => {
                   const wasSelected = item.answer?.selected_choice_ids.includes(c.id) ?? false;
                   const isCorrectChoice = correctChoiceIds.has(c.id);
-                  const choiceText = resolveFieldWithLang(c, 'text', contentLanguage, base);
+                  const choiceText = resolveFieldWithLang(c, 'text', shownLang, base);
                   return (
                     <li
                       key={c.id}
@@ -89,7 +91,10 @@ export function Results() {
                         color: isCorrectChoice ? 'var(--success)' : wasSelected ? 'var(--danger)' : undefined,
                       }}
                     >
-                      <span lang={choiceText.lang}>{choiceText.text}</span> {wasSelected ? t('results.yourAnswer') : ''}{' '}
+                      <span lang={choiceText.lang} dir={dirOf(choiceText.lang)}>
+                        {choiceText.text}
+                      </span>{' '}
+                      {wasSelected ? t('results.yourAnswer') : ''}{' '}
                       {isCorrectChoice ? t('results.correct') : ''}
                     </li>
                   );

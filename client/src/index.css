@@ -392,16 +392,21 @@ label {
   color: inherit;
 }
 
-/* Question-language control (wish 2; wish 9 finalises its place in the card head). */
+/* Question-language control (wishes 2 and 9): "Question language: Deutsch" (1 language), two pill
+   chips (2), or the menu with a count (3 or more). Never overflow: hidden here: it would clip the list. */
 .qlang {
   display: inline-flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
+  min-inline-size: 0;
 }
 .qlang__label {
   font-size: 14px;
   color: var(--text-muted);
+}
+.qlang__label::after {
+  content: ':';
 }
 .qlang__static {
   font-weight: 600;
@@ -409,10 +414,19 @@ label {
 .qlang--center {
   justify-content: center;
 }
+.qlang__chips {
+  display: inline-flex;
+  flex-wrap: nowrap;
+  gap: 8px;
+  min-inline-size: 0;
+}
+/* Same font-weight in both states, so pressing a chip never changes its width. */
 .qlang .toggle-chip {
   min-height: 44px;
   padding-block: 0;
   padding-inline: 14px;
+  border-radius: 999px;
+  white-space: nowrap;
 }
 /* Only the unpressed chip is restyled here; the pressed one keeps the .toggle-chip selected colours. */
 .qlang .toggle-chip:not([aria-pressed='true']) {
@@ -423,9 +437,20 @@ label {
 .qlang .toggle-chip:not([aria-pressed='true']):hover:not(:disabled) {
   background: var(--surface-hover);
 }
+/* Defensive "No Deutsch translation, shown in English": one line in the space left over (it never
+   pushes the control), cut with "…" (full text in title). */
 .qlang__note {
+  flex: 1 1 0;
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: 14px;
   color: var(--text-muted);
+}
+/* The empty live region stays in place for screen readers but takes no room (cancels the gap). */
+.qlang__note:empty {
+  margin-inline-start: -8px;
 }
 
 /* Read by screen readers, not shown. */
