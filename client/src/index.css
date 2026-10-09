@@ -697,6 +697,14 @@ label {
 .rubrics__title {
   margin: 0 0 4px;
 }
+/* While a change is saved the buttons keep focus (aria-disabled, not disabled) but look disabled. */
+.rubrics button[aria-disabled='true'],
+.rubrics button[aria-disabled='true']:hover {
+  background: var(--button-disabled-bg);
+  border-color: var(--button-disabled-bg);
+  color: var(--button-disabled-text);
+  cursor: default;
+}
 .rubrics__hint {
   margin: 0 0 10px;
   font-size: 14px;

@@ -41,6 +41,8 @@ export interface Quiz extends WithTranslations<'title'>, WithTranslations<'descr
   question_count?: number;
   /** The quiz's rubrics in order (admin quiz payload only). */
   sections?: QuizSection[];
+  /** A seeded Chidon quiz: deleting all its rubrics brings the standard ones back on the next server start. */
+  seeded_rubrics?: boolean;
   questions?: Question[];
   /** The quiz's pending or running session, if any (list endpoint only). */
   open_session?: { id: number; status: 'pending' | 'active'; join_code: string; ends_at: string | null; joining_locked: number } | null;

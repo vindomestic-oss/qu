@@ -379,6 +379,7 @@ export function QuizEditor() {
         onActiveLangChange={setPairLang}
         addable={addable}
         onAddLanguage={handleAddLanguage}
+        seededRubrics={quiz.seeded_rubrics}
         onQuizChange={setQuiz}
       />
 

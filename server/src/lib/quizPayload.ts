@@ -1,8 +1,10 @@
 import type Database from 'better-sqlite3';
 import { getQuizLanguageInfo, parseStoredLanguages } from './quizLanguages';
 import { isQuizLang, QuizLang } from './languages';
+import { hasSeededRubrics } from '../db/chidonSections';
 
-// Imports only better-sqlite3 types and lib modules, never '../db' (that module opens quiz.db on import).
+// Imports only better-sqlite3 types, lib modules and db/chidonSections (which takes db as a
+// parameter), never '../db' (that module opens quiz.db on import).
 // Admin payloads only: participants get explicit column lists from lib/participantColumns.ts.
 
 // Rows selected with `SELECT *` also carry title_de/text_ru/etc. translation columns (see lib/languages.ts).
@@ -56,6 +58,8 @@ export function getQuizWithQuestions(db: Database.Database, quizId: number) {
     offered_languages: info.offered,
     missing_by_language: info.missing_by_language,
     sections,
+    // The seeded Chidon quizzes get their standard rubrics back on the next boot once all are deleted.
+    seeded_rubrics: hasSeededRubrics(db, quiz),
     questions: questionsWithChoices,
   };
 }

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import type { Question, Quiz, QuizSection } from '../../types';
 import { createSection, deleteSection, reorderSections, updateSection } from '../../api/quizzes';
@@ -28,9 +28,14 @@ interface Props {
   onActiveLangChange: (lang: ContentLangCode | null, anchor?: HTMLElement) => void;
   addable: ContentLangCode[];
   onAddLanguage: (lang: ContentLangCode, anchor?: HTMLElement) => Promise<void>;
+  /** A seeded Chidon quiz: once all its rubrics are deleted, the next server start brings them back. */
+  seededRubrics?: boolean;
   /** Every change saves at once and answers with the whole quiz. */
   onQuizChange: (quiz: Quiz) => void;
 }
+
+/** Where keyboard focus goes once a change has been saved and the list re-rendered. */
+type FocusTarget = { sectionId: number; part: 'name' | 'up' | 'down' } | 'heading';
 
 interface NameDraft {
   name: string;
@@ -85,6 +90,7 @@ export function RubricsEditor({
   onActiveLangChange,
   addable,
   onAddLanguage,
+  seededRubrics = false,
   onQuizChange,
 }: Props) {
   // Unsaved edits per rubric id; a rubric without an entry shows its saved name.
@@ -93,6 +99,34 @@ export function RubricsEditor({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const rootRef = useRef<HTMLElement>(null);
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  const pendingFocus = useRef<FocusTarget | null>(null);
+
+  // Buttons are never disabled while a request runs (aria-disabled instead), so focus stays where it
+  // is; after a change it moves to the control the author works with next. Runs after every render,
+  // because the saved quiz arrives through the parent a render later.
+  useLayoutEffect(() => {
+    const target = pendingFocus.current;
+    const root = rootRef.current;
+    if (!target || !root) return;
+    if (target === 'heading') {
+      pendingFocus.current = null;
+      headingRef.current?.focus();
+      return;
+    }
+    const row = root.querySelector<HTMLElement>(`[data-section-id="${target.sectionId}"]`);
+    if (!row) return; // the saved list has not arrived yet
+    pendingFocus.current = null;
+    const name = row.querySelector<HTMLElement>('.pair-field input');
+    if (target.part === 'name') {
+      name?.focus();
+      return;
+    }
+    // The same arrow in the moved rubric's row; at an edge (disabled there) the other arrow.
+    const arrow = (part: 'up' | 'down') => row.querySelector<HTMLButtonElement>(`[data-move="${part}"]:not(:disabled)`);
+    (arrow(target.part) ?? arrow(target.part === 'up' ? 'down' : 'up') ?? name)?.focus();
+  });
 
   const colors = sectionColors(sections);
   const ordered = [...colors.values()];
@@ -108,6 +142,7 @@ export function RubricsEditor({
   const shownLang = activeLang && tabLanguages.includes(activeLang) ? activeLang : null;
 
   async function run(action: () => Promise<{ quiz: Quiz }>, done?: (quiz: Quiz) => void, message?: string) {
+    if (busy) return;
     setBusy(true);
     setError(null);
     setNotice(null);
@@ -137,45 +172,84 @@ export function RubricsEditor({
 
   function save(e: FormEvent, section: QuizSection) {
     e.preventDefault();
+    if (busy) return;
     const d = rowDraft(section);
     void run(
       () => updateSection(section.id, { name: d.name, ...flattenTranslations('name', d.translations) }),
-      () => forget(section.id),
+      () => {
+        forget(section.id);
+        pendingFocus.current = { sectionId: section.id, part: 'name' };
+      },
       `Saved "${d.name.trim()}".`,
     );
   }
 
-  function remove(section: QuizSection) {
+  function undo(section: QuizSection) {
+    if (busy) return;
+    forget(section.id);
+    pendingFocus.current = { sectionId: section.id, part: 'name' };
+  }
+
+  function remove(index: number, section: QuizSection) {
+    if (busy) return;
     const count = numbersOf(section.id).length;
-    const what = count === 1 ? 'Its question stays' : `Its ${count} questions stay`;
-    if (!confirm(`Delete the rubric "${section.name}"? ${what} in the quiz, without a rubric.`)) return;
+    const what =
+      count === 0
+        ? 'It has no questions.'
+        : count === 1
+          ? 'Its question stays in the quiz, without a rubric.'
+          : `Its ${count} questions stay in the quiz, without a rubric.`;
+    const comesBack =
+      seededRubrics && ordered.length === 1
+        ? ' It is the last rubric of this Chidon quiz: the standard Chidon rubrics come back the next time the server starts.'
+        : '';
+    if (!confirm(`Delete the rubric "${section.name}"? ${what}${comesBack}`)) return;
+    const next = ordered[index + 1]?.section.id;
     void run(
       () => deleteSection(section.id),
-      () => forget(section.id),
+      () => {
+        forget(section.id);
+        pendingFocus.current = next !== undefined ? { sectionId: next, part: 'name' } : 'heading';
+      },
       `Deleted "${section.name}".`,
     );
   }
 
   function move(index: number, direction: -1 | 1) {
+    if (busy) return;
     const ids = ordered.map(({ section }) => section.id);
     const other = index + direction;
     if (other < 0 || other >= ids.length) return;
+    const moved = ids[index];
     [ids[index], ids[other]] = [ids[other], ids[index]];
-    void run(() => reorderSections(quizId, ids));
+    void run(
+      () => reorderSections(quizId, ids),
+      () => {
+        pendingFocus.current = { sectionId: moved, part: direction === -1 ? 'up' : 'down' };
+      },
+    );
   }
 
   function add(e: FormEvent) {
     e.preventDefault();
+    if (busy) return;
+    const before = new Set(sections.map((s) => s.id));
     void run(
       () => createSection(quizId, { name: newDraft.name, ...flattenTranslations('name', newDraft.translations) }),
-      () => setNewDraft(draftOf(undefined)),
+      (quiz) => {
+        setNewDraft(draftOf(undefined));
+        const added = (quiz.sections ?? []).find((s) => !before.has(s.id));
+        if (added) pendingFocus.current = { sectionId: added.id, part: 'name' };
+      },
       `Added "${newDraft.name.trim()}".`,
     );
   }
 
+  const busyProps = busy ? { 'aria-disabled': true as const } : {};
+
   return (
-    <section className="rubrics" aria-labelledby="rubrics-title">
-      <h2 id="rubrics-title" className="rubrics__title">
+    <section className="rubrics" aria-labelledby="rubrics-title" ref={rootRef}>
+      <h2 id="rubrics-title" className="rubrics__title" tabIndex={-1} ref={headingRef}>
         Rubrics
       </h2>
       <p className="rubrics__hint">
@@ -199,7 +273,13 @@ export function RubricsEditor({
             const dirty = !sameDraft(d, draftOf(section));
             const numbers = numbersOf(section.id);
             return (
-              <li key={section.id} className="rubric-row" style={sectionStyle(colorIndex)} data-testid="rubric-row">
+              <li
+                key={section.id}
+                className="rubric-row"
+                style={sectionStyle(colorIndex)}
+                data-testid="rubric-row"
+                data-section-id={section.id}
+              >
                 <form aria-label={`Rubric ${i + 1}`} onSubmit={(e) => save(e, section)}>
                   <PairField
                     required
@@ -219,26 +299,41 @@ export function RubricsEditor({
                       : `${numbers.length} question${numbers.length === 1 ? '' : 's'}: ${numberRanges(numbers)}`}
                   </p>
                   <div className="rubric-row__actions">
-                    <button type="button" aria-label={`Move rubric ${i + 1} up`} disabled={busy || i === 0} onClick={() => move(i, -1)}>
+                    <button
+                      type="button"
+                      data-move="up"
+                      aria-label={`Move rubric ${i + 1} up`}
+                      disabled={i === 0}
+                      {...busyProps}
+                      onClick={() => move(i, -1)}
+                    >
                       ↑
                     </button>
                     <button
                       type="button"
+                      data-move="down"
                       aria-label={`Move rubric ${i + 1} down`}
-                      disabled={busy || i === ordered.length - 1}
+                      disabled={i === ordered.length - 1}
+                      {...busyProps}
                       onClick={() => move(i, 1)}
                     >
                       ↓
                     </button>
-                    <button type="submit" disabled={busy || !dirty}>
+                    <button type="submit" aria-label={`Save rubric ${i + 1}`} disabled={!dirty} {...busyProps}>
                       Save
                     </button>
                     {dirty && (
-                      <button type="button" disabled={busy} onClick={() => forget(section.id)}>
+                      <button type="button" aria-label={`Undo rubric ${i + 1}`} {...busyProps} onClick={() => undo(section)}>
                         Undo
                       </button>
                     )}
-                    <button type="button" className="btn-outline-danger" disabled={busy} onClick={() => remove(section)}>
+                    <button
+                      type="button"
+                      className="btn-outline-danger"
+                      aria-label={`Delete rubric ${i + 1}`}
+                      {...busyProps}
+                      onClick={() => remove(i, section)}
+                    >
                       Delete
                     </button>
                   </div>
@@ -259,7 +354,7 @@ export function RubricsEditor({
           onTranslationChange={(lang, value) => setNewDraft((prev) => ({ ...prev, translations: { ...prev.translations, [lang]: value } }))}
           activeLang={shownLang}
         />
-        <button type="submit" disabled={busy}>
+        <button type="submit" {...busyProps}>
           Add rubric
         </button>
       </form>

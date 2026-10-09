@@ -166,6 +166,8 @@ html[dir='rtl'] .play-title__text {
 .qnav-scroller {
   flex: 1;
   min-inline-size: 0;
+  /* 100cqi = the strip's visible width, for the rubric labels below. */
+  container-type: inline-size;
   display: flex;
   overflow-x: auto;
   scrollbar-width: none;
@@ -199,17 +201,25 @@ html[dir='rtl'] .play-title__text {
 }
 .qnav-group-label {
   position: sticky;
-  inset-inline-start: 28px;
+  /* Clear of the edge fade once the strip is scrolled; flush with the group at the very start. */
+  inset-inline-start: var(--fade-start, 28px);
   inline-size: max-content;
-  max-inline-size: 100%;
+  /* Never wider than the group, nor than the strip's window between the two edge fades: a longer
+     name ends in "…" where it can be seen. */
+  max-inline-size: min(100%, calc(100cqi - 56px));
   block-size: 14px;
   line-height: 14px;
   font-size: 12px;
   font-weight: 700;
   white-space: nowrap;
   overflow: hidden;
-  text-overflow: ellipsis;
   color: var(--section-color, var(--text-muted)); /* the rubric's colour: 4.5:1 on --bg and --surface */
+}
+/* The name in its own direction, cut at its own end. */
+.qnav-group-label > bdi {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .qnav-band {
   display: block;
@@ -521,22 +531,30 @@ html[dir='rtl'] .play-title__text {
   visibility: hidden;
 }
 /* Rubric of the question on screen (wish 10): a second line in the counter's cell, in the colour of
-   its group in the strip. It never widens the cell (long names end in "…"; the full name is its
-   title and the strip's label), so the flag beside it never moves. */
+   its group in the strip. Hidden copies of every rubric name share the cell, so it is as wide as the
+   longest name (in the question language) on every question and the flag beside it never moves. The
+   cell takes at most 45% of the row, so the language control keeps its room; a longer name ends in
+   "…" (the full name is its title and the strip's label). */
+.qcard-head__count:has(> .qcard-rubric) {
+  max-inline-size: 45%;
+}
 .qcard-head__count > .qcard-rubric {
   grid-area: 2 / 1;
+  min-inline-size: 0;
+  overflow: hidden;
 }
 .qcard-rubric {
   display: flex;
   align-items: center;
   gap: 5px;
-  inline-size: 0;
-  min-inline-size: 100%;
   block-size: 16px;
   font-size: 13px;
   font-weight: 700;
   line-height: 16px;
   color: var(--section-color);
+}
+.qcard-rubric.is-ghost {
+  visibility: hidden;
 }
 .qcard-rubric:not(:empty)::before {
   content: '';
@@ -551,6 +569,12 @@ html[dir='rtl'] .play-title__text {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+/* Below 360 px the counter itself needs two lines: the rubric stays in the strip's label only. */
+@media (max-width: 359.98px) {
+  .qcard-head__count > .qcard-rubric {
+    display: none;
+  }
 }
 .qcard-head__lang {
   margin-inline-start: auto;

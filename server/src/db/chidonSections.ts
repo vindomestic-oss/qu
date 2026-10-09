@@ -115,10 +115,12 @@ const PLANS: QuizPlan[] = [
 
 /**
  * Gives the seeded Chidon quizzes their rubrics: Chidon 5786 four (5 / 15 / 10 / 20 questions), each
- * 5787 quiz two (20 / 10). A quiz is found by its exact title and skipped when it is missing or
+ * 5787 quiz two (20 / 10). The seeded quiz is the oldest one with the exact title (a later copy or
+ * re-import under the same title is the author's own and gets nothing). It is skipped when it
  * already has any rubric, so every later boot is a no-op and rubrics an author edited are never
- * touched (an author who deletes all of them gets them back on the next boot). Runs at the end of
- * runMigrations() and of the seed: on a fresh database the quizzes exist only after the seed.
+ * touched; an author who deletes all of them gets them back on the next boot (documented, and the
+ * editor says so before the last one is deleted). Runs at the end of runMigrations() and of the
+ * seed: on a fresh database the quizzes exist only after the seed.
  */
 export function backfillSeededSections(db: Database.Database): void {
   const nameColumns = CONTENT_LANGS.map((l) => `name_${l}`);
@@ -126,12 +128,11 @@ export function backfillSeededSections(db: Database.Database): void {
     `INSERT INTO quiz_sections (quiz_id, name, ${nameColumns.join(', ')}, sort_order, created_at)
      VALUES (${['?', '?', ...nameColumns.map(() => '?'), '?', '?'].join(', ')})`,
   );
-  const findQuizzes = db.prepare('SELECT id FROM quizzes WHERE title = ? ORDER BY id');
   const hasSections = db.prepare('SELECT 1 FROM quiz_sections WHERE quiz_id = ? LIMIT 1');
 
   for (const plan of PLANS) {
-    for (const { id: quizId } of findQuizzes.all(plan.title) as { id: number }[]) {
-      if (hasSections.get(quizId)) continue;
+    const quizId = seededQuizId(db, plan.title);
+    if (quizId !== null && !hasSections.get(quizId)) {
       const counts = db.transaction(() => {
         const createdAt = nowIso();
         return plan.sections.map((s, i) => {
@@ -147,4 +148,16 @@ export function backfillSeededSections(db: Database.Database): void {
       console.log(`Rubrics added to "${plan.title}" (id ${quizId}): ${counts.join(' / ')} questions.`);
     }
   }
+}
+
+/** The seeded quiz with this title: the oldest one (MIN(id)), or null. */
+function seededQuizId(db: Database.Database, title: string): number | null {
+  const row = db.prepare('SELECT MIN(id) AS id FROM quizzes WHERE title = ?').get(title) as { id: number | null };
+  return row.id;
+}
+
+/** True for the seeded Chidon quizzes whose rubrics come back on the next boot once all are deleted. */
+export function hasSeededRubrics(db: Database.Database, quiz: { id: number; title?: unknown }): boolean {
+  const title = quiz.title;
+  return typeof title === 'string' && PLANS.some((p) => p.title === title) && seededQuizId(db, title) === quiz.id;
 }

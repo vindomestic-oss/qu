@@ -6,7 +6,7 @@ import path from 'path';
 import Database from 'better-sqlite3';
 import { db } from '../db';
 import { runMigrations } from '../db/migrate';
-import { backfillSeededSections } from '../db/chidonSections';
+import { backfillSeededSections, hasSeededRubrics } from '../db/chidonSections';
 import { CHIDON_5786_TITLE, CHIDON_5787_ANFAENGER_TITLE, CHIDON_5787_FORTGESCHRITTENE_TITLE } from '../db/quizTitles';
 import { CONTENT_LANGS } from '../lib/languages';
 import { createAdmin, createQuizFixture, findKeys, join, login, request, startServer, type QuizFixture } from './helpers';
@@ -56,11 +56,15 @@ function legacyDb(): Database.Database {
   }
   const other = Number(insertQuiz.run('Another quiz').lastInsertRowid);
   addQuestions(other, [{ type: 'single', choices: 2 }, { type: 'text', choices: 0 }]);
+  // An author's later copy under the seeded title: not the seeded quiz, so it gets no rubrics.
+  const copy = Number(insertQuiz.run(CHIDON_5787_ANFAENGER_TITLE).lastInsertRowid);
+  addQuestions(copy, [{ type: 'single', choices: 4 }, { type: 'text', choices: 0 }]);
   return d;
 }
 
+/** The seeded (oldest) quiz with this title. */
 function quizIdByTitle(d: Database.Database, title: string): number {
-  return (d.prepare('SELECT id FROM quizzes WHERE title = ?').get(title) as { id: number }).id;
+  return (d.prepare('SELECT MIN(id) AS id FROM quizzes WHERE title = ?').get(title) as { id: number }).id;
 }
 
 /** Rubric names of a quiz in order, with the number of questions in each. */
@@ -131,6 +135,14 @@ describe('migration and Chidon backfill', () => {
     const other = quizIdByTitle(d, 'Another quiz');
     assert.deepEqual(rubrics(d, other), []);
     assert.equal((d.prepare('SELECT COUNT(*) AS n FROM questions WHERE quiz_id = ? AND section_id IS NOT NULL').get(other) as { n: number }).n, 0);
+
+    // Only the seeded (oldest) quiz of a title: a later copy under the same title gets nothing.
+    const copy = (d.prepare('SELECT MAX(id) AS id FROM quizzes WHERE title = ?').get(CHIDON_5787_ANFAENGER_TITLE) as { id: number }).id;
+    assert.notEqual(copy, quizIdByTitle(d, CHIDON_5787_ANFAENGER_TITLE));
+    assert.deepEqual(rubrics(d, copy), []);
+    assert.equal(hasSeededRubrics(d, { id: quizIdByTitle(d, CHIDON_5787_ANFAENGER_TITLE), title: CHIDON_5787_ANFAENGER_TITLE }), true);
+    assert.equal(hasSeededRubrics(d, { id: copy, title: CHIDON_5787_ANFAENGER_TITLE }), false);
+    assert.equal(hasSeededRubrics(d, { id: other, title: 'Another quiz' }), false);
   });
 
   test('running the migrations again changes nothing; author edits survive later boots', () => {
@@ -233,8 +245,9 @@ describe('rubric endpoints', () => {
     assert.equal(r2.status, 201);
     [alpha, beta] = sectionsOf(fx.quizId).map((s) => s.id);
     assert.deepEqual(sectionsOf(fx.quizId).map((s) => [s.name, s.sort_order]), [['Alpha', 0], ['Beta', 1]]);
-    // The admin payload carries every question's section_id.
+    // The admin payload carries every question's section_id; an ordinary quiz has no seeded rubrics.
     assert.ok(r2.body.quiz.questions.every((q: { section_id: unknown }) => q.section_id === null));
+    assert.equal(r2.body.quiz.seeded_rubrics, false);
 
     const r3 = await request(base, 'POST', `/api/quizzes/${other.quizId}/sections`, token, names('Foreign'));
     foreign = r3.body.quiz.sections[0].id;

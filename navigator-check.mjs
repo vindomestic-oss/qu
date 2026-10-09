@@ -1,7 +1,7 @@
 // Question navigator, autosave and finish flow on /play (wish 10). Run against a local server:
 //   E2E_BASE_URL=http://localhost:4000 E2E_ADMIN_PASSWORD=... PW_CHANNEL= node navigator-check.mjs
-// Uses Chidon 5786 (50 questions: 20 choice, 10 open, 20 picture). Rubric labels, colour bands and
-// the card's rubric badge are checked against the quiz's rubrics (S11; 4 for Chidon 5786).
+// Uses Chidon 5786 (50 questions: 20 choice, 10 open, 20 picture). Its 4 rubrics (S11) are required:
+// labels, group sizes, colour bands and the card's rubric badge are checked against them.
 import { chromium } from 'playwright';
 
 const BASE = process.env.E2E_BASE_URL || 'http://localhost:5173';
@@ -67,7 +67,13 @@ const visibleQuestionNumber = async (page) => Number((await page.locator('.qcard
   const groups = await page.locator('.qnav-group').count();
   const labels = await page.locator('.qnav-group-label').count();
   log('strip', `${groups} group(s), ${labels} label(s)`);
-  if (sections.length) {
+  // Chidon 5786 always has its 4 seeded rubrics (S11): never fall back to "no rubrics" here.
+  check(
+    sections.map((s) => s.name).join(' | ') === 'True / False | Multiple choice | Open questions | Picture questions',
+    `Chidon 5786 has its 4 rubrics (${sections.map((s) => s.name).join(' | ')})`,
+  );
+  check(groups === 4 && labels === 4, `4 labelled groups in the strip (${groups} groups, ${labels} labels)`);
+  {
     check(groups === runs.length, `${runs.length} rubric groups in the strip (got ${groups})`);
     const texts = await page.locator('.qnav-group-label').allInnerTexts();
     const expected = runs.filter((r) => r.name).map((r) => r.name);
@@ -83,8 +89,6 @@ const visibleQuestionNumber = async (page) => Number((await page.locator('.qcard
     check(runs[0].name === null || firstLabel.includes(runs[0].name), `item 1 is read with its rubric: "${firstLabel}"`);
     const badge = page.getByTestId('rubric-badge');
     check(runs[0].name === null || ((await badge.count()) === 1 && (await badge.innerText()).includes(runs[0].name)), 'Q1 card shows its rubric badge');
-  } else {
-    check(groups === 1 && labels === 0, 'no rubrics: one unlabelled group');
   }
   check((await page.locator('[data-testid=question-nav] [aria-current=step]').count()) === 1, 'exactly one current item');
   await page.getByTestId('nav-item-31').click();

@@ -89,6 +89,8 @@ export function QuestionForm({
     ...flattenTranslations('text', textTranslations),
     choices: choices.map((c) => ({ text: c.text, ...flattenTranslations('text', c.translations) })),
   };
+  // A rubric deleted while this form was open is gone: the form shows and sends "— none —".
+  const effectiveSectionId = sectionId !== null && sections.some((s) => s.id === sectionId) ? sectionId : null;
   const candidates = translationLangs(baseLang);
   // Declared languages plus any language this form already has text in (e.g. after a "×").
   const tabLanguages = candidates.filter(
@@ -145,7 +147,7 @@ export function QuestionForm({
         ...flattenTranslations('text', textTranslations),
         points: Number(pointsText),
         // Always sent: "— none —" clears the rubric.
-        section_id: sectionId,
+        section_id: effectiveSectionId,
         choices:
           type === 'text'
             ? []
@@ -205,7 +207,7 @@ export function QuestionForm({
       <label>
         Rubric
         <select
-          value={sectionId ?? ''}
+          value={effectiveSectionId ?? ''}
           onChange={(e) => setSectionId(e.target.value ? Number(e.target.value) : null)}
           style={{ display: 'block', maxWidth: '100%' }}
         >
