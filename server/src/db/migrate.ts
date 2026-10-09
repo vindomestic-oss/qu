@@ -22,6 +22,8 @@ const ADDED_COLUMNS: Record<string, { name: string; type: string }[]> = {
     // Who submitted: 'participant' (Finish) or 'session_end' (the session ended first).
     { name: 'submit_source', type: 'TEXT' },
   ],
+  // 1 = new names cannot join (host's "Lock joining"); people already in the session can still rejoin.
+  sessions: [{ name: 'joining_locked', type: 'INTEGER NOT NULL DEFAULT 0' }],
   answers: [
     // 'auto_choice' | 'auto_blank' | 'rule' | 'ai_confirmed' | 'ai_auto' | 'human' (validated in TypeScript).
     { name: 'grade_source', type: 'TEXT' },

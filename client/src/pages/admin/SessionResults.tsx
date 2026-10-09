@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { getSessionResults, gradeAnswer } from '../../api/sessions';
 import type { Question, SessionAnswer, SessionParticipant, SessionResultsResponse } from '../../types';
 import { ApiError } from '../../api/client';
+import { formatJoinCode } from '../../lib/joinLink';
 
 function computeScore(participantId: number, questions: Question[], answers: SessionAnswer[]) {
   let scored = 0;
@@ -115,7 +116,7 @@ export function SessionResults() {
       <Link to={`/admin/quizzes/${quiz.id}`}>&larr; Back to quiz</Link>
       <h1>{quiz.title} — Results</h1>
       <p>
-        Session status: <strong>{session.status}</strong> · Join code: {session.join_code}
+        Session status: <strong>{session.status}</strong> · Join code: <bdi dir="ltr">{formatJoinCode(session.join_code)}</bdi>
       </p>
       {error && <p style={{ color: 'var(--danger)' }}>{error}</p>}
 

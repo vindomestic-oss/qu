@@ -1,5 +1,5 @@
 import { api } from './client';
-import type { QuizSession, SessionResultsResponse, SessionAnswer, LiveStatusResponse } from '../types';
+import type { QuizSession, SessionResultsResponse, SessionAnswer, LiveStatusResponse, SessionQuizMeta } from '../types';
 
 export function createOrGetSession(quizId: number) {
   return api<{ session: QuizSession }>(`/quizzes/${quizId}/sessions`, { method: 'POST' });
@@ -10,7 +10,11 @@ export function listSessions(quizId: number) {
 }
 
 export function getSession(sessionId: number, { background = false }: { background?: boolean } = {}) {
-  return api<{ session: QuizSession }>(`/sessions/${sessionId}`, { background });
+  return api<{ session: QuizSession; quiz: SessionQuizMeta }>(`/sessions/${sessionId}`, { background });
+}
+
+export function setJoiningLocked(sessionId: number, locked: boolean) {
+  return api<{ session: QuizSession }>(`/sessions/${sessionId}/joining`, { method: 'PUT', body: JSON.stringify({ locked }) });
 }
 
 export function startSession(sessionId: number) {

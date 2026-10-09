@@ -48,6 +48,7 @@ const EXPECTED_ADMIN_ROUTES = [
   'GET /api/sessions/:id/results',
   'PUT /api/sessions/:id/answers/:answerId/grade',
   'PUT /api/sessions/:id/participants/:participantId/allow-rejoin',
+  'PUT /api/sessions/:id/joining',
   'GET /api/admin/backups',
   'GET /api/admin/backups/latest',
 ].sort();
@@ -129,7 +130,7 @@ describe('route coverage', () => {
     };
     const snapshot = () => ({
       counts: tableCounts(),
-      status: (db.prepare('SELECT status FROM sessions WHERE id = ?').get(fx.sessionId) as { status: string }).status,
+      session: db.prepare('SELECT status, joining_locked FROM sessions WHERE id = ?').get(fx.sessionId),
       rejoinHash: (db.prepare('SELECT rejoin_hash FROM participants WHERE id = ?').get(participantId) as { rejoin_hash: string | null })
         .rejoin_hash,
       points: (db.prepare('SELECT points_awarded FROM answers WHERE id = ?').get(answerId) as { points_awarded: number | null })
@@ -169,7 +170,7 @@ describe('route coverage', () => {
         .replace(':participantId', String(participantId))
         .replace(':id', String(idFor[mount]));
       for (const v of variants) {
-        const body = method === 'GET' || method === 'DELETE' ? undefined : { points_awarded: 0, title: 'x' };
+        const body = method === 'GET' || method === 'DELETE' ? undefined : { points_awarded: 0, title: 'x', locked: true };
         const r = await request(base, method, path, v.token, body);
         assert.equal(r.status, v.status, `${route} with ${v.name}: expected ${v.status}, got ${r.status}`);
         assert.equal(r.body?.code, v.code, `${route} with ${v.name}: code`);

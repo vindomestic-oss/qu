@@ -74,9 +74,9 @@ async function main() {
   await admin.waitForTimeout(300);
 
   // Create + start session
-  await admin.getByRole('button', { name: /create session/i }).click();
+  await admin.getByRole('button', { name: /start quiz \(open lobby\)/i }).click();
   await admin.waitForTimeout(300);
-  const joinCodeText = await admin.locator('strong').filter({ hasText: /^[A-Z0-9]{6}$/ }).first().innerText();
+  const joinCodeText = await admin.getByTestId('join-code').getAttribute('data-code');
   log('admin', `join code: ${joinCodeText}`);
   await admin.getByRole('button', { name: /start now/i }).click();
   await admin.waitForTimeout(300);

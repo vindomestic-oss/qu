@@ -57,7 +57,28 @@ interface AnswerRow {
 sessionsRouter.get('/:id', (req, res) => {
   const session = getSession(Number(req.params.id));
   if (!session) return res.status(404).json({ error: 'Session not found' });
-  res.json({ session });
+  const quiz = db
+    .prepare(
+      `SELECT q.id, q.title, q.time_limit_seconds, (SELECT COUNT(*) FROM questions WHERE quiz_id = q.id) AS question_count
+       FROM quizzes q WHERE q.id = ?`,
+    )
+    .get(session.quiz_id);
+  res.json({ session, quiz });
+});
+
+// "Lock joining" (decision Q-lock-joining): new names get 403 JOINING_LOCKED; rejoining stays possible.
+sessionsRouter.put('/:id/joining', (req, res) => {
+  const { locked } = req.body ?? {};
+  if (typeof locked !== 'boolean') return res.status(400).json({ error: 'locked must be a boolean' });
+  const session = getSession(Number(req.params.id));
+  if (!session) return res.status(404).json({ error: 'Session not found' });
+  if (session.status === 'ended') {
+    return res.status(400).json({ error: 'This session has already ended', code: 'SESSION_ENDED' });
+  }
+  db.prepare('UPDATE sessions SET joining_locked = ? WHERE id = ?').run(locked ? 1 : 0, session.id);
+  const updated = getSession(session.id)!;
+  broadcastSessionUpdate(session.id, updated);
+  res.json({ session: updated });
 });
 
 sessionsRouter.put('/:id/start', (req, res) => {

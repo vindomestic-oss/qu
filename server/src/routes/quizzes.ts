@@ -3,7 +3,7 @@ import { db } from '../db';
 import { requireAdmin, AuthedRequest } from '../middleware/jwt';
 import { parseQuestionInput, extractTranslations } from '../lib/questionInput';
 import { deleteImageFile } from '../lib/uploads';
-import { createUniqueJoinCode, refreshSessionStatus, SessionRow } from '../lib/sessions';
+import { createUniqueJoinCode, getSession, refreshSessionStatus, SessionRow } from '../lib/sessions';
 import { translationColumns, translationValues } from '../lib/sqlTranslations';
 import { CONTENT_LANGS, isQuizLang } from '../lib/languages';
 import { invalidateQuizLanguages } from '../lib/quizLanguages';
@@ -62,12 +62,25 @@ function getQuizWithQuestions(quizId: number) {
 // --- Quizzes ---
 
 quizzesRouter.get('/', (_req, res) => {
-  const quizzes = db
+  const rows = db
     .prepare(
-      `SELECT q.*, (SELECT COUNT(*) FROM questions WHERE quiz_id = q.id) as question_count
+      `SELECT q.*, (SELECT COUNT(*) FROM questions WHERE quiz_id = q.id) as question_count,
+         (SELECT s.id FROM sessions s WHERE s.quiz_id = q.id AND s.status IN ('pending', 'active') ORDER BY s.id DESC LIMIT 1)
+           AS open_session_id
        FROM quizzes q ORDER BY q.created_at DESC`,
     )
-    .all();
+    .all() as (Record<string, unknown> & { open_session_id: number | null })[];
+  // getSession applies the lazy expiry, so a run whose time is up is not shown as open.
+  const quizzes = rows.map(({ open_session_id, ...quiz }) => {
+    const s = open_session_id ? getSession(open_session_id) : null;
+    return {
+      ...quiz,
+      open_session:
+        s && s.status !== 'ended'
+          ? { id: s.id, status: s.status, join_code: s.join_code, ends_at: s.ends_at, joining_locked: s.joining_locked }
+          : null,
+    };
+  });
   res.json({ quizzes });
 });
 

@@ -64,9 +64,9 @@ async function main() {
   await qForm.getByRole('button', { name: /save question/i }).click();
   await setup.waitForTimeout(300);
 
-  await setup.getByRole('button', { name: /create session/i }).click();
+  await setup.getByRole('button', { name: /start quiz \(open lobby\)/i }).click();
   await setup.waitForTimeout(300);
-  const joinCodeText = await setup.locator('strong').filter({ hasText: /^[A-Z0-9]{6}$/ }).first().innerText();
+  const joinCodeText = await setup.getByTestId('join-code').getAttribute('data-code');
   log('setup', `quiz ${quizId} ready, join code ${joinCodeText}`);
 
   await setupCtx.close();

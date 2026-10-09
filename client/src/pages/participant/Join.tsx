@@ -1,16 +1,20 @@
 import { useRef, useState } from 'react';
 import type { FormEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useParticipant } from '../../auth/ParticipantContext';
 import { ApiError } from '../../api/client';
 import { useLanguage } from '../../i18n/LanguageContext';
 import { Logo } from '../../components/Logo';
+import { normalizeJoinCode } from '../../lib/joinLink';
 
 export function Join() {
   const { join, hasRejoinSecret } = useParticipant();
   const { t } = useLanguage();
   const navigate = useNavigate();
-  const [joinCode, setJoinCode] = useState('');
+  // /j/CODE (the QR) and /join?code=CODE prefill the code; the participant only types a name.
+  const [searchParams] = useSearchParams();
+  const codeFromLink = normalizeJoinCode(searchParams.get('code') ?? '');
+  const [joinCode, setJoinCode] = useState(codeFromLink);
   const [displayName, setDisplayName] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -25,7 +29,7 @@ export function Join() {
     setSubmitting(true);
     try {
       await join(joinCode.trim().toUpperCase(), displayName.trim(), { useSecret });
-      navigate('/play');
+      navigate('/play', { replace: true });
     } catch (err) {
       // t() returns the key itself when no dictionary has it, so an unknown code shows the generic text.
       const code = err instanceof ApiError ? err.code : undefined;
@@ -67,14 +71,18 @@ export function Join() {
           {t('join.joinCode')}
           <input
             value={joinCode}
-            onChange={(e) => setJoinCode(e.target.value)}
+            onChange={(e) => setJoinCode(normalizeJoinCode(e.target.value))}
             required
-            autoFocus
+            autoFocus={!codeFromLink}
             dir="ltr"
+            autoCapitalize="characters"
+            autoComplete="off"
+            autoCorrect="off"
+            spellCheck={false}
             style={{ display: 'block', width: '100%', textTransform: 'uppercase', fontSize: 20, letterSpacing: 2 }}
-            maxLength={6}
           />
         </label>
+        {codeFromLink && <p className="note-success">{t('join.codeFromLink')}</p>}
         <label>
           {t('join.yourName')}
           <input
@@ -87,6 +95,8 @@ export function Join() {
             required
             maxLength={50}
             dir="auto"
+            autoFocus={!!codeFromLink}
+            className={codeFromLink ? 'field-highlight' : undefined}
             style={{ display: 'block', width: '100%' }}
           />
         </label>

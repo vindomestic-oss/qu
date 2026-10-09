@@ -10,6 +10,7 @@ export interface SessionRow {
   started_at: string | null;
   ends_at: string | null;
   created_at: string;
+  joining_locked: number;
 }
 
 const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no O/0/I/1 to avoid ambiguity

@@ -32,6 +32,15 @@ export interface Quiz extends WithTranslations<'title'>, WithTranslations<'descr
   created_at: string;
   question_count?: number;
   questions?: Question[];
+  /** The quiz's pending or running session, if any (list endpoint only). */
+  open_session?: { id: number; status: 'pending' | 'active'; join_code: string; ends_at: string | null; joining_locked: number } | null;
+}
+
+export interface SessionQuizMeta {
+  id: number;
+  title: string;
+  time_limit_seconds: number;
+  question_count: number;
 }
 
 /** Which languages a quiz's questions are actually available in, computed server-side. */
@@ -62,6 +71,8 @@ export interface QuizSession {
   started_at: string | null;
   ends_at: string | null;
   created_at: string;
+  /** 1 while the host has locked joining (new names get JOINING_LOCKED). */
+  joining_locked: number;
 }
 
 export interface Participant {
