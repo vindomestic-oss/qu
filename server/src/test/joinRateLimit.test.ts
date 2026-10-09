@@ -85,6 +85,14 @@ describe('TRUST_PROXY_HOPS=1: the limiter is on', () => {
     assert.equal((await joinFrom(onBase, OTHER_SCHOOL, 'ZZZZZ2', 'Other school kid')).status, 404);
   });
 
+  test('IPv6: a new address in the same /64 does not get a fresh counter; another /64 does', async () => {
+    for (let i = 1; i <= 100; i++) {
+      assert.equal((await joinFrom(onBase, `2001:db8:77:1::${i.toString(16)}`, 'ZZZZZ2', 'Hopper')).status, 404, `attempt ${i}`);
+    }
+    assert.equal((await joinFrom(onBase, '2001:db8:77:1:dead:beef:0:1', 'ZZZZZ2', 'Hopper')).status, 429);
+    assert.equal((await joinFrom(onBase, '2001:db8:77:2::1', fx.joinCode, 'Next network kid')).status, 200);
+  });
+
   test('/api/debug/ip (admin only) shows the address Express sees and the raw X-Forwarded-For', async () => {
     const res = await fetch(`${onBase}/api/debug/ip`, {
       headers: { Authorization: `Bearer ${adminToken}`, 'X-Forwarded-For': `192.0.2.1, ${OTHER_SCHOOL}` },

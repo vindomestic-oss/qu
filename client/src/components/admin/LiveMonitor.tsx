@@ -24,10 +24,11 @@ export function LiveMonitor({ sessionId, data, onRefresh }: Props) {
     setRejoinError(null);
     try {
       const r = await reopenSubmission(sessionId, participantId);
-      setRejoinMessage(r.reopened ? `Submission reopened for ${name}. They can answer again until the time is up.` : `${name} has not submitted.`);
+      setRejoinMessage(r.reopened ? `Reopened: ${name} can answer again until the time is up.` : `${name} has not submitted.`);
       statusRef.current?.focus();
       onRefresh();
     } catch (err) {
+      setRejoinMessage('');
       setRejoinError(err instanceof Error ? err.message : 'Failed to reopen the submission');
     }
   }
@@ -36,11 +37,12 @@ export function LiveMonitor({ sessionId, data, onRefresh }: Props) {
     setRejoinError(null);
     try {
       await allowRejoin(sessionId, participantId);
-      setRejoinMessage(`Rejoin allowed for ${name}. The next device that joins with this name gets this place.`);
+      setRejoinMessage(`Rejoin allowed: the next device that joins as ${name} gets this place.`);
       // The clicked button disappears; keep keyboard focus on the confirmation instead of the page body.
       statusRef.current?.focus();
       onRefresh();
     } catch (err) {
+      setRejoinMessage('');
       setRejoinError(err instanceof Error ? err.message : 'Failed to allow rejoin');
     }
   }
@@ -54,15 +56,15 @@ export function LiveMonitor({ sessionId, data, onRefresh }: Props) {
     if (!p.submitted_at) return <span style={{ color: 'var(--text-muted)' }}>{running ? 'Answering' : '—'}</span>;
     const label = `${p.submit_source === 'session_end' ? 'At the end' : 'Submitted'} ${formatServerTime(p.submitted_at, 'en-GB')}`;
     return (
-      <span style={{ display: 'inline-flex', flexWrap: 'wrap', alignItems: 'center', gap: '4px 8px' }}>
+      <span className="nowrap" style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
         <span>{label}</span>
         {running && (
           <button
             type="button"
+            className="monitor-btn"
             onClick={() => handleReopen(p.id, p.display_name)}
             aria-label={`Reopen the submission of ${p.display_name}`}
             title="Lets this participant change answers again until the time is up"
-            style={{ minHeight: 32, padding: '4px 10px', fontSize: 14 }}
           >
             Reopen
           </button>
@@ -77,54 +79,65 @@ export function LiveMonitor({ sessionId, data, onRefresh }: Props) {
         <strong>{data.participants.length}</strong> participant(s) joined
       </p>
 
-      <p ref={statusRef} tabIndex={-1} role="status" aria-live="polite" style={{ margin: rejoinMessage ? '0 0 8px' : 0 }}>
-        {rejoinMessage}
-      </p>
-      {rejoinError && (
-        <p role="alert" style={{ color: 'var(--danger)' }}>
-          {rejoinError}
+      {/* One reserved line for the confirmation or the error, so the table below never moves. */}
+      <div className="monitor-message">
+        <p ref={statusRef} tabIndex={-1} role="status" aria-live="polite" style={{ margin: 0 }}>
+          {rejoinMessage}
         </p>
-      )}
+        {rejoinError && (
+          <p role="alert" style={{ margin: 0, color: 'var(--danger)' }}>
+            {rejoinError}
+          </p>
+        )}
+      </div>
       {data.participants.length > 0 && (
-        <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 12 }}>
-          <thead>
-            <tr style={{ textAlign: 'left', borderBottom: '1px solid var(--border-strong)' }}>
-              <th>Name</th>
-              <th>Progress</th>
-              <th>Finished</th>
-              <th>
-                <span title="Lets this name join again from another device, without the secret stored on the first one">
-                  Rejoin
-                </span>
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.participants.map((p) => (
-              <tr key={p.id}>
-                <td>{p.display_name}</td>
-                <td>
-                  {p.answered_count} / {totalQuestions} answered
-                </td>
-                <td>{submission(p)}</td>
-                <td>
-                  {p.rejoin_open ? (
-                    <span>Rejoin allowed</span>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => handleAllowRejoin(p.id, p.display_name)}
-                      aria-label={`Allow rejoin for ${p.display_name}`}
-                      style={{ minHeight: 32, padding: '4px 10px', fontSize: 14 }}
-                    >
-                      Allow rejoin
-                    </button>
-                  )}
-                </td>
+        <div className="monitor-scroll">
+          <table className="monitor-table">
+            <colgroup>
+              <col />
+              <col style={{ inlineSize: '9em' }} />
+              <col style={{ inlineSize: '13.5em' }} />
+              <col style={{ inlineSize: '8.5em' }} />
+            </colgroup>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Progress</th>
+                <th>Finished</th>
+                <th>
+                  <span title="Lets this name join again from another device, without the secret stored on the first one">
+                    Rejoin
+                  </span>
+                </th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {data.participants.map((p) => (
+                <tr key={p.id}>
+                  <td>{p.display_name}</td>
+                  <td className="nowrap">
+                    {p.answered_count} / {totalQuestions} answered
+                  </td>
+                  <td>{submission(p)}</td>
+                  <td className="nowrap">
+                    {p.rejoin_open ? (
+                      <span>Rejoin allowed</span>
+                    ) : (
+                      <button
+                        type="button"
+                        className="monitor-btn"
+                        onClick={() => handleAllowRejoin(p.id, p.display_name)}
+                        aria-label={`Allow rejoin for ${p.display_name}`}
+                      >
+                        Allow rejoin
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
 
       {data.questions.length > 0 && (

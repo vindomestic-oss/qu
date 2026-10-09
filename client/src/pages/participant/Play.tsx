@@ -7,6 +7,7 @@ import type { ParticipantQuestion, QuizSection, QuizSession } from '../../types'
 import { ApiError } from '../../api/client';
 import { useParticipant } from '../../auth/ParticipantContext';
 import { getSocket, joinRoom, leaveRoom } from '../../lib/socket';
+import { onClockJump } from '../../lib/clock';
 import { useLanguage } from '../../i18n/LanguageContext';
 import { useContentLanguage } from '../../i18n/useContentLanguage';
 import { questionLanguages, sanitizeOffered, type QuizLang } from '../../i18n/contentLanguages';
@@ -78,8 +79,14 @@ export function Play() {
   // lost silently when the child moves on.
   const [failedIds, setFailedIds] = useState<Set<number>>(new Set());
   const [submitted, setSubmitted] = useState(false);
-  // The host reopened the submission (S15): a note in the status slot until the child moves on.
-  const [reopened, setReopened] = useState(false);
+  // The host reopened the submission (S15): a note in the status slot until the child answers or
+  // moves on. 'pending' while the card mounts with an empty slot, so the note is a real change of the
+  // live region (and announced) once it is 'on'.
+  const [reopenNote, setReopenNote] = useState<'off' | 'pending' | 'on'>('off');
+  // Bumped whenever this page itself learns of a submit or a reopen: a server answer to a request sent
+  // before that (a poll or reconnect refresh in flight) is stale and must not flip the screen back.
+  const submitGenRef = useRef(0);
+  const isSubmittedRef = useRef(false);
   const finishedRef = useRef(false);
   // Read by handlers registered once (sockets, page events, the saver); a closure would be stale.
   const questionsRef = useRef<ParticipantQuestion[] | null>(null);
@@ -153,12 +160,40 @@ export function Play() {
       },
       onSubmitted: () => {
         setFailedIds(new Set());
-        setSubmitted(true);
+        markSubmitted(true);
       },
     });
   });
 
+  /** This page saw a submit or a reopen itself; older server answers no longer count. */
+  function markSubmitted(value: boolean) {
+    submitGenRef.current += 1;
+    isSubmittedRef.current = value;
+    setSubmitted(value);
+  }
+
+  /** The submitted state from a server answer to a request sent at generation `gen`. */
+  function syncSubmitted(submittedAt: string | null, gen: number, status: QuizSession['status']) {
+    if (gen !== submitGenRef.current) return;
+    if (submittedAt) {
+      isSubmittedRef.current = true;
+      setSubmitted(true);
+    } else if (isSubmittedRef.current && status === 'active') {
+      // Reopened while this page did not hear the event (poll, reconnect): the same as the event.
+      showReopened();
+    }
+  }
+
+  /** The host reopened the submission (S15): back to the questions with the server's answers. */
+  function showReopened() {
+    markSubmitted(false);
+    setStatus(null); // a "Saved" from before the submit would hide the note
+    setReopenNote('pending');
+    void loadQuiz();
+  }
+
   async function loadQuiz() {
+    const gen = submitGenRef.current;
     try {
       const { session, quiz, sections, questions, participant } = await getMyQuiz();
       setSession(session);
@@ -168,7 +203,7 @@ export function Play() {
       for (const q of questions) saver.setConfirmed(q.id, confirmedPayload(q));
       setQuestions(questions);
       setFlagged(readFlags(session.id));
-      setSubmitted(Boolean(participant.submitted_at));
+      syncSubmitted(participant.submitted_at, gen, session.status);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Failed to load quiz');
     }
@@ -214,10 +249,11 @@ export function Play() {
   useEffect(() => {
     async function init() {
       try {
+        const gen = submitGenRef.current;
         const { session, quiz, participant } = await getMySession();
         setSession(session);
         if (quiz) setOffered(offeredOf(quiz));
-        setSubmitted(Boolean(participant.submitted_at));
+        syncSubmitted(participant.submitted_at, gen, session.status);
         if (session.status === 'ended') {
           goToResults();
         } else if (session.status === 'active') {
@@ -252,10 +288,11 @@ export function Play() {
     const poll = setInterval(
       async () => {
         try {
+          const gen = submitGenRef.current;
           const { session: updated, quiz, participant } = await getMySession();
           setSession(updated);
           if (quiz) setOffered(offeredOf(quiz));
-          setSubmitted(Boolean(participant.submitted_at));
+          syncSubmitted(participant.submitted_at, gen, updated.status);
           if (updated.status === 'active' && !questionsRef.current) await loadQuiz();
           if (updated.status === 'ended') goToResults();
         } catch {
@@ -281,34 +318,46 @@ export function Play() {
       if (updated.status === 'ended') goToResults();
     };
     // After a reconnect, events sent while offline are lost: ask for the current state. Only the
-    // session and the submitted flag are refreshed; loaded questions (with unsaved typing) stay.
+    // session and the submitted flag are refreshed; loaded questions (with unsaved typing) stay. The
+    // response is also the countdown's fresh clock reading (S15).
+    let refreshing = false;
     const onReconnect = async () => {
+      if (refreshing) return;
+      refreshing = true;
       try {
+        const gen = submitGenRef.current;
         const { session: fresh, participant } = await getMySession();
         setSession(fresh);
-        setSubmitted(Boolean(participant.submitted_at));
+        syncSubmitted(participant.submitted_at, gen, fresh.status);
         if (fresh.status === 'active' && !questionsRef.current) await loadQuiz();
         if (fresh.status === 'ended') goToResults();
       } catch {
         // the countdown and the polls are further safety nets
+      } finally {
+        refreshing = false;
       }
     };
-    // Sent to this participant only when the host reopens the submission (S15): back to the questions
-    // at once, with the answers as the server has them. The poll after submitting is the fallback.
+    // Back on screen (an iPad woke up) or the device clock was changed: the same refresh, since
+    // pushed events can only move the countdown's clock forward (S15).
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') void onReconnect();
+    };
+    const stopClockWatch = onClockJump(() => void onReconnect());
+    // Sent to this participant only when the host reopens the submission (S15). The poll after
+    // submitting and the refreshes above are the fallback.
     const onReopened = (p?: { sessionId?: number }) => {
-      if (p?.sessionId !== sessionId) return;
-      setStatus(null); // a "Saved" from before the submit would hide the note
-      setReopened(true);
-      setSubmitted(false);
-      void loadQuiz();
+      if (p?.sessionId === sessionId) showReopened();
     };
     socket.on('session:update', handler);
     socket.on('connect', onReconnect);
     socket.on('submission:reopened', onReopened);
+    document.addEventListener('visibilitychange', onVisible);
     return () => {
       socket.off('session:update', handler);
       socket.off('connect', onReconnect);
       socket.off('submission:reopened', onReopened);
+      document.removeEventListener('visibilitychange', onVisible);
+      stopClockWatch();
       leaveRoom('session', sessionId);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -348,8 +397,17 @@ export function Play() {
   useEffect(() => {
     if (loading) return;
     if (submitted) submittedRef.current?.focus({ preventScroll: true });
-    else if (reopened) headingRef.current?.focus({ preventScroll: true });
-  }, [submitted, loading, reopened]);
+    else if (reopenNote === 'on') headingRef.current?.focus({ preventScroll: true });
+  }, [submitted, loading, reopenNote]);
+
+  // The reopened note goes into the slot shortly after the card is on screen, so the live region
+  // already exists and screen readers announce the change; then the heading takes the focus.
+  const cardShown = !submitted && Boolean(questions);
+  useEffect(() => {
+    if (reopenNote !== 'pending' || !cardShown) return;
+    const timer = setTimeout(() => setReopenNote('on'), 150);
+    return () => clearTimeout(timer);
+  }, [reopenNote, cardShown]);
 
   // Load the next question's picture in the background, so it is there when the child moves on.
   useEffect(() => {
@@ -388,7 +446,7 @@ export function Play() {
     if (target === index) return;
     movedRef.current = true;
     setStatus(null);
-    setReopened(false);
+    setReopenNote('off');
     setPickedIndex(target);
     setParams({ q: String(target + 1) }, { replace: true });
   }
@@ -405,12 +463,14 @@ export function Play() {
     setQuestions((prev) =>
       prev ? prev.map((q) => (q.id === question.id ? { ...q, myAnswer: { selected_choice_ids: next, text_answer: null } } : q)) : prev,
     );
+    setReopenNote('off');
     saver.save(question.id, { kind: 'choice', ids: next });
   }
 
   function handleTextChange(question: ParticipantQuestion, text: string) {
     setDrafts((prev) => ({ ...prev, [question.id]: text }));
     draftsRef.current = { ...draftsRef.current, [question.id]: text };
+    setReopenNote('off');
     setStatus((prev) => (prev?.questionId === question.id && prev.state === 'saved' ? null : prev));
     const old = timersRef.current.get(question.id);
     if (old) clearTimeout(old);
@@ -446,13 +506,13 @@ export function Play() {
     try {
       await submitQuiz();
       setOverviewOpen(false);
-      setSubmitted(true);
+      markSubmitted(true);
       return 'ok';
     } catch (err) {
       // 409: already submitted (a second tab, or the session ended): the outcome we wanted.
       if (err instanceof ApiError && err.status === 409) {
         setOverviewOpen(false);
-        setSubmitted(true);
+        markSubmitted(true);
         return 'ok';
       }
       return 'error';
@@ -564,9 +624,11 @@ export function Play() {
         ? { tone: 'muted', text: t('play.saving') }
         : statusForQuestion?.state === 'saved'
           ? { tone: 'saved', text: t('play.saved') }
-          : reopened
+          : reopenNote === 'on'
             ? { tone: 'muted', text: t('play.reopened') }
             : null;
+  // While the note is in the slot, the focused heading points at it (read after the question).
+  const noteShown = reopenNote === 'on' && slot?.text === t('play.reopened');
 
   return (
     <div className="play">
@@ -619,7 +681,12 @@ export function Play() {
             </span>
           </div>
           <div className="qcard-body" key={question.id}>
-            <h2 tabIndex={-1} ref={headingRef} id={`question-${question.id}-text`}>
+            <h2
+              tabIndex={-1}
+              ref={headingRef}
+              id={`question-${question.id}-text`}
+              aria-describedby={noteShown ? 'qcard-status-text' : undefined}
+            >
               <LangStack row={question} field="text" languages={stackLangs} active={shownLang} base={base} />
             </h2>
             {question.image_path && (
@@ -663,7 +730,7 @@ export function Play() {
             )}
           </div>
           <div className="qcard-status" data-tone={slot?.tone}>
-            <span className="qcard-status__text" role="status" aria-live="polite">
+            <span className="qcard-status__text" id="qcard-status-text" role="status" aria-live="polite">
               {slot?.text}
             </span>
             {slot?.retry && (

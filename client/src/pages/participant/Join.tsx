@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useParticipant } from '../../auth/ParticipantContext';
@@ -23,6 +23,12 @@ export function Join() {
   const [confirmName, setConfirmName] = useState<string | null>(null);
   const [hint, setHint] = useState<string | null>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
+  const errorRef = useRef<HTMLParagraphElement>(null);
+  // A failed join (wrong code, name taken, too many attempts) takes the focus to its message, so it is
+  // read out and the keyboard does not fall back to the page.
+  useEffect(() => {
+    if (error) errorRef.current?.focus();
+  }, [error]);
 
   async function doJoin(useSecret: boolean) {
     setError(null);
@@ -42,6 +48,7 @@ export function Join() {
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
+    if (submitting) return;
     setHint(null);
     if (hasRejoinSecret(joinCode, displayName)) {
       setConfirmName(displayName.trim());
@@ -120,14 +127,21 @@ export function Join() {
             </div>
           </div>
         )}
+        {/* aria-disabled while joining (not disabled): the button keeps the focus and its look. */}
+        <button
+          type="submit"
+          disabled={confirmName !== null}
+          aria-disabled={submitting || undefined}
+          style={{ padding: '8px 16px' }}
+        >
+          {submitting ? t('join.joining') : t('join.join')}
+        </button>
+        {/* Under the button, so a message never pushes the button away from the finger. */}
         {error && (
-          <p role="alert" style={{ color: 'var(--danger)' }}>
+          <p ref={errorRef} tabIndex={-1} role="alert" style={{ margin: 0, color: 'var(--danger)' }}>
             {error}
           </p>
         )}
-        <button type="submit" disabled={submitting || confirmName !== null} style={{ padding: '8px 16px' }}>
-          {submitting ? t('join.joining') : t('join.join')}
-        </button>
       </form>
     </div>
   );

@@ -41,12 +41,20 @@ export function GraderHeader({ sessionId, title, session, viewer, back, heading,
     return () => clearInterval(tick);
   }, [running]);
 
+  // The time in system digits with tabular figures (Raleway has none), so it does not wobble.
   const status =
-    session.status === 'pending'
-      ? t('grader.session.pending')
-      : session.status === 'active'
-        ? t('grader.session.active', { time: session.ends_at ? formatCountdown(session.ends_at, now, session.started_at) : '--' })
-        : t('grader.session.ended');
+    session.status === 'pending' ? (
+      t('grader.session.pending')
+    ) : session.status === 'active' ? (
+      <Interpolate
+        template={t('grader.session.active')}
+        values={{
+          time: <span className="tabular-time">{session.ends_at ? formatCountdown(session.ends_at, now, session.started_at) : '--'}</span>,
+        }}
+      />
+    ) : (
+      t('grader.session.ended')
+    );
 
   function signOut() {
     setGraderToken(sessionId, null);

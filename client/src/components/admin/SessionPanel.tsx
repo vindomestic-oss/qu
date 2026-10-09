@@ -25,7 +25,9 @@ export function SessionPanel({ quizId, initialSession, onSessionEnded, onSession
   const [session, setSession] = useState<QuizSession | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [now, setNow] = useState(() => serverNow());
+  // Re-renders once a second; the time is read at render (below), so the first paint after a clock
+  // reading is already right instead of showing the device clock for a second (S15).
+  const [, setTick] = useState(0);
   const [graderAccessOpen, setGraderAccessOpen] = useState(false);
   const onSessionEndedRef = useRef(onSessionEnded);
   const onSessionChangedRef = useRef(onSessionChanged);
@@ -41,7 +43,7 @@ export function SessionPanel({ quizId, initialSession, onSessionEnded, onSession
   }, [initialSession, session]);
 
   useEffect(() => {
-    const tick = setInterval(() => setNow(serverNow()), 1000);
+    const tick = setInterval(() => setTick((n) => n + 1), 1000);
     return () => clearInterval(tick);
   }, []);
 
@@ -92,6 +94,7 @@ export function SessionPanel({ quizId, initialSession, onSessionEnded, onSession
     lastStatusRef.current = session.status;
   }, [session]);
 
+  const now = serverNow();
   // Fallback for a missed broadcast: once the countdown is over, ask the server every 3 s.
   const expired = session?.status === 'active' && session.ends_at !== null && Date.parse(session.ends_at) <= now;
   useEffect(() => {
@@ -258,7 +261,8 @@ export function SessionPanel({ quizId, initialSession, onSessionEnded, onSession
         <div>
           {joinBlock(session)}
           <p>
-            Time remaining: <strong>{session.ends_at ? formatCountdown(session.ends_at, now, session.started_at) : '--'}</strong>
+            Time remaining:{' '}
+            <strong className="tabular-time">{session.ends_at ? formatCountdown(session.ends_at, now, session.started_at) : '--'}</strong>
           </p>
           <button onClick={handleEnd} disabled={busy}>
             End early

@@ -72,6 +72,12 @@ test('/api/my/session and /api/my/quiz carry server_now; so does the admin sessi
   const host = await request(base, 'GET', `/api/sessions/${fx.sessionId}`, adminToken);
   assert.equal(host.status, 200);
   assertServerNow(host.body.server_now, from, Date.now(), 'GET /api/sessions/:id');
+
+  // The editor's session list: its Live Session shows the right time from the first paint.
+  from = Date.now();
+  const list = await request(base, 'GET', `/api/quizzes/${fx.quizId}/sessions`, adminToken);
+  assert.equal(list.status, 200);
+  assertServerNow(list.body.server_now, from, Date.now(), 'GET /api/quizzes/:id/sessions');
 });
 
 test('every session:update carries server_now: participants, admins and graders', async () => {

@@ -15,6 +15,7 @@ import {
 import { baseOf, declaredLanguagesOf, getQuizWithQuestions as loadQuiz } from '../lib/quizPayload';
 import { createSection, parseSectionInput, reorderSections, SECTION_NOT_IN_QUIZ, sectionBelongsToQuiz } from '../lib/sections';
 import { isValidPoints, roundPoints } from '../lib/grading';
+import { nowIso } from '../lib/time';
 
 export const quizzesRouter = Router();
 
@@ -365,7 +366,8 @@ quizzesRouter.get('/:id/sessions', (req, res) => {
     .prepare('SELECT * FROM sessions WHERE quiz_id = ? ORDER BY id DESC')
     .all(quizId) as SessionRow[];
   const sessions = rows.map(refreshSessionStatus);
-  res.json({ sessions });
+  // server_now: the editor's Live Session shows the right time left from its first paint (S15).
+  res.json({ sessions, server_now: nowIso() });
 });
 
 quizzesRouter.post('/:id/sessions', (req, res) => {
