@@ -48,11 +48,43 @@ export function HostScreen() {
   const [showQr, setShowQr] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(Boolean(document.fullscreenElement));
   const refetchingRef = useRef(false);
+  const refetchAgainRef = useRef(false);
+  const seqRef = useRef(0);
   useWakeLock();
 
+  // Background refresh (events, reconnects, expiry checks): a 401 shows the banner instead of leaving
+  // the page; a call during a fetch runs once more afterwards; an outdated response is dropped.
   const refetch = useCallback(() => {
-    if (refetchingRef.current) return;
-    refetchingRef.current = true;
+    if (refetchingRef.current) {
+      refetchAgainRef.current = true;
+      return;
+    }
+    const run = () => {
+      refetchingRef.current = true;
+      const mine = ++seqRef.current;
+      getSession(sessionId, { background: true })
+        .then(({ session, quiz }) => {
+          if (mine !== seqRef.current) return;
+          setSession(session);
+          setQuiz(quiz);
+        })
+        .catch((err) => {
+          if (err instanceof ApiError && err.status === 404) setNotFound(true);
+        })
+        .finally(() => {
+          refetchingRef.current = false;
+          if (refetchAgainRef.current) {
+            refetchAgainRef.current = false;
+            run();
+          }
+        });
+    };
+    run();
+  }, [sessionId]);
+
+  // Staff room first (status changes, reconnects), then the initial load.
+  useStaffLive(sessionId, refetch, { events: ['session:update'] });
+  useEffect(() => {
     getSession(sessionId)
       .then(({ session, quiz }) => {
         setSession(session);
@@ -60,17 +92,8 @@ export function HostScreen() {
       })
       .catch((err) => {
         if (err instanceof ApiError && err.status === 404) setNotFound(true);
-      })
-      .finally(() => {
-        refetchingRef.current = false;
       });
   }, [sessionId]);
-
-  // Staff room first (status changes, reconnects), then the initial load.
-  useStaffLive(sessionId, refetch, { events: ['session:update'] });
-  useEffect(() => {
-    refetch();
-  }, [refetch]);
   const live = useLiveStatus(sessionId);
   const joined = live.data?.participants.length ?? 0;
 
@@ -111,6 +134,7 @@ export function HostScreen() {
     setError(null);
     try {
       const { session: updated } = await action();
+      seqRef.current += 1;
       setSession(updated);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Request failed');
@@ -126,6 +150,7 @@ export function HostScreen() {
     setError(null);
     try {
       const { session: updated } = await startSession(sessionId);
+      seqRef.current += 1;
       setSession(updated);
     } catch (err) {
       // Another admin may have started it a moment earlier: that is the outcome we wanted.
