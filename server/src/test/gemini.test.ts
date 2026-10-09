@@ -56,7 +56,7 @@ const success = (output: unknown, extra: Record<string, unknown> = {}) =>
 
 const GOOD = { rationale: 'Измаил is the Russian name of Yishmael.', verdict: 'correct', confidence: 'high', injection_suspected: false, answer_language: 'ru' };
 
-function provider(responses: (Response | Error | 'hang')[], opts: { timeoutMs?: number } = {}) {
+function provider(responses: (Response | Error | 'hang')[], opts: { timeoutMs?: number; maxRetries?: number } = {}) {
   const m = mockFetch(responses);
   const sleeps: number[] = [];
   const p = createGeminiProvider({
@@ -64,6 +64,7 @@ function provider(responses: (Response | Error | 'hang')[], opts: { timeoutMs?: 
     model: 'gemini-2.5-flash',
     endpoint: 'https://generativelanguage.googleapis.com/v1beta/',
     timeoutMs: opts.timeoutMs ?? 5_000,
+    maxRetries: opts.maxRetries,
     fetchImpl: m.impl,
     sleep: async (ms) => {
       sleeps.push(ms);
@@ -201,5 +202,39 @@ describe('Gemini adapter', () => {
     const out = await provider([json({ error: { code: 400, status: 'INVALID_ARGUMENT', message: `Key ${KEY} rejected` } }, 400)]).p.grade(payload);
     assert.equal(JSON.stringify(out).includes(KEY), false);
     assert.ok(out.error!.includes('[key]'));
+  });
+
+  test('allowed() is checked before every attempt: nothing is sent once it says no, not even a retry', async () => {
+    let r = provider([success(GOOD)]);
+    let out = await r.p.grade(payload, { allowed: () => false });
+    assert.deepEqual([out.errorKind, r.calls.length], ['aborted', 0]);
+    let allow = true;
+    const limited = json({ error: { code: 429, details: [{ retryDelay: '7s' }] } }, 429);
+    r = provider([limited, success(GOOD)]);
+    const p = r.p.grade(payload, { allowed: () => allow });
+    // The switch goes off while the adapter waits before its retry.
+    allow = false;
+    out = await p;
+    assert.deepEqual([out.errorKind, r.calls.length], ['aborted', 1], 'the retry was never sent');
+  });
+
+  test('an external abort stops a request on its way (aborted, not timeout) and is not retried', async () => {
+    const controller = new AbortController();
+    const r = provider(['hang', success(GOOD)], { timeoutMs: 5_000 });
+    const p = r.p.grade(payload, { signal: controller.signal });
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    controller.abort();
+    const out = await p;
+    assert.deepEqual([out.errorKind, r.calls.length], ['aborted', 1]);
+    const already = await provider([success(GOOD)]).p.grade(payload, { signal: controller.signal });
+    assert.equal(already.errorKind, 'aborted');
+  });
+
+  test('maxRetries 0 (the worker): one request; 429 reports the delay the server asked for', async () => {
+    const r = provider([json({ error: { code: 429, details: [{ retryDelay: '12s' }] } }, 429), success(GOOD)], { maxRetries: 0 });
+    const out = await r.p.grade(payload);
+    assert.deepEqual([out.errorKind, out.retryAfterMs, r.calls.length], ['rate_limit', 12_000, 1]);
+    const r2 = provider([json({}, 503), success(GOOD)], { maxRetries: 0 });
+    assert.deepEqual([(await r2.p.grade(payload)).errorKind, r2.calls.length], ['server', 1]);
   });
 });

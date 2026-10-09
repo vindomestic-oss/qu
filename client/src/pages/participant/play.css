@@ -862,8 +862,9 @@ html[dir='rtl'] .play-title__text {
   margin: 0;
   padding: 8px 12px;
   border-radius: 8px;
-  background: var(--selected-bg);
-  color: var(--selected-text);
+  border: 1px solid var(--selected-border);
+  background: var(--surface-alt);
+  color: var(--text);
   font-size: 15px;
   line-height: 1.4;
   text-align: start;

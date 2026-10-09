@@ -43,9 +43,9 @@ function getQuizWithQuestions(quizId: number) {
   return loadQuiz(db, quizId);
 }
 
-/** What the AI is told about a question besides its text (wish 7, S14): a change makes old suggestions stale. */
+/** What the AI is told about a question (wish 7, S14): a change makes old suggestions stale. */
 function aiKeyOf(id: number): string {
-  const q = db.prepare('SELECT type, reference_answer, accepted_answers, grader_notes, points FROM questions WHERE id = ?').get(id);
+  const q = db.prepare('SELECT type, text, reference_answer, accepted_answers, grader_notes, points FROM questions WHERE id = ?').get(id);
   return JSON.stringify(q ?? null);
 }
 

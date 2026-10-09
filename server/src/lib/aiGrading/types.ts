@@ -67,4 +67,6 @@ export type ProviderErrorKind =
   | 'max_tokens'
   /** Not valid JSON or not the schema. */
   | 'malformed'
+  /** Stopped by the caller before or while sending (kill switch, quiz switched off). */
+  | 'aborted'
   | 'other';

@@ -36,6 +36,7 @@ export function AiAcceptButton({
   const { t, uiLanguage } = useLanguage();
   const [state, setState] = useState<State>({ kind: 'idle' });
   const busy = useRef(false);
+  const buttonRef = useRef<HTMLButtonElement>(null);
 
   async function accept() {
     if (busy.current || !offered) return;
@@ -54,8 +55,13 @@ export function AiAcceptButton({
           if (r.current) grades.push(r.current);
         }
       }
+      // The button hides once accepted: focus stays in the row, on its (now pressed) "Correct".
+      const row = buttonRef.current?.closest('.answer-row');
       onGrades(grades);
       setState(changed > 0 ? { kind: 'changed', n: changed } : { kind: 'idle' });
+      if (row && buttonRef.current === document.activeElement) {
+        requestAnimationFrame(() => row.querySelector<HTMLButtonElement>('.grade-toggle--correct')?.focus());
+      }
     } catch {
       setState({ kind: 'failed' });
     } finally {
@@ -66,6 +72,7 @@ export function AiAcceptButton({
   return (
     <span className="ai-accept-slot">
       <button
+        ref={buttonRef}
         type="button"
         className={`ai-accept${offered ? '' : ' ai-accept-slot__unused'}`}
         data-ai-accept={offered ? 'offered' : 'unused'}
@@ -117,6 +124,8 @@ export function AiAcceptAll({
   const { t, uiLanguage } = useLanguage();
   const dialogRef = useRef<HTMLDialogElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
+  const cancelRef = useRef<HTMLButtonElement>(null);
+  const statusRef = useRef<HTMLSpanElement>(null);
   const [open, setOpen] = useState(false);
   const [shown, setShown] = useState<AcceptGroup[]>([]);
   const [result, setResult] = useState<{ ok: number; skipped: number } | 'failed' | null>(null);
@@ -127,8 +136,11 @@ export function AiAcceptAll({
   useEffect(() => {
     const d = dialogRef.current;
     if (!d) return;
-    if (open && !d.open) d.showModal();
-    else if (!open && d.open) d.close();
+    if (open && !d.open) {
+      d.showModal();
+      // The safe choice has the focus.
+      cancelRef.current?.focus();
+    } else if (!open && d.open) d.close();
   }, [open]);
 
   function openDialog() {
@@ -138,9 +150,11 @@ export function AiAcceptAll({
     setOpen(true);
   }
 
-  function close() {
+  function close(focusResult = false) {
     setOpen(false);
-    buttonRef.current?.focus();
+    // After accepting, the button is usually gone (nothing left to accept): focus the result.
+    if (focusResult) requestAnimationFrame(() => statusRef.current?.focus());
+    else buttonRef.current?.focus();
   }
 
   async function confirm() {
@@ -163,7 +177,7 @@ export function AiAcceptAll({
       setResult('failed');
     } finally {
       busy.current = false;
-      close();
+      close(true);
     }
   }
 
@@ -174,7 +188,7 @@ export function AiAcceptAll({
         <button
           ref={buttonRef}
           type="button"
-          className={n > 0 ? undefined : 'ai-accept-slot__unused'}
+          className={`ai-accept-all${n > 0 ? '' : ' ai-accept-slot__unused'}`}
           tabIndex={n > 0 ? undefined : -1}
           aria-hidden={n > 0 ? undefined : true}
           aria-haspopup="dialog"
@@ -182,7 +196,7 @@ export function AiAcceptAll({
         >
           <CheckIcon /> {t('grader.ai.acceptAll', { n })}
         </button>
-        <span role="status" className="ai-question__status">
+        <span role="status" className="ai-question__status" ref={statusRef} tabIndex={-1}>
           {result === 'failed' && <span className="save-chip save-chip--failed">{t('grader.ai.acceptAllFailed')}</span>}
           {result && result !== 'failed' && (
             <span className={`save-chip ${result.skipped ? 'save-chip--failed' : 'save-chip--saved'}`}>
@@ -192,8 +206,11 @@ export function AiAcceptAll({
             </span>
           )}
         </span>
+        {/* Always here (hidden while not needed), so it never pushes the answers down when it appears. */}
+        <p className={`ai-question__warn${ambiguous ? '' : ' is-hidden'}`} aria-hidden={ambiguous ? undefined : true}>
+          {t('grader.ai.ambiguousReference')}
+        </p>
       </div>
-      {ambiguous && <p className="ai-question__warn">{t('grader.ai.ambiguousReference')}</p>}
       <dialog ref={dialogRef} className="ai-dialog" aria-labelledby={`ai-accept-${questionId}`} onClose={() => setOpen(false)}>
         <h2 id={`ai-accept-${questionId}`}>{t('grader.ai.acceptAllTitle')}</h2>
         <p>{t('grader.ai.acceptAllBody', { points })}</p>
@@ -205,10 +222,10 @@ export function AiAcceptAll({
           ))}
         </ul>
         <div className="ai-dialog__actions">
-          <button type="button" className="small-button" onClick={close}>
+          <button type="button" className="small-button" onClick={() => close()} ref={cancelRef}>
             {t('grader.ai.cancel')}
           </button>
-          <button type="button" onClick={() => void confirm()} autoFocus>
+          <button type="button" onClick={() => void confirm()}>
             {t('grader.ai.acceptAllConfirm', { n: shownCount })}
           </button>
         </div>

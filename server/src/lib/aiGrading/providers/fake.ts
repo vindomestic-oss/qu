@@ -1,7 +1,7 @@
 import { answerLooksLikeInjection } from '../guard';
 import { matchKey, normalizeForMatch } from '../normalize';
 import type { GradePayload, GradeResult } from '../types';
-import type { GradeOutcome, GradeProvider } from './types';
+import type { GradeOptions, GradeOutcome, GradeProvider } from './types';
 
 // Wish 7, layer B (S14): a deterministic stand-in for a real model, for tests, the offline eval's
 // pipeline check and local browser checks. No network, no data leaves the process. Selected with
@@ -68,8 +68,17 @@ export function createFakeProvider(opts: FakeOptions = {}): GradeProvider {
   return {
     name: 'fake',
     model: 'fake-grader-1',
-    async grade(p: GradePayload): Promise<GradeOutcome> {
-      if (opts.latencyMs) await sleep(opts.latencyMs);
+    async grade(p: GradePayload, gate: GradeOptions = {}): Promise<GradeOutcome> {
+      const aborted = (): GradeOutcome => ({ stopReason: 'aborted', usage: { inputTokens: 0, outputTokens: 0 }, error: 'stopped', errorKind: 'aborted' });
+      if (gate.signal?.aborted || (gate.allowed && !gate.allowed())) return aborted();
+      if (opts.latencyMs) {
+        // The simulated request can be aborted on its way, like a real one.
+        const stop = await Promise.race([
+          sleep(opts.latencyMs).then(() => false),
+          new Promise<boolean>((resolve) => gate.signal?.addEventListener('abort', () => resolve(true), { once: true })),
+        ]);
+        if (stop || gate.signal?.aborted) return aborted();
+      }
       const usage = { inputTokens: Math.ceil(JSON.stringify(p).length / 4), outputTokens: 40 };
       if (normalizeForMatch(p.student_answer).includes(FAIL_MARKER)) {
         return { stopReason: 'http_503', usage: { inputTokens: 0, outputTokens: 0 }, error: 'simulated provider error', errorKind: 'server' };

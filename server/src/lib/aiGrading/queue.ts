@@ -2,6 +2,7 @@ import type Database from 'better-sqlite3';
 import { aiConfig } from './config';
 import { answerLooksLikeInjection } from './guard';
 import { hasReference } from './prompt';
+import { TEXT_ANSWER_MAX_CHARS_AI } from './types';
 
 // Wish 7, layer B (S14): which answers wait for an AI suggestion. Runs after the reference check
 // (S13, process.ts), so answers it credited are never sent. Functions take the database as a
@@ -11,8 +12,11 @@ import { hasReference } from './prompt';
 // a configured provider, kill switch released), its quiz has ai_grading_enabled = 1, it is a
 // non-blank text answer without points, and its participant has submitted. With any of these off
 // nothing is queued and no provider call can happen. A question without a model answer or accepted
-// answers is 'skipped' ('no_reference'); an answer that people graded the same way in every earlier
-// run is 'skipped' ('precedent'), unless it looks like an injection attempt.
+// answers is 'skipped' ('no_reference'); an answer longer than 300 characters (saved before the
+// quiz had AI suggestions) is 'skipped' ('too_long') and never sent; an answer that people graded
+// the same way in every earlier run is 'skipped' ('precedent'), unless it looks like an injection
+// attempt. Answers submitted while calls were off are not queued later by themselves: the session
+// end or an admin's "Run AI pre-check" picks them up.
 
 type Db = Database.Database;
 
@@ -79,6 +83,9 @@ export function queueAnswers(db: Db, where: string, params: unknown[], opts: { i
       if (!hasReference(c)) {
         status = 'skipped';
         error = 'no_reference';
+      } else if ([...c.text_answer.trim()].length > TEXT_ANSWER_MAX_CHARS_AI) {
+        status = 'skipped';
+        error = 'too_long';
       } else if (!answerLooksLikeInjection(c.text_answer) && unanimousPrecedent(db, c)) {
         status = 'skipped';
         error = 'precedent';

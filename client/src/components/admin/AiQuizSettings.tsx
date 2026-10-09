@@ -23,6 +23,8 @@ export function AiQuizSettings({ checked, onChange }: { checked: boolean; onChan
   const [config, setConfig] = useState<AiConfig | null>(null);
   const [error, setError] = useState(false);
   const [busy, setBusy] = useState(false);
+  // Announced only after the admin changed the kill switch, never on page load.
+  const [announce, setAnnounce] = useState('');
 
   useEffect(() => {
     getAiConfig()
@@ -37,6 +39,7 @@ export function AiQuizSettings({ checked, onChange }: { checked: boolean; onChan
     setBusy(true);
     try {
       setConfig(await setAiKillSwitch(engage));
+      setAnnounce(engage ? 'All AI calls stopped.' : 'AI calls resumed.');
     } catch {
       setError(true);
     } finally {
@@ -63,9 +66,10 @@ export function AiQuizSettings({ checked, onChange }: { checked: boolean; onChan
         suggests, a person grades. Saved with &quot;Save quiz details&quot;.
       </p>
       <div className="ai-settings__row">
-        <p className={`ai-settings__status${config?.modelCallsEnabled ? ' ai-settings__status--ready' : ''}`} role="status">
-          {status}
-        </p>
+        <p className={`ai-settings__status${config?.modelCallsEnabled ? ' ai-settings__status--ready' : ''}`}>{status}</p>
+        <span className="visually-hidden" role="status">
+          {announce}
+        </span>
         {config && (config.enabled || config.killSwitch.engaged) && (
           <button type="button" className="ai-settings__kill" onClick={() => void toggleKill()} disabled={busy}>
             {config.killSwitch.engaged ? 'Resume AI calls' : 'Stop all AI calls (kill switch)'}

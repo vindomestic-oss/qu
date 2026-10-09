@@ -31,10 +31,10 @@ const AI_TEXT_MAX = 300;
 /** The counter is announced to screen readers only this close to the limit. */
 const AI_ANNOUNCE_BELOW = 30;
 
-function AiNotice() {
+function AiNotice({ id }: { id?: string }) {
   const { t } = useLanguage();
   return (
-    <p className="ai-notice" data-testid="ai-notice">
+    <p className="ai-notice" data-testid="ai-notice" id={id}>
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
         <circle cx="12" cy="12" r="9" />
         <path d="M12 11v5M12 8v.01" />
@@ -446,6 +446,19 @@ export function Play() {
     return () => clearTimeout(timer);
   }, [reopenNote, cardShown]);
 
+  // Wish 7 (S14): the character counter is announced only near the limit, and only once typing
+  // pauses (not on every keystroke).
+  const [charsAnnouncement, setCharsAnnouncement] = useState('');
+  const currentQuestion = questions?.[index];
+  const currentLength =
+    currentQuestion?.type === 'text' ? (drafts[currentQuestion.id] ?? currentQuestion.myAnswer?.text_answer ?? '').length : 0;
+  useEffect(() => {
+    if (!aiQuiz) return;
+    const left = Math.max(0, AI_TEXT_MAX - currentLength);
+    const timer = setTimeout(() => setCharsAnnouncement(left <= AI_ANNOUNCE_BELOW ? t('play.charsLeft', { n: left }) : ''), 800);
+    return () => clearTimeout(timer);
+  }, [aiQuiz, currentLength, t]);
+
   // Load the next question's picture in the background, so it is there when the child moves on.
   useEffect(() => {
     const next = questions?.[index + 1];
@@ -731,7 +744,7 @@ export function Play() {
             </span>
           </div>
           <div className="qcard-body" key={question.id}>
-            {showAiNotice && <AiNotice />}
+            {showAiNotice && <AiNotice id="ai-notice-question" />}
             <h2
               tabIndex={-1}
               ref={headingRef}
@@ -774,7 +787,9 @@ export function Play() {
                   dir="auto"
                   aria-label={t('play.yourAnswer')}
                   maxLength={aiQuiz ? AI_TEXT_MAX : undefined}
-                  aria-describedby={aiQuiz ? `question-${question.id}-chars` : undefined}
+                  aria-describedby={
+                    aiQuiz ? `${showAiNotice ? 'ai-notice-question ' : ''}question-${question.id}-chars` : undefined
+                  }
                 />
                 {aiQuiz && (
                   <p className="text-answer__count" id={`question-${question.id}-chars`} data-testid="chars-left">
@@ -783,7 +798,7 @@ export function Play() {
                 )}
                 {aiQuiz && (
                   <span className="visually-hidden" aria-live="polite">
-                    {charsLeft <= AI_ANNOUNCE_BELOW ? t('play.charsLeft', { n: charsLeft }) : ''}
+                    {charsAnnouncement}
                   </span>
                 )}
                 <button type="button" onClick={() => flushTextSave(question.id)} disabled={statusForQuestion?.state === 'saving'}>

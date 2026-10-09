@@ -7,7 +7,8 @@ import type { GradePayload } from './types';
 // PROMPT_VERSION on ANY change of the prompt or the payload shape: cached suggestions are keyed by it.
 // Hebrew is written as \u escapes, so copying from a PDF can never reorder it.
 
-export const PROMPT_VERSION = 'chidon-v1';
+// v2: the cache key also covers the question text (a corrected question gets new suggestions).
+export const PROMPT_VERSION = 'chidon-v2';
 
 export const QUIZ_DESCRIPTION = 'European Chidon HaTanach - Bible (Tanakh) knowledge quiz for Jewish youth';
 
@@ -44,9 +45,9 @@ export function answerNormHash(answerNorm: string): string {
   return sha256(answerNorm);
 }
 
-/** Cache key part of the question's key: a changed model answer, list, note or points makes new suggestions. */
+/** Cache key part of the question: a changed text, model answer, list, note or points makes new suggestions. */
 export function referenceHash(q: QuestionKey): string {
-  return sha256(`${q.reference_answer ?? ''}\n${q.accepted_answers ?? ''}\n${q.grader_notes ?? ''}\n${q.points}`);
+  return sha256(`${q.text}\n${q.reference_answer ?? ''}\n${q.accepted_answers ?? ''}\n${q.grader_notes ?? ''}\n${q.points}`);
 }
 
 /** The question has a model answer or accepted answers: the model can be asked about it. */

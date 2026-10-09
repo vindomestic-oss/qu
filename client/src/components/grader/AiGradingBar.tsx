@@ -120,8 +120,8 @@ export function AiGradingBar({ sessionId, quizAiEnabled, canRun, blind, onBlindC
           <span className="mini-progress__fill" style={{ inlineSize: `${pct}%` }} />
         </span>
       </div>
-      {/* "Off" (rare, e.g. the kill switch) may wrap; the time left is always one line. */}
-      <p className={`ai-bar__meta ai-bar__line${off ? ' ai-bar__line--off' : ''}`} role={off ? 'status' : undefined}>
+      {/* One line in every state (time left, or a short "off" reason), so the bar keeps its height. */}
+      <p className="ai-bar__meta ai-bar__line" role={off ? 'status' : undefined} title={off ? offText : undefined}>
         {off ? offText : eta}
       </p>
       <p className="ai-bar__meta">

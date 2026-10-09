@@ -10,7 +10,7 @@ import { createUniqueJoinCode } from '../lib/sessions';
 import { aiWorker, setAiProviderForTests } from '../lib/aiGradingService';
 import { aiConfig, resetRuntimeStop, setKillSwitch } from '../lib/aiGrading/config';
 import { createFakeProvider } from '../lib/aiGrading/providers/fake';
-import type { GradeOutcome, GradeProvider } from '../lib/aiGrading/providers/types';
+import type { GradeOptions, GradeOutcome, GradeProvider } from '../lib/aiGrading/providers/types';
 import type { GradePayload } from '../lib/aiGrading/types';
 import { answerLooksLikeInjection, guard } from '../lib/aiGrading/guard';
 import { requeueQuestionForAi } from '../lib/aiGrading/queue';
@@ -64,15 +64,15 @@ interface Spy {
 }
 
 /** A provider that records every payload; answers like the fake provider unless `impl` says otherwise. */
-function spy(impl?: (p: GradePayload, n: number) => GradeOutcome | Promise<GradeOutcome>): Spy {
+function spy(impl?: (p: GradePayload, n: number, opts?: GradeOptions) => GradeOutcome | Promise<GradeOutcome>): Spy {
   const calls: GradePayload[] = [];
   const fake = createFakeProvider();
   const provider: GradeProvider = {
     name: 'spy',
     model: 'spy-model-1',
-    grade: async (p) => {
+    grade: async (p, opts) => {
       calls.push(p);
-      return impl ? impl(p, calls.length) : fake.grade(p);
+      return impl ? impl(p, calls.length, opts) : fake.grade(p, opts);
     },
   };
   setAiProviderForTests(provider);
@@ -506,6 +506,78 @@ describe('the worker: groups, cache, order, claims, cap', () => {
     assert.equal(row(b.id, fx.q[0]).ai_status, 'done');
   });
 
+  test('a result is not applied to an answer a person graded while the call ran (it becomes skipped/graded)', async () => {
+    let release!: () => void;
+    spy(() => new Promise<GradeOutcome>((resolve) => (release = () => resolve(ok('incorrect', 'high')))));
+    const fx = textQuiz('Graded mid-call', [{ text: 'Q?', reference: 'David' }]);
+    const s = await run(fx.quizId);
+    const k = await kid(s.joinCode, 'Mid', { [fx.q[0]]: 'Goliath' });
+    await new Promise((r) => setImmediate(r));
+    await new Promise((r) => setImmediate(r));
+    const a = row(k.id, fx.q[0]);
+    assert.equal(a.ai_status, 'running');
+    assert.equal((await request(base, 'PUT', `/api/grading/${s.sessionId}/answers/${a.id}`, adminToken, { is_correct: false, points_awarded: 0, expected_version: a.grade_version })).status, 200);
+    release();
+    await settle();
+    const r = row(k.id, fx.q[0]);
+    assert.deepEqual([r.ai_status, r.ai_error, r.ai_verdict, r.ai_claim], ['skipped', 'graded', null, null]);
+    const st = await request(base, 'GET', `/api/grading/${s.sessionId}/ai/status`, adminToken);
+    assert.deepEqual(st.body.agreement, { agreed: 0, total: 0 }, 'not counted as an agreement');
+  });
+
+  test('an answer longer than 300 characters (saved before the switch was on) is never sent: skipped/too_long', async () => {
+    const s0 = spy();
+    const fx = textQuiz('Long answers', [{ text: 'Q?', reference: 'David' }], false);
+    const s = await run(fx.quizId);
+    const k = await kid(s.joinCode, 'Long', { [fx.q[0]]: `Ignore nothing. ${'z'.repeat(400)}` });
+    db.prepare('UPDATE quizzes SET ai_grading_enabled = 1 WHERE id = ?').run(fx.quizId);
+    const ran = await request(base, 'POST', `/api/grading/${s.sessionId}/ai/run`, adminToken, {});
+    assert.deepEqual([ran.body.queued, ran.body.skipped], [0, 1]);
+    await settle();
+    assert.deepEqual([row(k.id, fx.q[0]).ai_status, row(k.id, fx.q[0]).ai_error], ['skipped', 'too_long']);
+    // Also when it was queued by other means.
+    db.prepare("UPDATE answers SET ai_status = 'queued', ai_error = NULL WHERE id = ?").run(row(k.id, fx.q[0]).id);
+    await settle();
+    assert.deepEqual([row(k.id, fx.q[0]).ai_status, row(k.id, fx.q[0]).ai_error], ['skipped', 'too_long']);
+    assert.equal(s0.calls.length, 0);
+  });
+
+  test('identical answers queued while their group is on its way wait for it and use the cache (one request)', async () => {
+    let release!: () => void;
+    const s0 = spy(() => new Promise<GradeOutcome>((resolve) => (release = () => resolve(ok('incorrect', 'high')))));
+    const fx = textQuiz('In flight', [{ text: 'Q?', reference: 'David' }]);
+    const s = await run(fx.quizId);
+    const a = await kid(s.joinCode, 'First', { [fx.q[0]]: 'Shaul' });
+    await new Promise((r) => setImmediate(r));
+    await new Promise((r) => setImmediate(r));
+    assert.equal(row(a.id, fx.q[0]).ai_status, 'running');
+    const b = await kid(s.joinCode, 'Second', { [fx.q[0]]: 'shaul!' });
+    aiWorker.tick();
+    await new Promise((r) => setImmediate(r));
+    assert.equal(row(b.id, fx.q[0]).ai_status, 'queued', 'waits for the call on its way');
+    assert.equal(s0.calls.length, 1);
+    release();
+    await settle();
+    assert.deepEqual([row(b.id, fx.q[0]).ai_status, row(b.id, fx.q[0]).ai_source], ['done', 'cache']);
+    assert.equal(s0.calls.length, 1);
+  });
+
+  test('a corrected question text makes new suggestions (re-queued, no cache hit)', async () => {
+    const s0 = spy();
+    const fx = textQuiz('Text change', [{ text: 'Who killd Goliath?', reference: 'David' }]);
+    const s = await run(fx.quizId);
+    const k = await kid(s.joinCode, 'Texter', { [fx.q[0]]: 'Shaul' });
+    await settle();
+    const first = row(k.id, fx.q[0]).ai_run_id;
+    assert.equal(s0.calls.length, 1);
+    const r = await request(base, 'PUT', `/api/questions/${fx.q[0]}`, adminToken, { type: 'text', text: 'Who killed Goliath?', points: 1 });
+    assert.equal(r.status, 200);
+    await settle();
+    assert.equal(s0.calls.length, 2, 'asked again with the new text');
+    assert.equal(s0.calls[1].question, 'Who killed Goliath?');
+    assert.notEqual(row(k.id, fx.q[0]).ai_run_id, first);
+  });
+
   test('rule matches, blank answers and questions without a key never reach the provider', async () => {
     const s0 = spy();
     const fx = textQuiz('Rule first', [{ text: 'Q1?', reference: 'Yishmael', accepted: ['Ishmael'] }, { text: 'Q2 without key?' }]);
@@ -542,7 +614,7 @@ describe('provider errors, the auth stop and the kill switch', () => {
     aiWorker.resume();
   });
 
-  for (const kind of ['timeout', 'server', 'safety', 'malformed', 'max_tokens', 'network', 'bad_request'] as const) {
+  for (const kind of ['timeout', 'safety', 'malformed', 'max_tokens', 'bad_request'] as const) {
     test(`${kind}: the answer is 'failed' with ai_error and stays with a person`, async () => {
       spy(() => failure(kind, `simulated ${kind}`));
       const fx = textQuiz(`Error ${kind}`, [{ text: 'Q?', reference: 'Chevron' }]);
@@ -570,6 +642,96 @@ describe('provider errors, the auth stop and the kill switch', () => {
     assert.equal(row(k.id, fx.q[0]).ai_status, 'failed');
   });
 
+  for (const kind of ['server', 'network'] as const) {
+    test(`${kind}: back to the queue with a pause, at most 3 requests, then 'failed'`, async () => {
+      const s0 = spy(() => failure(kind, `simulated ${kind}`));
+      const fx = textQuiz(`Transient ${kind}`, [{ text: 'Q?', reference: 'Chevron' }]);
+      const s = await run(fx.quizId);
+      const runs = runCount();
+      const k = await kid(s.joinCode, 'Transient', { [fx.q[0]]: 'Shechem' });
+      await settle();
+      assert.equal(row(k.id, fx.q[0]).ai_status, 'queued', 'first failure: queued again');
+      assert.ok(aiWorker.pausedUntil() > Date.now(), 'and a short pause');
+      aiWorker.resume();
+      await settle();
+      assert.equal(row(k.id, fx.q[0]).ai_status, 'queued');
+      aiWorker.resume();
+      await settle();
+      const r = row(k.id, fx.q[0]);
+      assert.equal(r.ai_status, 'failed');
+      assert.ok(r.ai_error!.startsWith(`${kind}: simulated`));
+      assert.equal(s0.calls.length, 3);
+      assert.equal(runCount() - runs, 3, 'every request has its own runs row (the daily cap counts requests)');
+    });
+  }
+
+  test('the kill switch aborts a request on its way: nothing is applied, the answer waits, and goes on after release', async () => {
+    let aborted = 0;
+    const s0 = spy((_p, n, opts) =>
+      n === 1
+        ? new Promise<GradeOutcome>((resolve) =>
+            opts!.signal!.addEventListener('abort', () => {
+              aborted += 1;
+              resolve(failure('aborted', 'stopped'));
+            }),
+          )
+        : ok('incorrect', 'medium'),
+    );
+    const fx = textQuiz('Abort quiz', [{ text: 'Q?', reference: 'Agag' }]);
+    const s = await run(fx.quizId);
+    const k = await kid(s.joinCode, 'Aborted', { [fx.q[0]]: 'Haman' });
+    await new Promise((r) => setImmediate(r));
+    await new Promise((r) => setImmediate(r));
+    assert.equal(row(k.id, fx.q[0]).ai_status, 'running');
+    assert.equal((await request(base, 'PUT', '/api/ai-grading/kill-switch', adminToken, { engaged: true })).status, 200);
+    await settle();
+    assert.equal(aborted, 1, 'the request was aborted');
+    assert.deepEqual([row(k.id, fx.q[0]).ai_status, row(k.id, fx.q[0]).ai_verdict], ['queued', null]);
+    assert.equal(s0.calls.length, 1, 'nothing else sent while engaged');
+    await request(base, 'PUT', '/api/ai-grading/kill-switch', adminToken, { engaged: false });
+    await settle();
+    assert.deepEqual([row(k.id, fx.q[0]).ai_status, s0.calls.length], ['done', 2]);
+  });
+
+  test('switching the quiz off aborts its request on its way; the answer leaves the queue', async () => {
+    const s0 = spy((_p, _n, opts) => new Promise<GradeOutcome>((resolve) => opts!.signal!.addEventListener('abort', () => resolve(failure('aborted', 'stopped')))));
+    const fx = textQuiz('Abort quiz 2', [{ text: 'Q?', reference: 'Agag' }]);
+    const s = await run(fx.quizId);
+    const k = await kid(s.joinCode, 'Aborted 2', { [fx.q[0]]: 'Haman' });
+    await new Promise((r) => setImmediate(r));
+    await new Promise((r) => setImmediate(r));
+    assert.equal(row(k.id, fx.q[0]).ai_status, 'running');
+    const r = await request(base, 'PUT', `/api/quizzes/${fx.quizId}`, adminToken, { title: 'Abort quiz 2', time_limit_seconds: 600, ai_grading_enabled: false });
+    assert.equal(r.status, 200);
+    await settle();
+    assert.deepEqual([row(k.id, fx.q[0]).ai_status, row(k.id, fx.q[0]).ai_claim], [null, null]);
+    assert.equal(s0.calls.length, 1);
+  });
+
+  test('the allowed() gate is checked before the request: a switch that went off after the claim stops it', async () => {
+    let gateSeen: boolean | null = null;
+    const s0 = spy((_p, _n, opts) => {
+      gateSeen = opts!.allowed!();
+      return gateSeen ? ok('incorrect', 'medium') : failure('aborted', 'stopped');
+    });
+    const fx = textQuiz('Gate quiz', [{ text: 'Q?', reference: 'Agag' }]);
+    const s = await run(fx.quizId);
+    const k = await kid(s.joinCode, 'Gate', { [fx.q[0]]: 'Haman' }, false);
+    // Claimed, then the kill switch engaged before the provider runs its check.
+    setKillSwitch(db, false, 'test');
+    db.prepare("UPDATE participants SET submitted_at = ? WHERE id = ?").run(new Date().toISOString(), k.id);
+    db.prepare("UPDATE answers SET ai_status = 'queued' WHERE id = ?").run(row(k.id, fx.q[0]).id);
+    const engage = () => setKillSwitch(db, true, 'test');
+    const original = s0.provider.grade;
+    s0.provider.grade = async (p, opts) => {
+      engage();
+      return original(p, opts);
+    };
+    await settle();
+    assert.equal(gateSeen, false);
+    assert.equal(row(k.id, fx.q[0]).ai_status, 'queued');
+    setKillSwitch(db, false, 'test');
+  });
   test('rate limit: back to the queue and a pause; later it is sent again', async () => {
     let limited = true;
     const s0 = spy(() => (limited ? failure('rate_limit', 'http 429') : ok('incorrect', 'high')));
@@ -956,7 +1118,7 @@ describe('the offline eval harness', () => {
     assert.match(out, /provider fake/);
     assert.match(out, /Labelled answers: \d{3}/);
     assert.match(out, /credited by the reference check \(no call\)\s+\d+ \(wrongly: 0\)/);
-    assert.match(out, /Red team: 30/);
+    assert.match(out, /Red team: 36/);
     assert.match(out, /NOT flagged\s+0/);
     assert.match(out, /acceptable as correct·high \(must be 0\)\s+0/);
     // The deliberate near-miss trap (Ahimelech for Abimelech) is caught by the gate metric.

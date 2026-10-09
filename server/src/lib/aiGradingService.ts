@@ -29,11 +29,13 @@ function currentProvider(): GradeProvider {
     const latency = Number(process.env.AI_FAKE_LATENCY_MS);
     return createFakeProvider({ latencyMs: Number.isFinite(latency) && latency > 0 ? Math.min(latency, 10_000) : 0 });
   }
+  // No retries inside the adapter: the worker retries through its queue, which re-checks every switch.
   return createGeminiProvider({
     apiKey: (process.env.GEMINI_API_KEY ?? '').trim(),
     model: env.model,
     endpoint: env.endpoint,
     timeoutMs: env.timeoutMs,
+    maxRetries: 0,
   });
 }
 
@@ -64,9 +66,11 @@ export function aiAfterQuestionChange(questionId: number): void {
   afterQueue(requeueQuestionForAi(db, questionId));
 }
 
-/** After the quiz's AI switch changed: off empties its queue at once. */
+/** After the quiz's AI switch changed: off empties its queue and aborts its requests on their way. */
 export function aiAfterQuizSwitch(quizId: number, enabled: boolean): void {
-  if (!enabled) afterQueue(unqueueQuiz(db, quizId));
+  if (enabled) return;
+  afterQueue(unqueueQuiz(db, quizId));
+  aiWorker.abortInFlight(quizId);
 }
 
 /** The panel's "Run AI pre-check" (and Retry; admins only): queues what is eligible, failed ones included on request. */

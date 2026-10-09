@@ -3,38 +3,42 @@
    icon AND words (WCAG 1.4.1). Slots keep their size while suggestions arrive, so rows never move
    under the grader's finger. */
 
-/* --- One answer's suggestion ------------------------------------------------------------------ */
+/* --- One answer's suggestion ------------------------------------------------------------------
+   The same block in every state: a 32 px status line (one line, ellipsis) and a 44 px row for the
+   two-line rationale, its More/Less, or Retry. Nothing in it changes height when a suggestion
+   arrives or a grade is given. */
 .ai-suggestion {
   display: flex;
   flex-direction: column;
   gap: 4px;
   margin-block-start: 6px;
-  /* Status line + two rationale lines (14 px × 1.4), reserved while a suggestion can still arrive. */
-  min-block-size: calc(32px + 2 * 1.4 * 14px + 4px);
-}
-.ai-suggestion--final {
-  min-block-size: 0;
+  min-inline-size: 0;
 }
 .ai-suggestion__line {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  gap: 6px 10px;
-  min-block-size: 32px;
+  block-size: 32px;
+  min-inline-size: 0;
 }
-/* inline-block, so a long verdict wraps as one text (not as separate flex columns). */
-.ai-chip {
+/* One line; the full text stays in the DOM (screen readers) and in the tooltip. */
+.ai-chip,
+.ai-muted {
   display: inline-block;
   max-inline-size: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 14px;
+  line-height: 1.35;
+}
+.ai-chip {
   padding: 3px 10px;
   border-radius: 999px;
   border: 1px solid transparent;
-  font-size: 14px;
   font-weight: 600;
-  line-height: 1.35;
-  overflow-wrap: anywhere;
 }
-.ai-chip .grade-icon {
+.ai-chip .grade-icon,
+.ai-muted .grade-icon {
   vertical-align: -2px;
   margin-inline-end: 4px;
 }
@@ -56,9 +60,11 @@
   background: var(--danger-bg);
   color: var(--on-danger-bg);
 }
+/* Unsure: the page's own surface with an accent border (same in both themes). */
 .ai-chip--unclear {
-  background: var(--selected-bg);
-  color: var(--selected-text);
+  background: var(--surface-alt);
+  color: var(--text);
+  border-color: var(--selected-border);
 }
 .ai-chip--flagged {
   background: var(--warning-bg);
@@ -76,13 +82,18 @@
   border-color: var(--border-subtle);
 }
 .ai-muted {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 14px;
   color: var(--text-muted);
 }
+.ai-suggestion__why {
+  display: flex;
+  align-items: flex-start;
+  gap: 4px 8px;
+  min-block-size: 44px;
+  min-inline-size: 0;
+}
 .ai-rationale {
+  flex: 1 1 auto;
+  min-inline-size: 0;
   margin: 0;
   font-size: 14px;
   line-height: 1.4;
@@ -98,8 +109,10 @@
 }
 .ai-link-button,
 .ai-link-button:hover:not(:disabled) {
-  min-height: 32px;
-  padding: 0 6px;
+  flex: 0 0 auto;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 8px;
   border: 0;
   background: transparent;
   color: var(--link);
@@ -155,11 +168,19 @@
 .ai-question__status:empty {
   display: none;
 }
+.ai-accept-all {
+  min-height: 44px;
+}
+.ai-question__status:focus {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+/* Always in the row (hidden while not needed), so it never pushes the answers down when it appears. */
 .ai-question__warn {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  margin: 4px 0 0;
+  margin: 0;
   padding: 4px 10px;
   border-radius: 8px;
   background: var(--warning-bg);
@@ -244,9 +265,6 @@
   white-space: nowrap;
   text-overflow: ellipsis;
 }
-.ai-bar__line--off {
-  white-space: normal;
-}
 .ai-bar__actions {
   display: flex;
   flex-wrap: wrap;
@@ -269,4 +287,7 @@
 .ai-blind input {
   inline-size: 20px;
   block-size: 20px;
+}
+.ai-question__warn.is-hidden {
+  visibility: hidden;
 }

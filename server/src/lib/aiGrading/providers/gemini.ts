@@ -1,7 +1,7 @@
 import { GRADER_SYSTEM_PROMPT, userMessage } from '../prompt';
 import { GEMINI_RESPONSE_SCHEMA, parseGradeJson } from '../schema';
 import type { GradePayload, ProviderErrorKind } from '../types';
-import type { GradeOutcome, GradeProvider } from './types';
+import type { GradeOptions, GradeOutcome, GradeProvider } from './types';
 
 // Wish 7, layer B (S14): the Google Gemini API adapter (lead's decision: Gemini, not Anthropic).
 // Node's built-in fetch against the REST endpoint models/{model}:generateContent with structured
@@ -10,8 +10,10 @@ import type { GradeOutcome, GradeProvider } from './types';
 // - One unique answer per request: system instruction = GRADER_SYSTEM_PROMPT, one user message =
 //   the JSON payload (prompt.ts). Nothing else is sent: no names, ids or other answers.
 // - The key goes in the x-goog-api-key header (never in the URL, so it never reaches a log).
-// - Retries: 429 and 5xx and network errors are retried twice with backoff (429 honours the
-//   server's delay, at most 30 s); a timeout is not retried.
+// - Retries: 429 and 5xx and network errors are retried `maxRetries` times with backoff (429 honours
+//   the server's delay, at most 30 s); a timeout is not retried. The worker uses maxRetries 0 and
+//   retries through its own queue, which re-checks every switch; `allowed()` is checked before every
+//   attempt and `signal` aborts a request on its way, so nothing is sent after a switch went off.
 // - Success only with finishReason STOP and output that parses as the schema. Anything else
 //   (prompt blocked, safety stop, MAX_TOKENS, malformed JSON, HTTP error, timeout) is a failure
 //   with an errorKind the worker acts on; the answer then stays with a person.
@@ -110,12 +112,28 @@ export function createGeminiProvider(opts: GeminiOptions): GradeProvider {
     ...extra,
   });
 
-  async function grade(payload: GradePayload): Promise<GradeOutcome> {
+  async function grade(payload: GradePayload, gate: GradeOptions = {}): Promise<GradeOutcome> {
     const body = JSON.stringify(geminiRequestBody(payload));
+    const stopped = () => Boolean(gate.signal?.aborted) || (gate.allowed !== undefined && !gate.allowed());
+    const abortedOutcome = () => fail('aborted', 'aborted', 'stopped: AI calls were switched off');
     for (let attempt = 0; ; attempt++) {
+      // Before every attempt, retries included: no data leaves after a switch went off.
+      if (stopped()) return abortedOutcome();
       const canRetry = attempt < maxRetries;
       const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), timeoutMs);
+      let timedOut = false;
+      const timer = setTimeout(() => {
+        timedOut = true;
+        controller.abort();
+      }, timeoutMs);
+      const onAbort = () => controller.abort();
+      gate.signal?.addEventListener('abort', onAbort);
+      const cleanup = () => {
+        clearTimeout(timer);
+        gate.signal?.removeEventListener('abort', onAbort);
+      };
+      const interrupted = (): GradeOutcome | null =>
+        timedOut ? fail('timeout', 'timeout', `timeout after ${timeoutMs} ms`) : controller.signal.aborted ? abortedOutcome() : null;
       let res: Response;
       try {
         res = await doFetch(url, {
@@ -125,8 +143,9 @@ export function createGeminiProvider(opts: GeminiOptions): GradeProvider {
           signal: controller.signal,
         });
       } catch (err) {
-        clearTimeout(timer);
-        if (controller.signal.aborted) return fail('timeout', 'timeout', `timeout after ${timeoutMs} ms`);
+        cleanup();
+        const stop = interrupted();
+        if (stop) return stop;
         if (canRetry) {
           await sleep(Math.min(1000 * 2 ** attempt, MAX_RETRY_DELAY_MS));
           continue;
@@ -138,11 +157,10 @@ export function createGeminiProvider(opts: GeminiOptions): GradeProvider {
       try {
         text = await res.text();
       } catch {
-        clearTimeout(timer);
-        if (controller.signal.aborted) return fail('timeout', 'timeout', `timeout after ${timeoutMs} ms`);
-        return fail('network', 'network_error', 'response body could not be read');
+        cleanup();
+        return interrupted() ?? fail('network', 'network_error', 'response body could not be read');
       }
-      clearTimeout(timer);
+      cleanup();
 
       if (!res.ok) {
         let errBody: GeminiErrorBody | null = null;
@@ -155,11 +173,12 @@ export function createGeminiProvider(opts: GeminiOptions): GradeProvider {
         const message = `http ${res.status}${status ? ` ${status}` : ''}: ${str(errBody?.error?.message) ?? ''}`;
         const reasons = (errBody?.error?.details ?? []).map((d) => str(d.reason));
         if (res.status === 429 || res.status >= 500) {
+          const delay = retryDelayMs(res, errBody, attempt);
           if (canRetry) {
-            await sleep(retryDelayMs(res, errBody, attempt));
+            await sleep(delay);
             continue;
           }
-          return fail(res.status === 429 ? 'rate_limit' : 'server', `http_${res.status}`, message);
+          return fail(res.status === 429 ? 'rate_limit' : 'server', `http_${res.status}`, message, { retryAfterMs: delay });
         }
         if (res.status === 401 || res.status === 403 || reasons.includes('API_KEY_INVALID') || /api key not valid/i.test(message)) {
           return fail('auth', `http_${res.status}`, message);

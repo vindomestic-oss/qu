@@ -42,6 +42,8 @@ aiGradingRouter.put('/kill-switch', (req: AuthedRequest, res) => {
   if (typeof req.body?.engaged !== 'boolean') return res.status(400).json({ error: 'engaged must be true or false' });
   setKillSwitch(db, req.body.engaged, `admin:${req.admin!.username}`);
   console.log(`AI grading: kill switch ${req.body.engaged ? 'engaged' : 'released'} by admin:${req.admin!.username}`);
-  if (!req.body.engaged) aiWorker.kick();
+  // Engaged: requests on their way are aborted at once; released: what is queued continues.
+  if (req.body.engaged) aiWorker.abortInFlight();
+  else aiWorker.kick();
   res.json(configOut());
 });
