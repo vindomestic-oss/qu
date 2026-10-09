@@ -1,5 +1,6 @@
 import Database from 'better-sqlite3';
 import { CONTENT_LANGS } from '../lib/languages';
+import { CHIDON_5787_ANFAENGER_TITLE, CHIDON_5787_FORTGESCHRITTENE_TITLE } from './quizTitles';
 
 const ADDED_COLUMNS: Record<string, { name: string; type: string }[]> = {
   // ISO time; admin tokens issued before it are rejected (set on creation and on every password change).
@@ -22,11 +23,11 @@ const ADDED_COLUMNS: Record<string, { name: string; type: string }[]> = {
 };
 
 // Quizzes whose questions are written directly in a non-English base language. Backfilled into
-// quizzes.base_language the one time that column is added to an existing database (see below);
-// freshly seeded quizzes set it themselves on insert instead.
+// quizzes.base_language only in the boot that adds that column (it is NOT NULL, so an IS NULL guard
+// cannot tell); freshly seeded quizzes set it themselves on insert.
 const NON_ENGLISH_BASE_QUIZZES: Record<string, string> = {
-  'Chidon HaTanach 5787 – Anfänger (München)': 'de',
-  'Chidon HaTanach 5787 – Fortgeschrittene (München)': 'de',
+  [CHIDON_5787_ANFAENGER_TITLE]: 'de',
+  [CHIDON_5787_FORTGESCHRITTENE_TITLE]: 'de',
 };
 
 /** Adds columns introduced after a table already existed. CREATE TABLE IF NOT EXISTS in schema.sql only covers fresh databases. */

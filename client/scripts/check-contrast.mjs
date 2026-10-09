@@ -20,6 +20,8 @@ PAIRS.push(
   ['--button-text', '--button-bg-hover', 4.5],
   ['--button-disabled-text', '--button-disabled-bg', 4.5],
   ['--selected-text', '--selected-bg', 4.5],
+  ['--text', '--surface-hover', 4.5],
+  ['--text-muted', '--surface-hover', 4.5],
   ['--on-success-bg', '--success-bg', 4.5],
   ['--on-danger-bg', '--danger-bg', 4.5],
   ['--on-warning-bg', '--warning-bg', 4.5],

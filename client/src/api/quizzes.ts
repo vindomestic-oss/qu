@@ -1,11 +1,12 @@
 import { api } from './client';
 import type { Quiz, QuestionInput } from '../types';
-import type { WithTranslationInputs } from '../i18n/contentLanguages';
+import type { QuizLang, WithTranslationInputs } from '../i18n/contentLanguages';
 
 export interface QuizMetaInput extends Partial<WithTranslationInputs<'title'>>, Partial<WithTranslationInputs<'description'>> {
   title: string;
   description: string;
   time_limit_seconds: number;
+  base_language?: QuizLang;
 }
 
 export function listQuizzes() {

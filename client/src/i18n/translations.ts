@@ -1,29 +1,11 @@
-export type Language = 'en' | 'de' | 'ru' | 'fr' | 'pl' | 'lt' | 'he' | 'bg' | 'cs' | 'es' | 'fi' | 'hu' | 'it' | 'lv' | 'uk';
+import type { QuizLang } from './contentLanguages';
 
-// label is each language's own name for itself (an endonym), used in both the interface
-// language menu and the per-quiz question-language picker — never a flag or a two-letter code.
-export const LANGUAGES: { code: Language; label: string }[] = [
-  { code: 'en', label: 'English' },
-  { code: 'de', label: 'Deutsch' },
-  { code: 'ru', label: 'Русский' },
-  { code: 'fr', label: 'Français' },
-  { code: 'pl', label: 'Polski' },
-  { code: 'lt', label: 'Lietuvių' },
-  { code: 'he', label: 'עברית' },
-  { code: 'bg', label: 'Български' },
-  { code: 'cs', label: 'Čeština' },
-  { code: 'es', label: 'Español' },
-  { code: 'fi', label: 'Suomi' },
-  { code: 'hu', label: 'Magyar' },
-  { code: 'it', label: 'Italiano' },
-  { code: 'lv', label: 'Latviešu' },
-  { code: 'uk', label: 'Українська' },
-];
+/** Any language a dictionary can exist for (all 15 quiz languages; only UI_LANGUAGES are complete). */
+export type Language = QuizLang;
 
-/** Interface (menu/button) language is restricted to these 4; quiz content can use any of LANGUAGES. */
-export const UI_LANGUAGES: Language[] = ['en', 'de', 'he', 'ru'];
-
-export const RTL_LANGUAGES: Language[] = ['he'];
+/** Interface languages, in menu order. Keep in sync with the pre-paint script in index.html. */
+export const UI_LANGUAGES = ['en', 'de', 'he', 'ru'] as const;
+export type UiLanguage = (typeof UI_LANGUAGES)[number];
 
 type Dict = Record<string, string>;
 
@@ -44,12 +26,17 @@ const en: Dict = {
   'join.rejoin.yes': 'Yes, that\'s me',
   'join.rejoin.no': 'No, I\'m someone else',
   'join.rejoin.otherName': 'Please enter your own name.',
+  'join.error.INVALID_CODE': 'This join code does not exist. Check it and try again.',
+  'join.error.SESSION_ENDED': 'This quiz has already ended.',
+  'join.error.JOIN_CODE_REQUIRED': 'Please enter the join code.',
+  'join.error.NAME_REQUIRED': 'Please enter your name.',
+  'join.error.generic': 'Could not join. Please try again.',
 
   'play.loading': 'Loading…',
   'play.youreIn': "You're in!",
   'play.waitingForHost': 'Waiting for the host to start the quiz…',
   'play.joinCode': 'Join code:',
-  'play.questionLanguage': 'Question language:',
+  'play.questionLanguage': 'Question language',
   'play.loadingQuiz': 'Loading quiz…',
   'play.timeLeft': 'Time left:',
   'play.questionOf': 'Question {n} of {total}',
@@ -77,6 +64,9 @@ const en: Dict = {
   'results.pointsOf': '{awarded} / {max} points',
   'results.ptsSuffix': '({points} pts)',
   'results.loading': 'Loading results…',
+  'lang.uiMenuLabel': 'Interface language',
+  'lang.count.one': '{n} language',
+  'lang.count.other': '{n} languages',
 };
 
 const de: Dict = {
@@ -96,12 +86,17 @@ const de: Dict = {
   'join.rejoin.yes': 'Ja, das bin ich',
   'join.rejoin.no': 'Nein, ich bin jemand anderes',
   'join.rejoin.otherName': 'Bitte gib deinen eigenen Namen ein.',
+  'join.error.INVALID_CODE': 'Diesen Code gibt es nicht. Bitte prüfe ihn und versuche es noch einmal.',
+  'join.error.SESSION_ENDED': 'Dieses Quiz ist bereits beendet.',
+  'join.error.JOIN_CODE_REQUIRED': 'Bitte gib den Code ein.',
+  'join.error.NAME_REQUIRED': 'Bitte gib deinen Namen ein.',
+  'join.error.generic': 'Beitritt fehlgeschlagen. Bitte versuche es noch einmal.',
 
   'play.loading': 'Lädt…',
   'play.youreIn': 'Du bist dabei!',
   'play.waitingForHost': 'Warte darauf, dass der Gastgeber das Quiz startet…',
   'play.joinCode': 'Beitrittscode:',
-  'play.questionLanguage': 'Sprache der Fragen:',
+  'play.questionLanguage': 'Sprache der Fragen',
   'play.loadingQuiz': 'Quiz wird geladen…',
   'play.timeLeft': 'Verbleibende Zeit:',
   'play.questionOf': 'Frage {n} von {total}',
@@ -129,6 +124,9 @@ const de: Dict = {
   'results.pointsOf': '{awarded} / {max} Punkte',
   'results.ptsSuffix': '({points} Pkt.)',
   'results.loading': 'Ergebnisse werden geladen…',
+  'lang.uiMenuLabel': 'Sprache der Oberfläche',
+  'lang.count.one': '{n} Sprache',
+  'lang.count.other': '{n} Sprachen',
 };
 
 const ru: Dict = {
@@ -148,12 +146,17 @@ const ru: Dict = {
   'join.rejoin.yes': 'Да, это я',
   'join.rejoin.no': 'Нет, я другой человек',
   'join.rejoin.otherName': 'Введите своё имя.',
+  'join.error.INVALID_CODE': 'Такого кода нет. Проверьте его и попробуйте ещё раз.',
+  'join.error.SESSION_ENDED': 'Этот квиз уже завершён.',
+  'join.error.JOIN_CODE_REQUIRED': 'Введите код для входа.',
+  'join.error.NAME_REQUIRED': 'Введите своё имя.',
+  'join.error.generic': 'Не удалось войти. Попробуйте ещё раз.',
 
   'play.loading': 'Загрузка…',
   'play.youreIn': 'Вы подключились!',
   'play.waitingForHost': 'Ожидание начала викторины организатором…',
   'play.joinCode': 'Код для входа:',
-  'play.questionLanguage': 'Язык вопросов:',
+  'play.questionLanguage': 'Язык вопросов',
   'play.loadingQuiz': 'Загрузка викторины…',
   'play.timeLeft': 'Осталось времени:',
   'play.questionOf': 'Вопрос {n} из {total}',
@@ -181,6 +184,11 @@ const ru: Dict = {
   'results.pointsOf': '{awarded} / {max} баллов',
   'results.ptsSuffix': '({points} баллов)',
   'results.loading': 'Загрузка результатов…',
+  'lang.uiMenuLabel': 'Язык интерфейса',
+  'lang.count.one': '{n} язык',
+  'lang.count.few': '{n} языка',
+  'lang.count.many': '{n} языков',
+  'lang.count.other': '{n} языка',
 };
 
 const fr: Dict = {
@@ -317,12 +325,17 @@ const he: Dict = {
   'join.rejoin.yes': 'כן, זה אני',
   'join.rejoin.no': 'לא, אני מישהו אחר',
   'join.rejoin.otherName': 'נא להזין את השם שלכם.',
+  'join.error.INVALID_CODE': 'קוד ההצטרפות לא קיים. בדקו אותו ונסו שוב.',
+  'join.error.SESSION_ENDED': 'השאלון הזה כבר הסתיים.',
+  'join.error.JOIN_CODE_REQUIRED': 'נא להזין את קוד ההצטרפות.',
+  'join.error.NAME_REQUIRED': 'נא להזין את השם שלך.',
+  'join.error.generic': 'לא ניתן להצטרף. נסו שוב.',
 
   'play.loading': 'טוען…',
   'play.youreIn': 'הצטרפת בהצלחה!',
   'play.waitingForHost': 'מחכים שהמנחה יתחיל את השאלון…',
   'play.joinCode': 'קוד הצטרפות:',
-  'play.questionLanguage': 'שפת השאלות:',
+  'play.questionLanguage': 'שפת השאלות',
   'play.loadingQuiz': 'טוען שאלון…',
   'play.timeLeft': 'זמן שנותר:',
   'play.questionOf': 'שאלה {n} מתוך {total}',
@@ -350,6 +363,10 @@ const he: Dict = {
   'results.pointsOf': '{awarded} / {max} נקודות',
   'results.ptsSuffix': '({points} נק\')',
   'results.loading': 'טוען תוצאות…',
+  'lang.uiMenuLabel': 'שפת הממשק',
+  'lang.count.one': 'שפה אחת',
+  'lang.count.two': 'שתי שפות',
+  'lang.count.other': '{n} שפות',
 };
 
 const bg: Dict = {

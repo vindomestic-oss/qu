@@ -53,10 +53,10 @@ async function main() {
   const quizUrl = setup.url();
   const quizId = quizUrl.match(/quizzes\/(\d+)/)[1];
 
-  const qForm = setup.locator('form').filter({ has: setup.locator('select') });
+  const qForm = setup.getByTestId('question-form');
   await setup.getByRole('button', { name: /add question/i }).click();
-  await qForm.locator('select').selectOption('single');
-  await qForm.locator('textarea').fill('Which of these is a fruit, given a fairly long question text to test wrapping behavior on narrow screens?');
+  await qForm.getByLabel('Type').selectOption('single');
+  await qForm.getByLabel('Question text').fill('Which of these is a fruit, given a fairly long question text to test wrapping behavior on narrow screens?');
   const choiceInputs = qForm.locator('input[placeholder^="Choice"]');
   await choiceInputs.nth(0).fill('Carrot');
   await choiceInputs.nth(1).fill('Apple');

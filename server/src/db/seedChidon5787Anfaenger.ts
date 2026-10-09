@@ -1,6 +1,7 @@
 import { db } from './index';
+import { CHIDON_5787_ANFAENGER_TITLE } from './quizTitles';
 
-const QUIZ_TITLE = 'Chidon HaTanach 5787 – Anfänger (München)';
+const QUIZ_TITLE = CHIDON_5787_ANFAENGER_TITLE;
 
 type ChoiceSpec = { text: string; isCorrect: boolean };
 type QuestionSpec = { type: 'single' | 'text'; text: string; points: number; choices: ChoiceSpec[] };

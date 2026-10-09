@@ -69,9 +69,10 @@ export function ParticipantProvider({ children }: { children: ReactNode }) {
   }
 
   async function join(joinCode: string, name: string, { useSecret = true }: { useSecret?: boolean } = {}) {
-    clearStoredContentLanguage();
     const result = await joinSession(joinCode, name, useSecret ? readRejoinSecret(joinCode, name) : undefined);
     storeRejoinSecret(joinCode, name, result.rejoinSecret);
+    // A new session in this tab starts from the default question language.
+    clearStoredContentLanguage();
     setParticipantToken(result.token);
     sessionStorage.setItem(NAME_KEY, result.participant.display_name);
     setDisplayName(result.participant.display_name);

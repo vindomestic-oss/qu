@@ -4,12 +4,11 @@ import { useNavigate } from 'react-router-dom';
 import { useParticipant } from '../../auth/ParticipantContext';
 import { ApiError } from '../../api/client';
 import { useLanguage } from '../../i18n/LanguageContext';
-import { UiLanguageMenu } from '../../components/UiLanguageMenu';
 import { Logo } from '../../components/Logo';
 
 export function Join() {
   const { join, hasRejoinSecret } = useParticipant();
-  const { t, isRtl } = useLanguage();
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const [joinCode, setJoinCode] = useState('');
   const [displayName, setDisplayName] = useState('');
@@ -28,8 +27,10 @@ export function Join() {
       await join(joinCode.trim().toUpperCase(), displayName.trim(), { useSecret });
       navigate('/play');
     } catch (err) {
-      if (err instanceof ApiError && err.code === 'NAME_TAKEN') setError(t('join.error.NAME_TAKEN'));
-      else setError(err instanceof ApiError ? err.message : 'Failed to join');
+      // t() returns the key itself when no dictionary has it, so an unknown code shows the generic text.
+      const code = err instanceof ApiError ? err.code : undefined;
+      const key = code ? `join.error.${code}` : '';
+      setError(key && t(key) !== key ? t(key) : t('join.error.generic'));
     } finally {
       setSubmitting(false);
     }
@@ -58,11 +59,10 @@ export function Join() {
   }
 
   return (
-    <div dir={isRtl ? 'rtl' : 'ltr'} style={{ maxWidth: 360, margin: '24px auto', textAlign: 'center' }}>
+    <div style={{ maxWidth: 360, margin: '24px auto', paddingInline: 16, textAlign: 'center' }}>
       <Logo />
-      <UiLanguageMenu />
       <h1>{t('join.title')}</h1>
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12, textAlign: isRtl ? 'right' : 'left' }}>
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12, textAlign: 'start' }}>
         <label>
           {t('join.joinCode')}
           <input
@@ -70,6 +70,7 @@ export function Join() {
             onChange={(e) => setJoinCode(e.target.value)}
             required
             autoFocus
+            dir="ltr"
             style={{ display: 'block', width: '100%', textTransform: 'uppercase', fontSize: 20, letterSpacing: 2 }}
             maxLength={6}
           />
@@ -77,20 +78,25 @@ export function Join() {
         <label>
           {t('join.yourName')}
           <input
-            value={displayName}
             ref={nameInputRef}
+            value={displayName}
             onChange={(e) => {
               setDisplayName(e.target.value);
               setConfirmName(null);
             }}
             required
             maxLength={50}
+            dir="auto"
             style={{ display: 'block', width: '100%' }}
           />
         </label>
         {hint && <p role="status">{hint}</p>}
         {confirmName !== null && (
-          <div role="alertdialog" aria-labelledby="rejoin-question" style={{ border: '1px solid var(--border-strong)', borderRadius: 8, padding: 12 }}>
+          <div
+            role="alertdialog"
+            aria-labelledby="rejoin-question"
+            style={{ border: '1px solid var(--border-strong)', borderRadius: 8, padding: 12 }}
+          >
             <p id="rejoin-question" style={{ marginTop: 0 }}>
               {t('join.rejoin.question', { name: confirmName })}
             </p>

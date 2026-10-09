@@ -9,3 +9,7 @@ export type QuizLang = (typeof QUIZ_LANGS)[number];
 export function isQuizLang(value: unknown): value is QuizLang {
   return typeof value === 'string' && (QUIZ_LANGS as readonly string[]).includes(value);
 }
+
+/** Order of every language list sent to clients: the 4 UI languages, then the rest alphabetically
+ *  by endonym (Latin script before Cyrillic). Clients render lists as received. */
+export const LANGUAGE_DISPLAY_ORDER: readonly QuizLang[] = ['en', 'de', 'he', 'ru', 'cs', 'es', 'fr', 'it', 'lv', 'lt', 'hu', 'pl', 'fi', 'bg', 'uk'];

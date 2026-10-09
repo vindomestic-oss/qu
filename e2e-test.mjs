@@ -34,15 +34,14 @@ async function main() {
   await admin.waitForURL(/\/admin\/quizzes\/\d+$/);
   log('admin', `on quiz editor: ${admin.url()}`);
 
-  // The QuestionForm is the only <form> containing a <select>; scope all
-  // question-form interactions through it to avoid colliding with the
-  // quiz-meta form's own textarea (description field).
-  const qForm = admin.locator('form').filter({ has: admin.locator('select') });
+  // Scope question-form interactions to the QuestionForm: the quiz-meta form above it also has a
+  // textarea (description) and a select (main language).
+  const qForm = admin.getByTestId('question-form');
 
   // Add single-choice question
   await admin.getByRole('button', { name: /add question/i }).click();
-  await qForm.locator('select').selectOption('single');
-  await qForm.locator('textarea').fill('2 + 2 = ?');
+  await qForm.getByLabel('Type').selectOption('single');
+  await qForm.getByLabel('Question text').fill('2 + 2 = ?');
   const choiceInputs = qForm.locator('input[placeholder^="Choice"]');
   await choiceInputs.nth(0).fill('3');
   await choiceInputs.nth(1).fill('4');
@@ -53,8 +52,8 @@ async function main() {
 
   // Add multiple-choice question
   await admin.getByRole('button', { name: /add question/i }).click();
-  await qForm.locator('select').selectOption('multiple');
-  await qForm.locator('textarea').fill('Pick the primes');
+  await qForm.getByLabel('Type').selectOption('multiple');
+  await qForm.getByLabel('Question text').fill('Pick the primes');
   const choiceInputs2 = qForm.locator('input[placeholder^="Choice"]');
   await choiceInputs2.nth(0).fill('2');
   await choiceInputs2.nth(1).fill('4');
@@ -68,8 +67,8 @@ async function main() {
 
   // Add text question
   await admin.getByRole('button', { name: /add question/i }).click();
-  await qForm.locator('select').selectOption('text');
-  await qForm.locator('textarea').fill('Explain gravity briefly.');
+  await qForm.getByLabel('Type').selectOption('text');
+  await qForm.getByLabel('Question text').fill('Explain gravity briefly.');
   await qForm.getByRole('button', { name: /save question/i }).click();
   log('admin', 'added text question');
   await admin.waitForTimeout(300);

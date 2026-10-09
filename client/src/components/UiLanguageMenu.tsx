@@ -1,24 +1,13 @@
 import { useLanguage } from '../i18n/LanguageContext';
-import { LANGUAGES, UI_LANGUAGES, type Language } from '../i18n/translations';
+import { UI_LANGUAGES } from '../i18n/translations';
+import { LanguageMenu } from './LanguageMenu';
 
-const OPTIONS = LANGUAGES.filter((l) => UI_LANGUAGES.includes(l.code));
-
-/** Interface (menu/button) language picker — restricted to the 4 fully-translated languages. */
+/** Interface language picker: exactly en, de, he, ru. The trigger's name is its visible endonym (WCAG 2.5.3). */
 export function UiLanguageMenu() {
-  const { language, setLanguage } = useLanguage();
-
+  const { uiLanguage, setUiLanguage, t } = useLanguage();
   return (
-    <select
-      value={language}
-      onChange={(e) => setLanguage(e.target.value as Language)}
-      aria-label="Interface language"
-      style={{ padding: '4px 8px', fontSize: 14 }}
-    >
-      {OPTIONS.map((l) => (
-        <option key={l.code} value={l.code}>
-          {l.label}
-        </option>
-      ))}
-    </select>
+    <nav aria-label={t('lang.uiMenuLabel')} className="lang-menu-bar">
+      <LanguageMenu idPrefix="ui-lang" options={UI_LANGUAGES} value={uiLanguage} onChange={setUiLanguage} icon="globe" />
+    </nav>
   );
 }

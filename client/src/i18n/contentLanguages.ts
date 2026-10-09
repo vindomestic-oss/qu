@@ -1,21 +1,19 @@
-import type { Language } from './translations';
-
 /** Non-base languages that quiz content (title/description/question/choice text) can be translated into. */
 export const CONTENT_LANGS = ['de', 'ru', 'fr', 'pl', 'lt', 'he', 'bg', 'cs', 'es', 'fi', 'hu', 'it', 'lv', 'uk'] as const;
 export type ContentLangCode = (typeof CONTENT_LANGS)[number];
 
-/** Every language a quiz's content can be written in: the base language ('en' unless the quiz overrides it) plus every CONTENT_LANGS code. */
-export const QUIZ_LANGS: Language[] = ['en', ...CONTENT_LANGS];
+/** Every language a quiz's content can be written in: the base language ('en' unless the quiz overrides it) plus every CONTENT_LANGS code. Mirrors the server. */
+export const QUIZ_LANGS = ['en', ...CONTENT_LANGS] as const;
+export type QuizLang = (typeof QUIZ_LANGS)[number];
 
-export function isQuizLang(value: unknown): value is Language {
-  return typeof value === 'string' && (QUIZ_LANGS as string[]).includes(value);
+export function isQuizLang(value: unknown): value is QuizLang {
+  return typeof value === 'string' && (QUIZ_LANGS as readonly string[]).includes(value);
 }
 
-/** Validates a server-provided offered-languages list, always keeping the base language in. */
-export function sanitizeOffered(list: unknown, base: Language): Language[] {
+/** Validates a server-provided offered-languages list: known codes only, no duplicates, base first. */
+export function sanitizeOffered(list: unknown, base: QuizLang): QuizLang[] {
   const valid = Array.isArray(list) ? list.filter(isQuizLang) : [];
-  const deduped = Array.from(new Set<Language>([base, ...valid]));
-  return deduped;
+  return Array.from(new Set<QuizLang>([base, ...valid]));
 }
 
 export const CONTENT_LANG_LABELS: Record<ContentLangCode, string> = {
