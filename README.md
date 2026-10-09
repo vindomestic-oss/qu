@@ -76,7 +76,7 @@ Open `http://localhost:4000`.
 ## Grading answers
 
 - Open answers are graded in the grading panel at `/grade/<sessionId>` ("Grading panel" in the quiz editor's Live Session block, on the results page and in the session history). Answers become gradable once the participant has pressed "Finish and submit", or when the session ends.
-- "Grader access" creates a code, link and QR for one session (valid 1, 7 or 30 days after the quiz ends, revocable at any time). Graders open `/g/<code>` or type the code on `/grade`, enter their name and can only read and grade that session; they see participants as numbers, never by name. Never show this QR on the projector: the code reveals the correct answers.
+- "Grader access" creates a code, link and QR for one session (valid 1, 7 or 30 days after the quiz ends, revocable at any time). Graders open `/g/<code>` or type the code on `/grade`, enter their name and can only read and grade that session. They see participants' names in the participant list and on the participant page; the whole-quiz review shows anonymous "Answer 1, 2…" rows. Never show this QR on the projector: the code reveals the correct answers.
 - The seeded Chidon quizzes carry model answers for all their open questions (`server/src/db/chidonAnswerKey.ts`; existing databases are filled on the next start).
 - Environment: `PUBLIC_BASE_URL` (the address grader links point to; set in `render.yaml`, unset locally, where the request's host is used) and `TRUST_PROXY_HOPS` (default `0`; proxy hops in front of the app, used for the rate limit on grader codes).
 - `seed-chidon-quiz.mjs` in the repository root is legacy (it seeds through the API, without model answers); the server's own seed (`npm run seed`) creates the Chidon quizzes.

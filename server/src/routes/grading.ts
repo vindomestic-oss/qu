@@ -1,7 +1,7 @@
 import { createHash } from 'crypto';
 import { Router, type Response } from 'express';
 import { db } from '../db';
-import { staffLabel, type Staff, type StaffRequest } from '../middleware/staffAuth';
+import { staffLabel, type StaffRequest } from '../middleware/staffAuth';
 import { getSession } from '../lib/sessions';
 import { translationColumns } from '../lib/sqlTranslations';
 import { getQuizLanguageInfo } from '../lib/quizLanguages';
@@ -23,18 +23,11 @@ import { broadcastGradingChanged } from '../socket';
  * admins for any session, graders only for the session of their link. Every query joins answers on
  * a.session_id, so a second run of the same quiz never mixes in.
  *
- * Names: admins get participants' names. Graders who came in with a link get a number instead
- * ("Participant 3", by join order): the lead's rule for S12 is that graders never see participant
- * names. GRADERS_SEE_NAMES = true restores decision Q-names as written in wish 8 (names in the list
- * and on the participant page). Whole-quiz mode never carries names or participant ids for anyone.
+ * Names (decision Q-names, wish 8): admins and graders see participants' names in the participant
+ * list and on the participant page. Whole-quiz mode never carries names or participant ids for
+ * anyone: its rows are "Answer 1, 2…" in a hash order. The projector shows counts only (S6).
  */
 export const gradingRouter = Router({ mergeParams: true });
-
-const GRADERS_SEE_NAMES = false;
-
-function showsNames(staff: Staff): boolean {
-  return staff.kind === 'admin' || GRADERS_SEE_NAMES;
-}
 
 const round1 = (n: number) => Math.round(n * 10) / 10;
 
@@ -190,11 +183,10 @@ gradingRouter.get('/summary', (req: StaffRequest, res) => {
     )
     .all(session.id) as ParticipantAggregate[];
 
-  const names = showsNames(staff);
   const participants = rows.map((p, i) => ({
     id: p.id,
     number: i + 1,
-    ...(names ? { display_name: p.display_name } : {}),
+    display_name: p.display_name,
     answered_count: p.answered_count,
     needs_review_count: p.needs_review_count,
     score: round1(p.score),
@@ -299,7 +291,7 @@ gradingRouter.get('/participants/:participantId', (req: StaffRequest, res) => {
     participant: {
       id: p.id,
       number: index + 1,
-      ...(showsNames(req.staff!) ? { display_name: p.display_name } : {}),
+      display_name: p.display_name,
       joined_at: p.joined_at,
       submitted_at: p.submitted_at,
       submit_source: p.submit_source,

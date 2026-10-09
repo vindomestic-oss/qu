@@ -18,7 +18,7 @@ export function graderDisplayName(gradedBy: string | null | undefined): string {
 
 export const AUTO_SOURCES = new Set(['auto_choice', 'auto_blank', 'rule']);
 
-/** Display name, or "Participant N" for graders (they get no names). */
+/** The participant's name, or "Participant N" if the server sent none. */
 export function participantLabel(
   p: { number: number; display_name?: string },
   t: (key: string, vars?: Record<string, string | number>) => string,

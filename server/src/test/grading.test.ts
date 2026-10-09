@@ -518,7 +518,7 @@ describe('reading the panel', () => {
     kids.push(await participant(fx, 'Idle Kid'));
   });
 
-  test('summary counts this run only, with statuses, and gives graders numbers instead of names', async () => {
+  test('summary counts this run only, with statuses, and names for graders too (Q-names)', async () => {
     // The same quiz run again in another session must not count here.
     const otherSession = Number(db.prepare("INSERT INTO sessions (quiz_id, join_code, status) VALUES (?, 'ZZZZZZ', 'active')").run(fx.quizId).lastInsertRowid);
     const otherKid = Number(db.prepare("INSERT INTO participants (session_id, display_name, submitted_at) VALUES (?, 'Other run', ?)").run(otherSession, new Date().toISOString()).lastInsertRowid);
@@ -536,7 +536,8 @@ describe('reading the panel', () => {
     assert.equal(c.incorrect, 3, 'the blank answer is not answered, so it is not in the bar');
     assert.equal(c.answers_given, 6 + 6 + 1);
     assert.equal(c.answers_possible, 9 * 2);
-    assert.deepEqual(findKeys(r.body, ['display_name', 'joined_at']), []);
+    assert.deepEqual(findKeys(r.body, ['joined_at']), []);
+    assert.equal(r.body.participants[0].display_name, 'Kid 1', 'graders see names in the participant list');
     const statuses = Object.fromEntries(r.body.participants.map((p: { number: number; status: string }) => [p.number, p.status]));
     assert.deepEqual(statuses, { 1: 'needs_review', 2: 'needs_review', 3: 'needs_review', 4: 'needs_review', 5: 'needs_review', 6: 'needs_review', 7: 'graded', 8: 'answering', 9: 'not_started' });
     assert.equal(r.body.quiz.total_points, 3);
@@ -549,10 +550,10 @@ describe('reading the panel', () => {
     assert.equal(textRow.needs_review_count, 6);
   });
 
-  test('participant page: names for admins only, gradable after submission, prev/next by join order', async () => {
+  test('participant page: the name, gradable after submission, prev/next by join order', async () => {
     const first = await request(base, 'GET', `/api/grading/${fx.sessionId}/participants/${kids[0].id}`, grader.token);
     assert.equal(first.status, 200);
-    assert.deepEqual(findKeys(first.body, ['display_name']), []);
+    assert.equal(first.body.participant.display_name, 'Kid 1', 'graders see the name on the participant page');
     assert.equal(first.body.participant.number, 1);
     assert.equal(first.body.gradable, true);
     assert.equal(first.body.prev_id, null);

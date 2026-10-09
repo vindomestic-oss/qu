@@ -250,9 +250,9 @@ export interface GradingSummary {
   };
   participants: {
     id: number;
-    /** 1-based join order; graders see "Participant N" instead of a name. */
+    /** 1-based join order. */
     number: number;
-    /** Admins only. */
+    /** Admins and graders (Q-names); never in whole-quiz mode. */
     display_name?: string;
     answered_count: number;
     needs_review_count: number;
