@@ -68,6 +68,17 @@
   --on-warning-bg: #7a4f00; /* 6.53 on --warning-bg */
   --qr-fg: #000000;
   --qr-bg: #ffffff;
+  --nav-answered-bg: #212934; /* answered number: text 14.67 */
+  --nav-answered-text: #ffffff;
+  --nav-unanswered-border: #767676; /* 4.54 on --bg */
+  --nav-current-ring: #27589f; /* 7.04 on --bg */
+  --nav-flag: #c62828; /* 5.62 on --bg */
+  --section-1: #00796b;
+  --section-2: #b45309;
+  --section-3: #7b3fb5;
+  --section-4: #ad1457;
+  --section-5: #2e7d32;
+  --section-6: #4e5d6c;
 }
 
 /* Dark: the head script in index.html sets data-theme from the stored choice or the OS setting. */
@@ -107,6 +118,17 @@
   --on-warning-bg: var(--warning); /* 8.75 on --warning-bg */
   --qr-fg: #000000;
   --qr-bg: #ffffff;
+  --nav-answered-bg: #eef1f5;
+  --nav-answered-text: #121417; /* 16.29 on --nav-answered-bg */
+  --nav-unanswered-border: #8a94a1;
+  --nav-current-ring: #8fb8f5;
+  --nav-flag: #ff8a80;
+  --section-1: #4fc3b3;
+  --section-2: #f0a95b;
+  --section-3: #c39bf0;
+  --section-4: #f48fb1;
+  --section-5: #81d99a;
+  --section-6: #a9b8c8;
 }
 
 * {
