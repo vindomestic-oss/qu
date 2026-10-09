@@ -33,6 +33,11 @@ import { loadPrecedents, type Precedent } from '../lib/aiGrading/precedents';
  * the client; never displayed) and matches_reference; text questions carry their parsed
  * accepted_answers and `precedents` (earlier human grades of the same normalized answer in other
  * runs: points and counts only); whole-quiz stats carry rule_matched (credited by the rule here).
+ *
+ * AI suggestions (wish 7, S14): the quiz meta carries ai_grading_enabled; text answers carry the
+ * suggestion (AI_ANSWER_FIELDS: status, verdict, confidence, rationale, flagged, error, source),
+ * never the run's tokens or model. Grades may be sent with source 'ai' (an accepted suggestion).
+ * The AI endpoints themselves are in routes/gradingAi.ts.
  */
 export const gradingRouter = Router({ mergeParams: true });
 
@@ -43,10 +48,11 @@ interface QuizRow {
   title: string;
   base_language: string;
   content_languages: string | null;
+  ai_grading_enabled: number;
 }
 
 function loadQuiz(quizId: number) {
-  const quiz = db.prepare('SELECT id, title, base_language, content_languages FROM quizzes WHERE id = ?').get(quizId) as
+  const quiz = db.prepare('SELECT id, title, base_language, content_languages, ai_grading_enabled FROM quizzes WHERE id = ?').get(quizId) as
     | QuizRow
     | undefined;
   if (!quiz) return null;
@@ -61,6 +67,7 @@ function loadQuiz(quizId: number) {
     total_points: round1(totals.total_points),
     base_language: languages.base_language,
     offered_languages: languages.offered,
+    ai_grading_enabled: quiz.ai_grading_enabled === 1,
   };
 }
 
@@ -145,10 +152,33 @@ interface AnswerRow {
   grade_source: string | null;
   grade_version: number;
   answer_norm: string | null;
+  ai_status: string | null;
+  ai_source: string | null;
+  ai_verdict: string | null;
+  ai_confidence: string | null;
+  ai_rationale: string | null;
+  ai_flagged: number;
+  ai_error: string | null;
 }
 
+/** The AI suggestion of a text answer as the panel receives it (wish 7, S14). */
+const AI_ANSWER_FIELDS = ['ai_status', 'ai_source', 'ai_verdict', 'ai_confidence', 'ai_rationale', 'ai_flagged', 'ai_error'] as const;
+
 const ANSWER_COLUMNS =
-  'a.id, a.question_id, a.participant_id, a.selected_choice_ids, a.text_answer, a.answer_norm, a.is_correct, a.points_awarded, a.graded_at, a.graded_by, a.grade_source, a.grade_version';
+  'a.id, a.question_id, a.participant_id, a.selected_choice_ids, a.text_answer, a.answer_norm, a.is_correct, a.points_awarded, a.graded_at, a.graded_by, a.grade_source, a.grade_version, ' +
+  AI_ANSWER_FIELDS.map((f) => `a.${f}`).join(', ');
+
+function aiFieldsOf(a: Pick<AnswerRow, (typeof AI_ANSWER_FIELDS)[number]>) {
+  return {
+    ai_status: a.ai_status,
+    ai_source: a.ai_source,
+    ai_verdict: a.ai_verdict,
+    ai_confidence: a.ai_confidence,
+    ai_rationale: a.ai_rationale,
+    ai_flagged: a.ai_flagged === 1,
+    ai_error: a.ai_error,
+  };
+}
 
 function parseIds(raw: string | null): number[] {
   try {
@@ -164,7 +194,12 @@ function answerOut(a: AnswerRow, q: { type: string; keys: Set<string> }) {
   return {
     id: a.id,
     ...(q.type === 'text'
-      ? { text_answer: a.text_answer ?? '', answer_norm: a.answer_norm, matches_reference: matchesKeys(a.answer_norm, q.keys) }
+      ? {
+          text_answer: a.text_answer ?? '',
+          answer_norm: a.answer_norm,
+          matches_reference: matchesKeys(a.answer_norm, q.keys),
+          ...aiFieldsOf(a),
+        }
       : { selected_choice_ids: parseIds(a.selected_choice_ids) }),
     is_correct: a.is_correct,
     points_awarded: a.points_awarded,
@@ -440,7 +475,7 @@ const IDS_MAX = 200;
 /**
  * The current grade of some answers of this session, for a refresh after grading:changed: the open
  * whole-quiz list updates just the rows that changed instead of reloading every answer. Grade fields
- * only (no participant, no answer text).
+ * and the AI suggestion only (no participant, no answer text).
  */
 gradingRouter.get('/answers', (req: StaffRequest, res) => {
   const ids = String(req.query.ids ?? '')
@@ -450,9 +485,13 @@ gradingRouter.get('/answers', (req: StaffRequest, res) => {
   if (ids.length === 0 || ids.length > IDS_MAX || !ids.every((id) => Number.isSafeInteger(id) && id > 0)) {
     return res.status(400).json({ error: `ids must be 1–${IDS_MAX} answer ids, comma-separated` });
   }
-  const answers = db
-    .prepare(`SELECT ${ANSWER_GRADE_COLUMNS} FROM answers WHERE session_id = ? AND id IN (${ids.map(() => '?').join(', ')})`)
-    .all(req.sessionId!, ...ids);
+  const answers = (
+    db
+      .prepare(
+        `SELECT ${ANSWER_GRADE_COLUMNS}, ${AI_ANSWER_FIELDS.join(', ')} FROM answers WHERE session_id = ? AND id IN (${ids.map(() => '?').join(', ')})`,
+      )
+      .all(req.sessionId!, ...ids) as (Record<string, unknown> & AnswerRow)[]
+  ).map((a) => ({ ...a, ...aiFieldsOf(a) }));
   res.json({ answers });
 });
 
@@ -473,13 +512,12 @@ function sendGradeError(res: Response, r: Exclude<GradeResult, { ok: true }>) {
   }
 }
 
-/** The shared part of a grade body: verdict, points and (reserved for wish 7) the source. */
-function readVerdict(body: any): { isCorrect: boolean; points: number } | string {
+/** The shared part of a grade body: verdict, points and the source ('ai' = an accepted AI suggestion, wish 7). */
+function readVerdict(body: any): { isCorrect: boolean; points: number; source: 'ai' | 'human' } | string {
   if (typeof body?.is_correct !== 'boolean') return 'is_correct must be true or false';
   if (typeof body?.points_awarded !== 'number' || !Number.isFinite(body.points_awarded)) return 'points_awarded must be a number';
-  // 'ai' is reserved for wish 7 (AI suggestions confirmed by a human).
-  if (body.source !== undefined && body.source !== 'human') return 'source must be "human"';
-  return { isCorrect: body.is_correct, points: body.points_awarded };
+  if (body.source !== undefined && body.source !== 'human' && body.source !== 'ai') return 'source must be "human" or "ai"';
+  return { isCorrect: body.is_correct, points: body.points_awarded, source: body.source === 'ai' ? 'ai' : 'human' };
 }
 
 const isVersion = (v: unknown): v is number => Number.isSafeInteger(v) && (v as number) >= 0;
@@ -497,6 +535,7 @@ gradingRouter.put('/answers/:answerId', (req: StaffRequest, res) => {
     expectedVersion: req.body.expected_version,
     actor,
     linkId: staff.kind === 'grader' ? staff.linkId : null,
+    source: verdict.source,
   });
   if (!r.ok) return sendGradeError(res, r);
   broadcastGradingChanged(req.sessionId!, { kind: 'grade', answerIds: [r.answer.id], by: actor });
@@ -529,6 +568,7 @@ gradingRouter.post('/answers/bulk-grade', (req: StaffRequest, res) => {
         expectedVersion: it.expected_version,
         actor,
         linkId: staff.kind === 'grader' ? staff.linkId : null,
+        source: verdict.source,
       });
       if (r.ok) return { id: it.answer_id, ok: true as const, answer: r.answer };
       return { id: it.answer_id, ok: false as const, error: r.error, ...('current' in r ? { current: r.current } : {}) };

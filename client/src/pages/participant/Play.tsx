@@ -26,6 +26,23 @@ import { Logo } from '../../components/Logo';
 import { formatJoinCode } from '../../lib/joinLink';
 
 const AUTOSAVE_MS = 1500;
+/** Wish 7 (S14): text answers of quizzes with AI suggestions (the server refuses longer ones). */
+const AI_TEXT_MAX = 300;
+/** The counter is announced to screen readers only this close to the limit. */
+const AI_ANNOUNCE_BELOW = 30;
+
+function AiNotice() {
+  const { t } = useLanguage();
+  return (
+    <p className="ai-notice" data-testid="ai-notice">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+        <circle cx="12" cy="12" r="9" />
+        <path d="M12 11v5M12 8v.01" />
+      </svg>
+      <span>{t('play.aiNotice')}</span>
+    </p>
+  );
+}
 
 function offeredOf(info: { base_language: QuizLang; offered_languages: unknown }): QuizLang[] {
   return sanitizeOffered(info.offered_languages, info.base_language);
@@ -78,6 +95,10 @@ export function Play() {
   // Questions whose last save failed. Shown on every question until saved, so a failed save is never
   // lost silently when the child moves on.
   const [failedIds, setFailedIds] = useState<Set<number>>(new Set());
+  // Wish 7 (S14): answers the server refused as longer than 300 characters (AI quizzes only).
+  const [tooLongIds, setTooLongIds] = useState<Set<number>>(new Set());
+  // Wish 7 (S14): the quiz's AI switch, from /my/session (waiting screen) and /my/quiz.
+  const [aiQuiz, setAiQuiz] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   // The host reopened the submission (S15): a note in the status slot until the child answers or
   // moves on. 'pending' while the card mounts with an empty slot, so the note is a real change of the
@@ -123,6 +144,12 @@ export function Play() {
           next.delete(qid);
           return next;
         });
+        setTooLongIds((prev) => {
+          if (!prev.has(qid)) return prev;
+          const next = new Set(prev);
+          next.delete(qid);
+          return next;
+        });
         if (payload.kind === 'text') {
           setQuestions((prev) =>
             prev
@@ -144,7 +171,10 @@ export function Play() {
           );
         }
       },
-      onFailed: (qid, confirmed) => {
+      onFailed: (qid, confirmed, error) => {
+        if (error instanceof ApiError && error.status === 400 && error.code === 'ANSWER_TOO_LONG') {
+          setTooLongIds((prev) => new Set(prev).add(qid));
+        }
         if (confirmed?.kind === 'choice') {
           // Show what the server really has, so "answered" stays honest.
           setQuestions((prev) =>
@@ -198,6 +228,7 @@ export function Play() {
       const { session, quiz, sections, questions, participant } = await getMyQuiz();
       setSession(session);
       setQuizMeta(quiz);
+      setAiQuiz(quiz.ai_grading_enabled === true);
       setOffered(offeredOf(quiz));
       setSections(sections);
       for (const q of questions) saver.setConfirmed(q.id, confirmedPayload(q));
@@ -252,7 +283,10 @@ export function Play() {
         const gen = submitGenRef.current;
         const { session, quiz, participant } = await getMySession();
         setSession(session);
-        if (quiz) setOffered(offeredOf(quiz));
+        if (quiz) {
+          setOffered(offeredOf(quiz));
+          setAiQuiz(quiz.ai_grading_enabled === true);
+        }
         syncSubmitted(participant.submitted_at, gen, session.status);
         if (session.status === 'ended') {
           goToResults();
@@ -291,7 +325,10 @@ export function Play() {
           const gen = submitGenRef.current;
           const { session: updated, quiz, participant } = await getMySession();
           setSession(updated);
-          if (quiz) setOffered(offeredOf(quiz));
+          if (quiz) {
+            setOffered(offeredOf(quiz));
+            setAiQuiz(quiz.ai_grading_enabled === true);
+          }
           syncSubmitted(participant.submitted_at, gen, updated.status);
           if (updated.status === 'active' && !questionsRef.current) await loadQuiz();
           if (updated.status === 'ended') goToResults();
@@ -468,6 +505,12 @@ export function Play() {
   }
 
   function handleTextChange(question: ParticipantQuestion, text: string) {
+    setTooLongIds((prev) => {
+      if (!prev.has(question.id)) return prev;
+      const next = new Set(prev);
+      next.delete(question.id);
+      return next;
+    });
     setDrafts((prev) => ({ ...prev, [question.id]: text }));
     draftsRef.current = { ...draftsRef.current, [question.id]: text };
     setReopenNote('off');
@@ -527,6 +570,7 @@ export function Play() {
         <Logo />
         <h1>{t('play.youreIn')}</h1>
         <p>{t('play.waitingForHost')}</p>
+        {aiQuiz && <AiNotice />}
         <p>
           {t('play.joinCode')}{' '}
           <strong style={{ fontSize: 24, letterSpacing: 2 }}>
@@ -608,11 +652,17 @@ export function Play() {
   const isLast = index === questions.length - 1;
   const statusForQuestion = status?.questionId === question.id ? status : null;
   const isFlagged = flagged.has(question.id);
+  // Wish 7 (S14): the AI notice once, above the first free-text question; the character counter.
+  const showAiNotice = aiQuiz && question.type === 'text' && questions.findIndex((q) => q.type === 'text') === index;
+  const textValue = drafts[question.id] ?? question.myAnswer?.text_answer ?? '';
+  const charsLeft = Math.max(0, AI_TEXT_MAX - textValue.length);
   // One status slot per card: this question's failed save, then other unsaved questions, then
   // saving / saved.
   const otherUnsaved = questions.flatMap((q, i) => (q.id !== question.id && failedIds.has(q.id) ? [i + 1] : []));
   // The slot holds two lines next to "Try again": the short message there (the button says the rest).
-  const slot: { tone: 'error' | 'saved' | 'muted'; text: string; retry?: boolean } | null = failedIds.has(question.id)
+  const slot: { tone: 'error' | 'saved' | 'muted'; text: string; retry?: boolean } | null = tooLongIds.has(question.id)
+    ? { tone: 'error', text: t('play.answerTooLong') }
+    : failedIds.has(question.id)
     ? { tone: 'error', text: t('play.saveFailedShort'), retry: true }
     : otherUnsaved.length > 0
       ? {
@@ -681,6 +731,7 @@ export function Play() {
             </span>
           </div>
           <div className="qcard-body" key={question.id}>
+            {showAiNotice && <AiNotice />}
             <h2
               tabIndex={-1}
               ref={headingRef}
@@ -717,12 +768,24 @@ export function Play() {
               <div className="text-answer">
                 <textarea
                   rows={4}
-                  value={drafts[question.id] ?? question.myAnswer?.text_answer ?? ''}
+                  value={textValue}
                   onChange={(e) => handleTextChange(question, e.target.value)}
                   onBlur={() => flushTextSave(question.id)}
                   dir="auto"
                   aria-label={t('play.yourAnswer')}
+                  maxLength={aiQuiz ? AI_TEXT_MAX : undefined}
+                  aria-describedby={aiQuiz ? `question-${question.id}-chars` : undefined}
                 />
+                {aiQuiz && (
+                  <p className="text-answer__count" id={`question-${question.id}-chars`} data-testid="chars-left">
+                    {t('play.charsLeft', { n: charsLeft })}
+                  </p>
+                )}
+                {aiQuiz && (
+                  <span className="visually-hidden" aria-live="polite">
+                    {charsLeft <= AI_ANNOUNCE_BELOW ? t('play.charsLeft', { n: charsLeft }) : ''}
+                  </span>
+                )}
                 <button type="button" onClick={() => flushTextSave(question.id)} disabled={statusForQuestion?.state === 'saving'}>
                   {t('play.saveAnswer')}
                 </button>

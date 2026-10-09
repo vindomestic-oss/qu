@@ -1,0 +1,60 @@
+/* Wish 7, layer B (S14): the quiz editor's AI switch, the server status line and the question
+   list's reference tags. Admin UI (English, LTR). Theme tokens only. */
+.ai-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  background: var(--surface-alt);
+}
+.ai-settings__switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  font-weight: 600;
+}
+.ai-settings__switch input {
+  inline-size: 20px;
+  block-size: 20px;
+}
+.ai-settings__hint,
+.ai-settings__status {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-muted);
+}
+.ai-settings__status--ready {
+  color: var(--success);
+}
+.ai-settings__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+}
+.ai-settings__kill {
+  min-height: 40px;
+  padding: 4px 12px;
+  font-size: 14px;
+  background: var(--surface);
+  color: var(--danger);
+  border-color: var(--danger);
+}
+.ai-settings__kill:hover:not(:disabled) {
+  background: var(--danger-bg);
+  color: var(--on-danger-bg);
+  border-color: var(--danger);
+}
+.ai-ref-tag {
+  display: inline-block;
+  margin-top: 2px;
+  margin-inline-end: 8px;
+  font-size: 14px;
+  color: var(--success);
+}
+.ai-ref-tag--missing {
+  color: var(--warning);
+}

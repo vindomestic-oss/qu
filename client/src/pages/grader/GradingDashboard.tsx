@@ -9,6 +9,8 @@ import { GradingStatsBar } from '../../components/grader/GradingStatsBar';
 import { ParticipantTable } from '../../components/grader/ParticipantTable';
 import { FlagIcon } from '../../components/grader/icons';
 import { formatPercent } from '../../components/grader/format';
+import { AiGradingBar } from '../../components/grader/AiGradingBar';
+import { useAiBlindMode } from '../../lib/useAiBlindMode';
 import '../../components/grader/grader.css';
 
 const LIVE_ANNOUNCE_MS = 10_000;
@@ -20,6 +22,7 @@ export function GradingDashboard() {
   const { t, uiLanguage } = useLanguage();
   const load = useCallback(() => getGradingSummary(id), [id]);
   const { data, error, reload } = useLoader(load);
+  const [blind, setBlind] = useAiBlindMode();
 
   useEffect(() => {
     reload();
@@ -67,6 +70,9 @@ export function GradingDashboard() {
           {t('grader.error.load')}
         </p>
       )}
+
+      {/* Wish 7 (S14): the AI pre-check, only for quizzes with AI suggestions. */}
+      <AiGradingBar sessionId={id} quizAiEnabled={quiz.ai_grading_enabled === true} blind={blind} onBlindChange={setBlind} />
 
       <GradingStatsBar sessionId={id} counters={counters} />
 

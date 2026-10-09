@@ -42,6 +42,8 @@ interface Props {
   /** The admin's "Add to accepted answers", next to "Show the N answers" (below the controls on
    *  narrow screens, so it never pushes the grading buttons). */
   actions?: ReactNode;
+  /** Wish 7 (S14): the group's AI suggestion and its Accept, under the hints. */
+  ai?: ReactNode;
   /** Saved grades, or the other graders' grades from conflicts, for the parent's list. */
   onGrade: (grades: AnswerGrade[]) => void;
   /** One member as its own row, shown when the group is opened. */
@@ -59,7 +61,7 @@ const isHalfStep = (v: number) => Math.abs(v * 2 - Math.round(v * 2)) < 1e-9;
  * The group can be opened to grade its answers one by one. Its layout does not change when grades
  * arrive (fixed status line), so nothing moves under the grader's finger.
  */
-export function AnswerGroupRow({ sessionId, members, maxPoints, text, label, hints, actions, onGrade, renderMember }: Props) {
+export function AnswerGroupRow({ sessionId, members, maxPoints, text, label, hints, actions, ai, onGrade, renderMember }: Props) {
   const { t, tCount, uiLanguage } = useLanguage();
   const id = useId();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -197,6 +199,7 @@ export function AnswerGroupRow({ sessionId, members, maxPoints, text, label, hin
           </div>
           {text}
           {hints}
+          {ai}
         </div>
 
         <div className="answer-row__controls">

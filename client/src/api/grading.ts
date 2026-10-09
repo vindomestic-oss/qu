@@ -1,6 +1,7 @@
 import { api, ApiError } from './client';
 import { staffApi } from './graderClient';
 import type {
+  AiSuggestionFields,
   AnswerGrade,
   GraderLink,
   GradingSummary,
@@ -34,9 +35,9 @@ export function getWholeQuiz(sessionId: number, filter: 'needs_review' | 'all') 
   return staffApi<WholeQuizResponse>(sessionId, `/quiz?filter=${filter}`);
 }
 
-/** The current grade of a few answers (after grading:changed). */
+/** The current grade (and AI suggestion, wish 7) of a few answers (after grading:changed). */
 export function getAnswerGrades(sessionId: number, ids: number[]) {
-  return staffApi<{ answers: AnswerGrade[] }>(sessionId, `/answers?ids=${ids.join(',')}`);
+  return staffApi<{ answers: (AnswerGrade & Partial<AiSuggestionFields>)[] }>(sessionId, `/answers?ids=${ids.join(',')}`);
 }
 
 export interface GradeInput {
@@ -44,6 +45,8 @@ export interface GradeInput {
   points_awarded: number;
   /** The grade_version the grader saw; a newer grade answers 409 'conflict' with `current`. */
   expected_version: number;
+  /** Wish 7 (S14): 'ai' = accepting the AI suggestion (stored as 'ai_confirmed' when it is confident-correct). */
+  source?: 'ai' | 'human';
 }
 
 export function gradeAnswer(sessionId: number, answerId: number, input: GradeInput) {
@@ -55,7 +58,7 @@ export function gradeAnswer(sessionId: number, answerId: number, input: GradeInp
 
 export function bulkGrade(
   sessionId: number,
-  input: { items: { answer_id: number; expected_version: number }[]; is_correct: boolean; points_awarded: number },
+  input: { items: { answer_id: number; expected_version: number }[]; is_correct: boolean; points_awarded: number; source?: 'ai' | 'human' },
 ) {
   return staffApi<{ results: { id: number; ok: boolean; error?: string; current?: AnswerGrade; answer?: AnswerGrade }[] }>(
     sessionId,

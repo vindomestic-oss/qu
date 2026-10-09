@@ -11,6 +11,8 @@ import { adminRouter } from '../routes/admin';
 import { sectionsRouter } from '../routes/sections';
 import { gradingRouter } from '../routes/grading';
 import { debugRouter } from '../routes/debug';
+import { gradingAiRouter } from '../routes/gradingAi';
+import { aiGradingRouter } from '../routes/aiGrading';
 import { nowIso } from '../lib/time';
 import {
   createAdmin,
@@ -65,6 +67,9 @@ const EXPECTED_ADMIN_ROUTES = [
   'GET /api/admin/backups',
   'GET /api/admin/backups/latest',
   'GET /api/debug/ip',
+  // Wish 7 (S14): the AI configuration and the kill switch.
+  'GET /api/ai-grading/config',
+  'PUT /api/ai-grading/kill-switch',
 ].sort();
 
 /**
@@ -78,6 +83,10 @@ const EXPECTED_GRADING_ROUTES = [
   'GET /api/grading/:sessionId/answers',
   'PUT /api/grading/:sessionId/answers/:answerId',
   'POST /api/grading/:sessionId/answers/bulk-grade',
+  // Wish 7 (S14): AI suggestions (routes/gradingAi.ts).
+  'GET /api/grading/:sessionId/ai/status',
+  'POST /api/grading/:sessionId/ai/run',
+  'POST /api/grading/:sessionId/ai/accept-correct',
 ].sort();
 
 const FORBIDDEN_KEYS = [
@@ -151,6 +160,7 @@ describe('route coverage', () => {
       ...collectRoutes(adminRouter, '/api/admin'),
       ...collectRoutes(sectionsRouter, '/api/sections'),
       ...collectRoutes(debugRouter, '/api/debug'),
+      ...collectRoutes(aiGradingRouter, '/api/ai-grading'),
       'GET /api/auth/me',
     ].sort();
     assert.deepEqual(actual, EXPECTED_ADMIN_ROUTES);
@@ -165,6 +175,7 @@ describe('route coverage', () => {
       '/api/admin': 0,
       '/api/debug': 0,
       '/api/auth': 0,
+      '/api/ai-grading': 0,
     };
     const snapshot = () => ({
       counts: tableCounts(),
@@ -175,6 +186,7 @@ describe('route coverage', () => {
         .points_awarded,
       sections: db.prepare('SELECT id, name, sort_order FROM quiz_sections WHERE quiz_id = ? ORDER BY id').all(fx.quizId),
       sectionIds: db.prepare('SELECT id, section_id FROM questions WHERE quiz_id = ? ORDER BY id').all(fx.quizId),
+      aiSettings: db.prepare('SELECT * FROM ai_grading_settings').all(),
     });
     const beforeState = snapshot();
 
@@ -225,7 +237,10 @@ describe('route coverage', () => {
   });
 
   test('the grading table lists every grading route', () => {
-    assert.deepEqual(collectRoutes(gradingRouter, '/api/grading/:sessionId').sort(), EXPECTED_GRADING_ROUTES);
+    assert.deepEqual(
+      [...collectRoutes(gradingRouter, '/api/grading/:sessionId'), ...collectRoutes(gradingAiRouter, '/api/grading/:sessionId/ai')].sort(),
+      EXPECTED_GRADING_ROUTES,
+    );
   });
 
   test('every grading route rejects missing, foreign, forged and revoked tokens without side effects', async () => {
@@ -242,7 +257,7 @@ describe('route coverage', () => {
     db.prepare('UPDATE grader_links SET revoked_at = ? WHERE id = ?').run(nowIso(), revokedLink);
     const snapshot = () => ({
       counts: tableCounts(),
-      answer: db.prepare('SELECT points_awarded, grade_version FROM answers WHERE id = ?').get(answerId),
+      answer: db.prepare('SELECT points_awarded, grade_version, ai_status FROM answers WHERE id = ?').get(answerId),
       events: (db.prepare('SELECT COUNT(*) AS n FROM grade_events').get() as { n: number }).n,
     });
     const beforeState = snapshot();

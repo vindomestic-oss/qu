@@ -18,6 +18,9 @@ const ADDED_COLUMNS: Record<string, { name: string; type: string }[]> = {
     { name: 'content_languages', type: 'TEXT' },
     // Points a new question starts with in the editor (integers and halves).
     { name: 'default_points', type: 'REAL NOT NULL DEFAULT 1' },
+    // Wish 7 (S14): 1 = free-text answers of this quiz may be sent to the AI provider for a
+    // suggestion (also needs AI_GRADING_ENABLED on the server). Off for every quiz by default.
+    { name: 'ai_grading_enabled', type: 'INTEGER NOT NULL DEFAULT 0' },
   ],
   questions: [
     ...CONTENT_LANGS.map((lang) => ({ name: `text_${lang}`, type: 'TEXT' })),
@@ -57,6 +60,26 @@ const ADDED_COLUMNS: Record<string, { name: string; type: string }[]> = {
     // normalizeForMatch(trimmed text_answer) for the reference check and grouping (wish 7, S13);
     // NULL for blank and choice answers. Never shown; text_answer itself is never changed.
     { name: 'answer_norm', type: 'TEXT' },
+    // AI suggestion (wish 7, S14; enums validated in lib/aiGrading/types.ts). A suggestion never
+    // writes points: a person confirms it. Reset whenever the answer text changes.
+    // 'queued' | 'running' | 'done' | 'failed' | 'skipped'
+    { name: 'ai_status', type: 'TEXT' },
+    // 'model' | 'cache'
+    { name: 'ai_source', type: 'TEXT' },
+    // 'correct' | 'partially_correct' | 'incorrect' | 'unclear'
+    { name: 'ai_verdict', type: 'TEXT' },
+    // 'high' | 'medium' | 'low'
+    { name: 'ai_confidence', type: 'TEXT' },
+    // At most 300 characters, English.
+    { name: 'ai_rationale', type: 'TEXT' },
+    // 1 = suspected prompt injection: no Accept, never in "accept all".
+    { name: 'ai_flagged', type: 'INTEGER NOT NULL DEFAULT 0' },
+    // ai_grading_runs.id of the suggestion; no foreign key on purpose (runs are purged after 180 days).
+    { name: 'ai_run_id', type: 'INTEGER' },
+    // The worker's claim token while the answer is 'running'; a stale result never applies.
+    { name: 'ai_claim', type: 'TEXT' },
+    // At most 200 characters, e.g. 'no_reference', 'daily_cap', 'timeout'.
+    { name: 'ai_error', type: 'TEXT' },
   ],
 };
 
@@ -158,6 +181,8 @@ export function runMigrations(db: Database.Database) {
 
   // Indexes on new columns of existing tables come last (the columns exist by now).
   db.exec('CREATE INDEX IF NOT EXISTS idx_answers_q_norm ON answers(question_id, answer_norm)');
+  // The AI worker's queue (wish 7, S14).
+  db.exec('CREATE INDEX IF NOT EXISTS idx_answers_ai_status ON answers(ai_status)');
 }
 
 /**

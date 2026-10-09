@@ -355,7 +355,8 @@ describe('grading writes', () => {
       const r = await put(adminToken, a.id, { is_correct: false, points_awarded, expected_version: a.grade_version });
       assert.equal(r.status, 400, String(points_awarded));
     }
-    for (const body of [{ points_awarded: 1, expected_version: a.grade_version }, { is_correct: true, points_awarded: 1 }, { is_correct: true, points_awarded: 1, expected_version: a.grade_version, source: 'ai' }]) {
+    // source 'ai' became valid with wish 7 (S14); an unknown source is still refused.
+    for (const body of [{ points_awarded: 1, expected_version: a.grade_version }, { is_correct: true, points_awarded: 1 }, { is_correct: true, points_awarded: 1, expected_version: a.grade_version, source: 'robot' }]) {
       assert.equal((await put(adminToken, a.id, body)).status, 400, JSON.stringify(body));
     }
     assert.equal((await put(adminToken, 999_999, { is_correct: true, points_awarded: 1, expected_version: 0 })).status, 404);
@@ -674,7 +675,11 @@ describe('reading the panel', () => {
     const r = await request(base, 'GET', `/api/grading/${fx.sessionId}/answers?ids=${ids.join(',')},999999`, grader.token);
     assert.equal(r.status, 200);
     assert.deepEqual(r.body.answers.map((a: { id: number }) => a.id).sort((x: number, y: number) => x - y), [...ids].sort((x, y) => x - y));
-    assert.deepEqual(Object.keys(r.body.answers[0]).sort(), ['graded_at', 'graded_by', 'grade_source', 'grade_version', 'id', 'is_correct', 'points_awarded'].sort());
+    // Grade fields plus the AI suggestion (wish 7, S14); never the participant or the answer text.
+    assert.deepEqual(
+      Object.keys(r.body.answers[0]).sort(),
+      ['graded_at', 'graded_by', 'grade_source', 'grade_version', 'id', 'is_correct', 'points_awarded', 'ai_status', 'ai_source', 'ai_verdict', 'ai_confidence', 'ai_rationale', 'ai_flagged', 'ai_error'].sort(),
+    );
     assert.equal((await request(base, 'GET', `/api/grading/${fx.sessionId}/answers?ids=abc`, grader.token)).status, 400);
   });
 

@@ -12,6 +12,7 @@ import { insertGradeEvent } from '../lib/grading';
 import { notifyKeyChanged, notifyRuleGrades } from '../lib/autoCheck';
 import { normalizeForMatch, stripInvisible } from '../lib/aiGrading/normalize';
 import { requeueQuestion } from '../lib/aiGrading/process';
+import { aiAfterQuestionChange } from '../lib/aiGradingService';
 import {
   ACCEPTED_MAX_CHARS,
   ACCEPTED_MAX_ITEMS,
@@ -42,6 +43,12 @@ function getQuizWithQuestions(quizId: number) {
   return loadQuiz(db, quizId);
 }
 
+/** What the AI is told about a question besides its text (wish 7, S14): a change makes old suggestions stale. */
+function aiKeyOf(id: number): string {
+  const q = db.prepare('SELECT type, reference_answer, accepted_answers, grader_notes, points FROM questions WHERE id = ?').get(id);
+  return JSON.stringify(q ?? null);
+}
+
 questionsRouter.put('/:id', (req: AuthedRequest, res) => {
   const question = getQuestion(Number(req.params.id));
   if (!question) return res.status(404).json({ error: 'Question not found' });
@@ -50,6 +57,7 @@ questionsRouter.put('/:id', (req: AuthedRequest, res) => {
   if ('error' in parsed) return res.status(400).json({ error: parsed.error });
 
   let result;
+  const aiKeyBefore = aiKeyOf(question.id);
   try {
     result = updateQuestionWithChoices(db, question.id, parsed, `admin:${req.admin!.username}`);
   } catch (err) {
@@ -63,6 +71,8 @@ questionsRouter.put('/:id', (req: AuthedRequest, res) => {
   }
   for (const [sessionId, answerIds] of result.ruleChangedBySession) notifyRuleGrades(sessionId, answerIds);
   if (result.gradingInputsChanged) notifyKeyChanged(question.id);
+  // Wish 7 (S14): suggestions of ungraded answers are made again against the new key.
+  if (aiKeyOf(question.id) !== aiKeyBefore) aiAfterQuestionChange(question.id);
 
   res.json({ quiz: getQuizWithQuestions(question.quiz_id) });
 });
@@ -142,6 +152,7 @@ questionsRouter.post('/:id/accepted-answers', (req: AuthedRequest, res) => {
     notifyRuleGrades(sessionId, answerIds);
   }
   if (out.added) notifyKeyChanged(Number(req.params.id));
+  if (out.added) aiAfterQuestionChange(Number(req.params.id));
   res.json({ accepted_answers: out.list, added: out.added, regraded });
 });
 

@@ -21,6 +21,7 @@ import { LanguagePairTabs } from '../../components/admin/LanguagePairTabs';
 import { PairField } from '../../components/admin/PairField';
 import { QuizLanguagesBar } from '../../components/admin/QuizLanguagesBar';
 import { RubricsEditor } from '../../components/admin/RubricsEditor';
+import { AiQuizSettings, AiReferenceTag } from '../../components/admin/AiQuizSettings';
 import {
   flattenTranslations,
   isContentLang,
@@ -75,6 +76,8 @@ export function QuizEditor() {
   const [baseLanguage, setBaseLanguage] = useState<QuizLang>('en');
   // A string draft, like the points field of a question.
   const [defaultPointsText, setDefaultPointsText] = useState('1');
+  // Wish 7 (S14): the quiz's AI switch, saved with the details.
+  const [aiEnabled, setAiEnabled] = useState(false);
   const [savingMeta, setSavingMeta] = useState(false);
 
   const [formMode, setFormMode] = useState<'none' | 'create' | number>('none');
@@ -144,6 +147,7 @@ export function QuizEditor() {
       setTimeLimitMinutes(Math.round(quiz.time_limit_seconds / 60));
       setBaseLanguage(quiz.base_language);
       setDefaultPointsText(String(quiz.default_points ?? 1));
+      setAiEnabled(quiz.ai_grading_enabled === 1);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Failed to load quiz');
     } finally {
@@ -178,6 +182,7 @@ export function QuizEditor() {
         time_limit_seconds: timeLimitMinutes * 60,
         base_language: baseLanguage,
         default_points: Number(defaultPointsText),
+        ai_grading_enabled: aiEnabled,
       });
       setQuiz(quiz);
     } catch (err) {
@@ -362,6 +367,7 @@ export function QuizEditor() {
             style={{ display: 'block', width: 100 }}
           />
         </label>
+        <AiQuizSettings checked={aiEnabled} onChange={setAiEnabled} />
         <button type="submit" disabled={savingMeta} style={{ alignSelf: 'flex-start' }}>
           {savingMeta ? 'Saving…' : 'Save quiz details'}
         </button>
@@ -425,6 +431,7 @@ export function QuizEditor() {
                     {i + 1}. [{q.type}] <span lang={base}>{q.text}</span> ({q.points} pt{q.points !== 1 ? 's' : ''})
                   </strong>
                   <RubricTag rubric={q.section_id != null ? rubricById.get(q.section_id) : undefined} base={base} />
+                  <AiReferenceTag question={q} aiEnabled={quiz.ai_grading_enabled === 1} />
                   <MissingTranslations languages={declaredTranslations.filter((l) => questionLangStatus(q, l, base) !== 'full')} />
                 </div>
                 <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', flexShrink: 0 }}>
