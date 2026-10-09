@@ -6,8 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "lint": "oxlint",
-    "preview": "vite preview"
+    "lint": "oxlint && node scripts/check-contrast.mjs",
+    "preview": "vite preview",
+    "check:contrast": "node scripts/check-contrast.mjs"
   },
   "dependencies": {
     "react": "^19.2.8",

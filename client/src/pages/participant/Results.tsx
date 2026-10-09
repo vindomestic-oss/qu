@@ -43,7 +43,7 @@ export function Results() {
   if (!results) return <p style={{ margin: 40 }}>{t('results.loading')}</p>;
 
   return (
-    <div dir={isRtl ? 'rtl' : 'ltr'} style={{ maxWidth: 640, margin: '40px auto' }}>
+    <div dir={isRtl ? 'rtl' : 'ltr'} style={{ maxWidth: 640, margin: '16px auto' }}>
       <Logo />
       <UiLanguageMenu />
       <h1>{t('results.title')}</h1>
@@ -64,7 +64,10 @@ export function Results() {
         const correctChoiceIds = new Set(item.question.choices.filter((c) => c.is_correct).map((c) => c.id));
         const questionText = resolveField(item.question, 'text', contentLanguage, results.base_language);
         return (
-          <div key={item.question.id} style={{ border: '1px solid var(--border-subtle)', padding: 12, marginBottom: 8 }}>
+          <div
+            key={item.question.id}
+            style={{ border: '1px solid var(--border-subtle)', padding: 12, marginBottom: 8, background: 'var(--surface)', borderRadius: 8 }}
+          >
             <p style={{ fontWeight: 'bold' }}>
               {i + 1}. {questionText} {t('results.ptsSuffix', { points: item.question.points })}
             </p>

@@ -23,6 +23,8 @@
   unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
 }
 
+/* Theme tokens: light values here, dark values in the single :root[data-theme='dark'] block below.
+   Contrast ratios (WCAG) in comments; scripts/check-contrast.mjs re-checks them on every lint. */
 :root {
   color-scheme: light;
   font: 16px/1.45 'Raleway', system-ui, 'Segoe UI', Roboto, sans-serif;
@@ -32,72 +34,77 @@
   --brand-green: #65bd7d;
   --text-dark: #212934;
 
-  /* Theme tokens: light values here, dark values below */
   --bg: #ffffff;
-  --text: var(--text-dark);
-  --text-muted: #5f6b7a;
+  --text: var(--text-dark); /* 14.67 on --bg */
+  --text-muted: #5f6b7a; /* 5.43 on --bg, 5.06 on --surface-alt */
   --surface: #ffffff;
   --surface-alt: #f7f7f7;
-  --border: #ccc;
-  --border-subtle: #ddd;
+  --border: #ccc; /* decorative */
+  --border-subtle: #ddd; /* decorative table dividers only */
   --border-strong: #999;
   --input-bg: #ffffff;
-  --link: var(--brand-blue);
-  --button-bg: var(--brand-blue);
-  --button-bg-hover: var(--brand-blue-dark);
+  --input-border: #767676; /* 4.54 on #fff, 4.24 on #f7f7f7 */
+  --link: var(--brand-blue); /* 7.04 on --bg */
+  --button-bg: var(--brand-blue); /* white text 7.04 */
+  --button-bg-hover: var(--brand-blue-dark); /* white text 10.09 */
   --button-text: #fff;
-  --button-active-bg: var(--brand-blue-dark);
-  --button-disabled-bg: #b9c3d4;
-  --button-disabled-text: #fff;
-  --danger: #c62828;
-  --success: #2e7d32;
+  --button-disabled-bg: #e3e7ee;
+  --button-disabled-text: #4f5b6b; /* 5.57 on --button-disabled-bg */
+  --danger: #c62828; /* 5.62 on --bg */
+  --success: #2e7d32; /* 5.13 on --bg */
+  --warning: #8a5a00; /* 5.93 on --bg */
+  --selected-bg: #e8eef8;
+  --selected-text: #1c4179; /* 8.66 on --selected-bg */
+  --selected-border: #27589f; /* --selected-bg vs --button-bg 6.04 */
+  --focus-ring: #27589f; /* 7.04 on #fff, 6.57 on #f7f7f7 */
+  --logo-plate: transparent;
+  --image-bg: #ffffff;
+  --success-bg: #e6f4e8;
+  --danger-bg: #fdecec;
+  --warning-bg: #fff4dc;
+  --on-success-bg: #1e5b23; /* 7.17 on --success-bg */
+  --on-danger-bg: #a51d1d; /* 6.58 on --danger-bg */
+  --on-warning-bg: #7a4f00; /* 6.53 on --warning-bg */
+  --qr-fg: #000000;
+  --qr-bg: #ffffff;
 }
 
-/* Dark: used when the user picked it, or when the OS is dark and the user didn't pick light */
+/* Dark: the head script in index.html sets data-theme from the stored choice or the OS setting. */
 :root[data-theme='dark'] {
   color-scheme: dark;
   --bg: #121417;
-  --text: #eef1f5;
-  --text-muted: #aab3bf;
+  --text: #eef1f5; /* 16.29 on --bg */
+  --text-muted: #aab3bf; /* 8.71 on --bg, 6.81 on --surface-alt */
   --surface: #1c2026;
-  --surface-alt: #1c2026;
+  --surface-alt: #252a32; /* text 12.73, muted 6.81, link 7.10, danger 6.32, success 8.47 */
   --border: #59626e;
-  --border-subtle: #3a414b;
+  --border-subtle: #4a525e; /* 2.34 on --bg; decorative table dividers only */
   --border-strong: #8a94a1;
   --input-bg: #1c2026;
-  --link: #8fb8f5;
-  --button-bg: #3a6fc0;
-  --button-bg-hover: #4a80d2;
+  --input-border: #848d99; /* 4.87 on #1c2026, 5.49 on #121417, 4.29 on #252a32 */
+  --link: #8fb8f5; /* 9.09 on --bg */
+  --button-bg: #3a6fc0; /* white text 4.98 */
+  --button-bg-hover: #3366b3; /* white text 5.69 */
   --button-text: #fff;
-  --button-active-bg: #1c4179;
-  --button-disabled-bg: #3a414b;
-  --button-disabled-text: #8a94a1;
-  --danger: #ff8a80;
-  --success: #81d99a;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme='light']) {
-    color-scheme: dark;
-    --bg: #121417;
-    --text: #eef1f5;
-    --text-muted: #aab3bf;
-    --surface: #1c2026;
-    --surface-alt: #1c2026;
-    --border: #59626e;
-    --border-subtle: #3a414b;
-    --border-strong: #8a94a1;
-    --input-bg: #1c2026;
-    --link: #8fb8f5;
-    --button-bg: #3a6fc0;
-    --button-bg-hover: #4a80d2;
-    --button-text: #fff;
-    --button-active-bg: #1c4179;
-    --button-disabled-bg: #3a414b;
-    --button-disabled-text: #8a94a1;
-    --danger: #ff8a80;
-    --success: #81d99a;
-  }
+  --button-disabled-bg: #2a3038;
+  --button-disabled-text: #9aa3ae; /* 5.21 on --button-disabled-bg */
+  --danger: #ff8a80; /* 8.08 on --bg, 6.32 on --surface-alt */
+  --success: #81d99a; /* 10.83 on --bg, 8.47 on --surface-alt */
+  --warning: #f5c26b; /* 11.26 on --bg */
+  --selected-bg: #dbe7fb;
+  --selected-text: #12305c; /* 10.50 on --selected-bg */
+  --selected-border: #8fb8f5; /* --selected-bg vs --button-bg 3.99 */
+  --focus-ring: #8fb8f5; /* 9.09 on #121417, 7.10 on #252a32 */
+  --logo-plate: #ffffff; /* brand blue on white 7.04 */
+  --image-bg: #ffffff;
+  --success-bg: #183222;
+  --danger-bg: #3a1d1d;
+  --warning-bg: #33290f;
+  --on-success-bg: var(--success); /* 8.12 on --success-bg */
+  --on-danger-bg: var(--danger); /* 6.70 on --danger-bg */
+  --on-warning-bg: var(--warning); /* 8.75 on --warning-bg */
+  --qr-fg: #000000;
+  --qr-bg: #ffffff;
 }
 
 * {
@@ -151,7 +158,7 @@ textarea,
 select {
   font-size: 16px;
   font-family: inherit;
-  border: 1px solid var(--border);
+  border: 1px solid var(--input-border);
   border-radius: 6px;
   background: var(--input-bg);
   color: var(--text);
@@ -163,11 +170,26 @@ textarea::placeholder {
   opacity: 1;
 }
 
-input:focus,
-textarea:focus,
-select:focus {
-  outline: 2px solid var(--link);
+:where(button, a, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--focus-ring);
   outline-offset: 1px;
+}
+
+/* Selected state for toggle buttons (language chips, filters). Scoped to a class on purpose:
+   other aria-pressed buttons get their own styles. The inset shadow avoids a layout shift. */
+.toggle-chip[aria-pressed='true'],
+.toggle-chip[aria-pressed='true']:hover:not(:disabled) {
+  background: var(--selected-bg);
+  color: var(--selected-text);
+  border-color: var(--selected-border);
+  box-shadow: inset 0 0 0 1px var(--selected-border);
 }
 
 input[type='radio'],
@@ -182,21 +204,39 @@ label {
   cursor: pointer;
 }
 
+.logo {
+  display: block;
+  height: 60px;
+  margin: 0 auto 12px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: var(--logo-plate);
+  box-sizing: content-box;
+}
+
+.app-topbar {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+  padding-block: 8px;
+  padding-inline: 16px;
+  max-width: 1100px;
+  margin-inline: auto;
+}
+
 .theme-toggle {
-  position: fixed;
-  right: 16px;
-  bottom: 16px;
-  z-index: 100;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: 44px;
   height: 44px;
   padding: 0;
   border-radius: 50%;
-  font-size: 20px;
   line-height: 1;
   background: var(--surface);
   color: var(--text);
-  border: 1px solid var(--border);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--input-border);
 }
 
 .theme-toggle:hover:not(:disabled) {

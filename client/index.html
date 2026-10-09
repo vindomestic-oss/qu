@@ -5,12 +5,9 @@
     <link rel="icon" type="image/png" href="/logo.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>EJKA Quiz</title>
-    <script>
-      try {
-        var theme = localStorage.getItem('quiz_ui_theme');
-        if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme;
-      } catch (e) {}
-    </script>
+    <script>(function(){var t=null;try{t=localStorage.getItem('quiz_ui_theme')}catch(e){}
+if(t!=='light'&&t!=='dark'){t=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'}
+document.documentElement.dataset.theme=t;})();</script>
   </head>
   <body>
     <div id="root"></div>

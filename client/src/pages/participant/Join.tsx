@@ -58,7 +58,7 @@ export function Join() {
   }
 
   return (
-    <div dir={isRtl ? 'rtl' : 'ltr'} style={{ maxWidth: 360, margin: '80px auto', textAlign: 'center' }}>
+    <div dir={isRtl ? 'rtl' : 'ltr'} style={{ maxWidth: 360, margin: '24px auto', textAlign: 'center' }}>
       <Logo />
       <UiLanguageMenu />
       <h1>{t('join.title')}</h1>

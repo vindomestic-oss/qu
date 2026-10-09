@@ -37,7 +37,7 @@ export function AdminLogin() {
   }
 
   return (
-    <div style={{ maxWidth: 360, margin: '80px auto' }}>
+    <div style={{ maxWidth: 360, margin: '24px auto' }}>
       <Logo />
       <h1 style={{ textAlign: 'center' }}>Admin Login</h1>
       {expired && <p role="status">Your session has expired. Please log in again.</p>}
