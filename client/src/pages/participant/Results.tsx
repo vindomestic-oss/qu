@@ -11,7 +11,14 @@ import { QuestionLanguageBar } from '../../components/participant/QuestionLangua
 import { Logo } from '../../components/Logo';
 
 export function Results() {
-  const { t } = useLanguage();
+  const { t, tCount, uiLanguage, isRtl } = useLanguage();
+  // UI words inside content-direction lists (Hebrew choices in an English page) keep their own
+  // language and direction, so "(your answer)" never reads backwards.
+  const uiText = (text: string) => (
+    <span lang={uiLanguage} dir={isRtl ? 'rtl' : 'ltr'}>
+      {text}
+    </span>
+  );
   const [results, setResults] = useState<ResultsResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const offered = useMemo(
@@ -75,7 +82,7 @@ export function Results() {
               <span lang={questionText.lang} dir={dirOf(questionText.lang)}>
                 {questionText.text}
               </span>{' '}
-              {t('results.ptsSuffix', { points: item.question.points })}
+              {tCount('results.ptsSuffix', item.question.points)}
             </p>
             {item.question.type !== 'text' ? (
               <ul dir={dirOf(shownLang)}>
@@ -93,9 +100,9 @@ export function Results() {
                     >
                       <span lang={choiceText.lang} dir={dirOf(choiceText.lang)}>
                         {choiceText.text}
-                      </span>{' '}
-                      {wasSelected ? t('results.yourAnswer') : ''}{' '}
-                      {isCorrectChoice ? t('results.correct') : ''}
+                      </span>
+                      {wasSelected && <> {uiText(t('results.yourAnswer'))}</>}
+                      {isCorrectChoice && <> {uiText(t('results.correct'))}</>}
                     </li>
                   );
                 })}
@@ -109,7 +116,7 @@ export function Results() {
             <p>
               {item.question.type === 'text' && item.answer && item.answer.points_awarded == null
                 ? t('results.pendingManualGrading')
-                : t('results.pointsOf', { awarded: item.answer?.points_awarded ?? 0, max: item.question.points })}
+                : tCount('results.pointsOf', item.question.points, { awarded: item.answer?.points_awarded ?? 0 })}
             </p>
           </div>
         );

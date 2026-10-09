@@ -342,6 +342,21 @@ export function Play() {
   }, [questions, index]);
 
   const groups = useMemo(() => (questions ? buildNavGroups(questions, sections) : []), [questions, sections]);
+  // Stale data only (the offer rule normally prevents it): some question cannot be read in some
+  // offered language. Then the card head keeps the note's ⚠ slot for the whole quiz, so the note
+  // appearing on one question never moves the row.
+  const noteSlot = useMemo(
+    () =>
+      Boolean(
+        questions &&
+          offered &&
+          questions.some((q) => {
+            const readable = questionLanguages(q, base);
+            return offered.some((l) => !readable.includes(l));
+          }),
+      ),
+    [questions, offered, base],
+  );
 
   /** Sends every failed save again, then any newer typing. */
   function retryFailed() {
@@ -505,7 +520,7 @@ export function Play() {
   const languages = offered ?? [base];
   // Wish 9: a question is shown in the picked language only when its text and every choice are
   // translated, otherwise wholly in the base language, so one question never mixes languages. With
-  // the offer rule (declared and complete) this always is the pick; the note covers stale data.
+  // the offer rule (declared and complete) this always is the pick; the ⚠ note covers stale data.
   const readableIn = questionLanguages(question, base);
   const shownLang = readableIn.includes(contentLanguage) ? contentLanguage : base;
   const stackLangs = languages.filter((l) => readableIn.includes(l));
@@ -578,7 +593,8 @@ export function Play() {
                 languages={languages}
                 value={contentLanguage}
                 onChange={setContentLanguage}
-                note={langNote}
+                note={noteSlot ? langNote : undefined}
+                noteKey={question.id}
               />
             </span>
           </div>

@@ -543,15 +543,6 @@ html[dir='rtl'] .play-title__text {
 .qcard-head .qlang__chips {
   flex-shrink: 0;
 }
-/* While the defensive note is shown, the visible label makes room for it (it stays the group's name). */
-.qcard-head .qlang--note .qlang__label {
-  position: absolute;
-  inline-size: 1px;
-  block-size: 1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
-}
 /* Below the iPad portrait width the card head keeps one row: the visible label goes, the menu stays
    and keeps its accessible name ("Question language English"). If the row is still too narrow, the
    counter wraps to two lines inside the 44 px row instead of being cut. */
@@ -577,6 +568,8 @@ html[dir='rtl'] .play-title__text {
      of widening the row. The padding keeps the focus ring inside the scroll box; the negative margin
      keeps the layout box where it was. */
   .qcard-head .qlang__chips {
+    --fade-start: 0px;
+    --fade-end: 0px;
     flex-shrink: 1;
     overflow-x: auto;
     scrollbar-width: none;
@@ -585,6 +578,21 @@ html[dir='rtl'] .play-title__text {
   }
   .qcard-head .qlang__chips::-webkit-scrollbar {
     display: none;
+  }
+  /* A faded edge shows that the chips go on (QuestionLanguageBar sets the attributes). */
+  .qcard-head .qlang__chips[data-fade-start] {
+    --fade-start: 24px;
+  }
+  .qcard-head .qlang__chips[data-fade-end] {
+    --fade-end: 24px;
+  }
+  .qcard-head .qlang__chips[data-fade-start],
+  .qcard-head .qlang__chips[data-fade-end] {
+    mask-image: linear-gradient(to right, transparent 0, #000 var(--fade-start), #000 calc(100% - var(--fade-end)), transparent 100%);
+  }
+  [dir='rtl'] .qcard-head .qlang__chips[data-fade-start],
+  [dir='rtl'] .qcard-head .qlang__chips[data-fade-end] {
+    mask-image: linear-gradient(to left, transparent 0, #000 var(--fade-start), #000 calc(100% - var(--fade-end)), transparent 100%);
   }
 }
 /* On a phone the language count goes too, and the row is a little tighter. */
@@ -601,6 +609,13 @@ html[dir='rtl'] .play-title__text {
   }
   .qcard-head .lang-menu__count {
     display: none;
+  }
+}
+/* The narrowest phones: slimmer chips, so English + Українська still fit at 360 px. */
+@media (max-width: 360px) {
+  .qcard-head .qlang .toggle-chip {
+    padding-inline: 8px;
+    font-size: 15px;
   }
 }
 .qcard-body {
