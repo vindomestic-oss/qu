@@ -26,7 +26,7 @@ export function getSessionResults(sessionId: number) {
 }
 
 export function getLiveStatus(sessionId: number) {
-  return api<LiveStatusResponse>(`/sessions/${sessionId}/live`);
+  return api<LiveStatusResponse>(`/sessions/${sessionId}/live`, { background: true });
 }
 
 export function gradeAnswer(sessionId: number, answerId: number, pointsAwarded: number) {
@@ -34,4 +34,8 @@ export function gradeAnswer(sessionId: number, answerId: number, pointsAwarded: 
     method: 'PUT',
     body: JSON.stringify({ points_awarded: pointsAwarded }),
   });
+}
+
+export function allowRejoin(sessionId: number, participantId: number) {
+  return api<{ ok: true }>(`/sessions/${sessionId}/participants/${participantId}/allow-rejoin`, { method: 'PUT' });
 }

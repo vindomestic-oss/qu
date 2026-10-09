@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { db } from '../db';
 import { requireAdmin } from '../middleware/jwt';
 import { getSession, SessionRow } from '../lib/sessions';
-import { broadcastSessionUpdate } from '../socket';
+import { broadcastLiveUpdate, broadcastSessionUpdate } from '../socket';
 
 export const sessionsRouter = Router();
 sessionsRouter.use(requireAdmin);
@@ -104,7 +104,8 @@ sessionsRouter.get('/:id/live', (req, res) => {
 
   const participants = db
     .prepare(
-      `SELECT p.id, p.display_name, p.joined_at, p.submitted_at, COUNT(a.id) as answered_count
+      `SELECT p.id, p.display_name, p.joined_at, p.submitted_at, (p.rejoin_hash IS NULL) AS rejoin_open,
+         COUNT(a.id) as answered_count
        FROM participants p LEFT JOIN answers a ON a.participant_id = p.id
        WHERE p.session_id = ?
        GROUP BY p.id
@@ -121,6 +122,16 @@ sessionsRouter.get('/:id/live', (req, res) => {
     .all(session.quiz_id);
 
   res.json({ session, participants, questions });
+});
+
+// Lets a participant's name be claimed again without its rejoin secret (e.g. after switching devices).
+sessionsRouter.put('/:id/participants/:participantId/allow-rejoin', (req, res) => {
+  const result = db
+    .prepare('UPDATE participants SET rejoin_hash = NULL WHERE id = ? AND session_id = ?')
+    .run(Number(req.params.participantId), Number(req.params.id));
+  if (result.changes === 0) return res.status(404).json({ error: 'Participant not found in this session' });
+  broadcastLiveUpdate(Number(req.params.id));
+  res.json({ ok: true });
 });
 
 sessionsRouter.get('/:id/results', (req, res) => {
@@ -142,7 +153,7 @@ sessionsRouter.get('/:id/results', (req, res) => {
   }));
 
   const participants = db
-    .prepare('SELECT * FROM participants WHERE session_id = ? ORDER BY joined_at')
+    .prepare('SELECT id, session_id, display_name, joined_at, submitted_at FROM participants WHERE session_id = ? ORDER BY joined_at')
     .all(session.id) as ParticipantRow[];
   const answers = db.prepare('SELECT * FROM answers WHERE session_id = ?').all(session.id) as AnswerRow[];
 

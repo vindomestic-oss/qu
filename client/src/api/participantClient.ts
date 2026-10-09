@@ -25,7 +25,7 @@ export async function participantApi<T>(path: string, options: RequestInit = {})
   const res = await fetch(`/api${path}`, { ...options, headers });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    throw new ApiError(res.status, data.error || 'Request failed');
+    throw new ApiError(res.status, data.error || 'Request failed', data.code);
   }
   return data as T;
 }

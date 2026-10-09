@@ -7,6 +7,7 @@ import { db } from '../db';
 import { quizzesRouter } from '../routes/quizzes';
 import { questionsRouter } from '../routes/questions';
 import { sessionsRouter } from '../routes/sessions';
+import { adminRouter } from '../routes/admin';
 import {
   createAdmin,
   createQuizFixture,
@@ -46,6 +47,9 @@ const EXPECTED_ADMIN_ROUTES = [
   'GET /api/sessions/:id/live',
   'GET /api/sessions/:id/results',
   'PUT /api/sessions/:id/answers/:answerId/grade',
+  'PUT /api/sessions/:id/participants/:participantId/allow-rejoin',
+  'GET /api/admin/backups',
+  'GET /api/admin/backups/latest',
 ].sort();
 
 const FORBIDDEN_KEYS = [
@@ -57,6 +61,7 @@ const FORBIDDEN_KEYS = [
   'accepted_answers',
   'grader_notes',
   'password_hash',
+  'rejoin_hash',
 ] as const;
 
 function collectRoutes(router: Router, mount: string): string[] {
@@ -108,6 +113,7 @@ describe('route coverage', () => {
       ...collectRoutes(quizzesRouter, '/api/quizzes'),
       ...collectRoutes(questionsRouter, '/api/questions'),
       ...collectRoutes(sessionsRouter, '/api/sessions'),
+      ...collectRoutes(adminRouter, '/api/admin'),
       'GET /api/auth/me',
     ].sort();
     assert.deepEqual(actual, EXPECTED_ADMIN_ROUTES);
@@ -118,11 +124,14 @@ describe('route coverage', () => {
       '/api/quizzes': fx.quizId,
       '/api/questions': fx.textQuestionId,
       '/api/sessions': fx.sessionId,
+      '/api/admin': 0,
       '/api/auth': 0,
     };
     const snapshot = () => ({
       counts: tableCounts(),
       status: (db.prepare('SELECT status FROM sessions WHERE id = ?').get(fx.sessionId) as { status: string }).status,
+      rejoinHash: (db.prepare('SELECT rejoin_hash FROM participants WHERE id = ?').get(participantId) as { rejoin_hash: string | null })
+        .rejoin_hash,
       points: (db.prepare('SELECT points_awarded FROM answers WHERE id = ?').get(answerId) as { points_awarded: number | null })
         .points_awarded,
     });
@@ -155,7 +164,10 @@ describe('route coverage', () => {
     for (const route of EXPECTED_ADMIN_ROUTES) {
       const [method, pattern] = route.split(' ');
       const mount = Object.keys(idFor).find((m) => pattern.startsWith(m))!;
-      const path = pattern.replace(':answerId', String(answerId)).replace(':id', String(idFor[mount]));
+      const path = pattern
+        .replace(':answerId', String(answerId))
+        .replace(':participantId', String(participantId))
+        .replace(':id', String(idFor[mount]));
       for (const v of variants) {
         const body = method === 'GET' || method === 'DELETE' ? undefined : { points_awarded: 0, title: 'x' };
         const r = await request(base, method, path, v.token, body);

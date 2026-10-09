@@ -9,10 +9,10 @@ export interface QuizMeta extends WithTranslations<'title'>, WithTranslations<'d
   time_limit_seconds: number;
 }
 
-export function joinSession(joinCode: string, displayName: string) {
-  return participantApi<{ token: string; session: QuizSession; participant: Participant }>('/join', {
+export function joinSession(joinCode: string, displayName: string, rejoinSecret?: string) {
+  return participantApi<{ token: string; session: QuizSession; participant: Participant; rejoinSecret: string }>('/join', {
     method: 'POST',
-    body: JSON.stringify({ joinCode, displayName }),
+    body: JSON.stringify({ joinCode, displayName, rejoinSecret }),
   });
 }
 

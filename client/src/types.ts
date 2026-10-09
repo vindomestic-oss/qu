@@ -145,6 +145,8 @@ export interface LiveParticipant {
   display_name: string;
   joined_at: string;
   submitted_at: string | null;
+  /** 1 while "Allow rejoin" is in effect: the name can be claimed without its secret. */
+  rejoin_open: number;
   answered_count: number;
 }
 

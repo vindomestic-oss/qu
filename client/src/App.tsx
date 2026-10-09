@@ -10,11 +10,13 @@ import { Play } from './pages/participant/Play';
 import { Results } from './pages/participant/Results';
 import { RequireParticipant } from './auth/RequireParticipant';
 import { ThemeToggle } from './components/ThemeToggle';
+import { AdminExpiredBanner } from './components/admin/AdminExpiredBanner';
 
 function App() {
   return (
     <>
       <ThemeToggle />
+      <AdminExpiredBanner />
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/admin/login" element={<AdminLogin />} />
