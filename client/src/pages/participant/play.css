@@ -38,9 +38,316 @@
   flex-shrink: 0;
   white-space: nowrap;
 }
-/* Navigator slot: always rendered so the grid rows never shift; filled by S8. */
+/* Navigator slot: always rendered at the same height so the grid rows never shift. */
 .play-nav {
+  --qnav-item: 40px;
+  block-size: calc(var(--qnav-item) + 40px);
+}
+@media (pointer: coarse) {
+  .play-nav {
+    --qnav-item: 44px;
+  }
+}
+.play-nav--empty {
   block-size: 0;
+}
+
+/* Question navigator (wish 10). States by shape: filled = answered, outline = not answered,
+   ring + triangle = current, red corner = marked. */
+.qnav {
+  block-size: 100%;
+  display: flex;
+  align-items: end;
+  gap: 6px;
+}
+.qnav-arrow,
+.qnav-all {
+  flex: none;
+  block-size: var(--qnav-item);
+  min-block-size: 0;
+  margin-block-end: 11px;
+  padding-block: 0;
+  padding-inline: 8px;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--input-border);
+}
+.qnav-arrow:hover:not(:disabled),
+.qnav-all:hover:not(:disabled) {
+  background: var(--surface-hover);
+  border-color: var(--input-border);
+}
+.qnav-all__count {
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+}
+@media (max-width: 600px) {
+  .qnav-all > span:first-child {
+    position: absolute;
+    inline-size: 1px;
+    block-size: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+.qnav-scroller {
+  flex: 1;
+  min-inline-size: 0;
+  display: flex;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding: 6px 6px 11px;
+  scroll-padding-inline: 6px;
+  --fade-start: 28px;
+  --fade-end: 28px;
+  mask-image: linear-gradient(to right, transparent 0, #000 var(--fade-start), #000 calc(100% - var(--fade-end)), transparent 100%);
+}
+.qnav-scroller::-webkit-scrollbar {
+  display: none;
+}
+.qnav-scroller[data-at-start] {
+  --fade-start: 0px;
+}
+.qnav-scroller[data-at-end] {
+  --fade-end: 0px;
+}
+[dir='rtl'] .qnav-scroller {
+  mask-image: linear-gradient(to left, transparent 0, #000 var(--fade-start), #000 calc(100% - var(--fade-end)), transparent 100%);
+}
+.qnav-group {
+  display: flex;
+  flex-direction: column;
+  justify-content: end;
+}
+.qnav-group + .qnav-group {
+  margin-inline-start: 12px;
+  padding-inline-start: 12px;
+  border-inline-start: 1px solid var(--border-subtle);
+}
+.qnav-group-label {
+  position: sticky;
+  inset-inline-start: 28px;
+  inline-size: max-content;
+  max-inline-size: 100%;
+  block-size: 14px;
+  line-height: 14px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text-muted);
+}
+.qnav-band {
+  display: block;
+  block-size: 3px;
+  border-radius: 2px;
+  background: var(--section-color);
+}
+.qnav-list {
+  display: flex;
+  gap: 4px;
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.qnav-item {
+  position: relative;
+  inline-size: var(--qnav-item);
+  block-size: var(--qnav-item);
+  min-block-size: 0;
+  padding: 0;
+  border: 2px solid var(--nav-unanswered-border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text);
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-weight: 600;
+  font-size: 16px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.qnav-item:hover:not(:disabled) {
+  background: var(--surface-hover);
+  border-color: var(--nav-unanswered-border);
+}
+.qnav-item[data-state='answered'],
+.qnav-item[data-state='answered']:hover:not(:disabled) {
+  background: var(--nav-answered-bg);
+  border-color: var(--nav-answered-bg);
+  color: var(--nav-answered-text);
+}
+.qnav-item[aria-current='step'] {
+  outline: 3px solid var(--nav-current-ring);
+  outline-offset: 2px;
+}
+.qnav-item[aria-current='step']::after {
+  content: '';
+  position: absolute;
+  inset-block-start: calc(100% + 4px);
+  inset-inline-start: 50%;
+  translate: -50% 0;
+  border-inline: 6px solid transparent;
+  border-block-end: 6px solid var(--nav-current-ring);
+}
+.qnav-item[data-flagged]::before {
+  content: '';
+  position: absolute;
+  inset-block-start: -2px;
+  inset-inline-end: -2px;
+  border-block-start: 11px solid var(--nav-flag);
+  border-inline-start: 11px solid transparent;
+}
+
+.flag-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-block-size: 44px;
+  padding-block: 0;
+  padding-inline: 10px;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--input-border);
+  flex-shrink: 0;
+}
+.flag-toggle:hover:not(:disabled) {
+  background: var(--surface-hover);
+  border-color: var(--input-border);
+}
+.flag-toggle[aria-pressed='true'],
+.flag-toggle[aria-pressed='true']:hover:not(:disabled) {
+  background: var(--danger-bg);
+  color: var(--on-danger-bg);
+  border: 2px solid var(--nav-flag);
+  padding-inline: 9px;
+}
+@media (max-width: 600px) {
+  .flag-toggle__label {
+    display: none;
+  }
+}
+
+/* "All questions" dialog = review step before submitting. */
+.qoverview {
+  inline-size: min(720px, calc(100vw - 24px));
+  max-block-size: calc(100svh - 24px);
+  padding: 0;
+  border: 1px solid var(--border-strong);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--text);
+}
+.qoverview::backdrop {
+  background: rgba(0, 0, 0, 0.5);
+}
+.qoverview__inner {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.qoverview__head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.qoverview__head h2 {
+  margin: 0;
+  flex: 1;
+}
+.qoverview__summary,
+.qoverview__legend {
+  margin: 0;
+}
+.qoverview__legend {
+  font-size: 14px;
+  color: var(--text-muted);
+}
+.legend-swatch {
+  display: inline-block;
+  inline-size: 14px;
+  block-size: 14px;
+  vertical-align: -2px;
+  border: 2px solid var(--nav-unanswered-border);
+  border-radius: 3px;
+  position: relative;
+}
+.legend-swatch--answered {
+  background: var(--nav-answered-bg);
+  border-color: var(--nav-answered-bg);
+}
+.legend-swatch--flagged::before {
+  content: '';
+  position: absolute;
+  inset-block-start: -2px;
+  inset-inline-end: -2px;
+  border-block-start: 7px solid var(--nav-flag);
+  border-inline-start: 7px solid transparent;
+}
+.legend-swatch--current {
+  outline: 2px solid var(--nav-current-ring);
+  outline-offset: 1px;
+}
+.qoverview__filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.qoverview__filters .toggle-chip:not([aria-pressed='true']) {
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--input-border);
+}
+.qoverview__group h3 {
+  margin: 4px 0 8px;
+  font-size: 16px;
+}
+.qoverview__band {
+  inline-size: 40px;
+  margin-block-end: 4px;
+}
+.qoverview__range {
+  font-weight: 400;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+.qoverview__grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  --qnav-item: 44px;
+}
+.qoverview__footer {
+  border-block-start: 1px solid var(--border-subtle);
+  padding-block-start: 12px;
+}
+.qoverview__footer p {
+  margin: 0 0 8px;
+}
+.warn {
+  padding: 8px 12px;
+  border-radius: 6px;
+  background: var(--warning-bg);
+  color: var(--on-warning-bg);
+  margin-block-end: 8px;
+}
+.warn p {
+  margin: 0 0 4px;
+}
+.qoverview__error {
+  color: var(--danger);
+}
+.qoverview__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px;
 }
 .play-main {
   display: flex;

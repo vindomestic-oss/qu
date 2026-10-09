@@ -93,6 +93,13 @@ export interface ParticipantChoice extends WithTranslations<'text'> {
   sort_order: number;
 }
 
+/** An author-defined rubric (S11). Colour = position among the quiz's sections, modulo 6. */
+export interface QuizSection extends WithTranslations<'name'> {
+  id: number;
+  name: string;
+  sort_order: number;
+}
+
 export interface ParticipantQuestion extends WithTranslations<'text'> {
   id: number;
   quiz_id: number;
@@ -103,6 +110,8 @@ export interface ParticipantQuestion extends WithTranslations<'text'> {
   points: number;
   choices: ParticipantChoice[];
   myAnswer: MyAnswer | null;
+  /** Rubric (S11); absent or null = no rubric. */
+  section_id?: number | null;
 }
 
 export interface ResultsBreakdownItem {
