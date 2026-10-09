@@ -64,8 +64,13 @@ function parseColor(value) {
   if (m) return m[1].split('').map((c) => parseInt(c + c, 16));
   m = /^#([0-9a-f]{6})$/.exec(v);
   if (m) return [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16));
-  m = /^rgba?\(\s*(\d+)[\s,]+(\d+)[\s,]+(\d+)/.exec(v);
-  if (m) return [m[1], m[2], m[3]].map(Number);
+  m = /^rgba?\(\s*(\d+)[\s,]+(\d+)[\s,]+(\d+)(?:[\s,/]+([\d.]+%?))?\s*\)$/.exec(v);
+  if (m) {
+    const alpha = m[4] === undefined ? 1 : m[4].endsWith('%') ? parseFloat(m[4]) / 100 : parseFloat(m[4]);
+    // A translucent colour depends on what is behind it; refuse instead of scoring it as opaque.
+    if (alpha < 1) throw new Error(`translucent colour "${value}" cannot be checked; use an opaque token`);
+    return [m[1], m[2], m[3]].map(Number);
+  }
   if (v === 'white') return [255, 255, 255];
   if (v === 'black') return [0, 0, 0];
   throw new Error(`cannot parse colour "${value}"`);
@@ -111,14 +116,26 @@ const NAMED = [
   'navy', 'olive', 'orange', 'orangered', 'pink', 'purple', 'red', 'salmon', 'silver', 'teal', 'tomato',
   'violet', 'white', 'whitesmoke', 'yellow',
 ];
-const COLOR_PROPS =
-  '(?:color|background|backgroundColor|border|borderColor|borderTop|borderBottom|borderLeft|borderRight|' +
-  'borderInlineStart|borderInlineEnd|outline|outlineColor|boxShadow|textShadow|fill|stroke|caretColor|accentColor)';
-const RAW_IN_STYLE = new RegExp(
-  `\\b${COLOR_PROPS}\\s*:\\s*['"\`][^'"\`]*(#[0-9a-f]{3,8}\\b|rgba?\\(|hsla?\\(|\\b(?:${NAMED.join('|')})\\b)`,
+// A style key that takes a colour (color, backgroundColor, borderTopColor, boxShadow, fill, …).
+const COLOR_KEY = /\b([a-z]*color|background\w*|border\w*|outline\w*|\w*shadow|fill|stroke)\s*:/i;
+const NAMED_RE = new RegExp(`\\b(?:${NAMED.join('|')})\\b`, 'i');
+const LITERAL_RE = /#[0-9a-f]{3,8}\b|rgba?\(|hsla?\(/i;
+const QUOTED = /(['"`])((?:\\.|(?!\1).)*)\1/g;
+// SVG/HTML colour attributes with a literal value (currentColor and none are fine).
+const RAW_ATTR = new RegExp(
+  `\\b(?:fill|stroke|color|stopColor|stop-color)=["'{]\\s*['"]?(?:#[0-9a-f]{3,8}\\b|rgba?\\(|hsla?\\(|(?:${NAMED.join('|')})\\b)`,
   'i',
 );
-const RAW_ATTR = /\b(?:fill|stroke|color|stopColor|stop-color)=["'{]\s*['"]?(#[0-9a-f]{3,8}\b|rgba?\(|hsla?\()/i;
+
+/** True when a quoted string after a colour key holds a literal colour (also in ternaries and gradients). */
+function hasRawStyleColour(text) {
+  const key = COLOR_KEY.exec(text);
+  if (!key) return false;
+  for (const [, , body] of text.slice(key.index).matchAll(QUOTED)) {
+    if (LITERAL_RE.test(body) || NAMED_RE.test(body)) return true;
+  }
+  return false;
+}
 
 function* walk(dir) {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -129,11 +146,12 @@ function* walk(dir) {
 }
 
 for (const file of walk(path.join(ROOT, 'src'))) {
-  fs.readFileSync(file, 'utf-8')
-    .split('\n')
-    .forEach((line, i) => {
+  const lines = fs.readFileSync(file, 'utf-8').split('\n');
+  lines.forEach((line, i) => {
       if (line.includes('theme-exempt:')) return;
-      if (RAW_IN_STYLE.test(line) || RAW_ATTR.test(line)) {
+      // A key whose value starts on the next line ("color:\n  ok ? … : …") is checked with that line.
+      const text = /:\s*$/.test(line) ? `${line} ${lines[i + 1] ?? ''}` : line;
+      if (hasRawStyleColour(text) || RAW_ATTR.test(line)) {
         failures += 1;
         console.log(`FAIL raw colour ${path.relative(ROOT, file)}:${i + 1}: ${line.trim()}`);
       }

@@ -241,5 +241,5 @@ label {
 
 .theme-toggle:hover:not(:disabled) {
   background: var(--surface-alt);
-  border-color: var(--border-strong);
+  border-color: var(--input-border); /* --border-strong would drop below 3:1 in light; iPad keeps :hover after a tap */
 }
