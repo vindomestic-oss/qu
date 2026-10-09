@@ -685,6 +685,94 @@ label {
   font-size: 14px;
   color: var(--warning);
 }
+/* Rubrics (wish 10): the author's groups of questions. Each has the colour of its position (modulo 6),
+   as in the participants' question strip; names are written in that colour (4.5:1 on --bg/--surface). */
+.rubrics {
+  margin-block-start: 32px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+}
+.rubrics__title {
+  margin: 0 0 4px;
+}
+/* While a change is saved the buttons keep focus (aria-disabled, not disabled) but look disabled. */
+.rubrics button[aria-disabled='true'],
+.rubrics button[aria-disabled='true']:hover {
+  background: var(--button-disabled-bg);
+  border-color: var(--button-disabled-bg);
+  color: var(--button-disabled-text);
+  cursor: default;
+}
+.rubrics__hint {
+  margin: 0 0 10px;
+  font-size: 14px;
+  color: var(--text-muted);
+}
+.rubrics__list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.rubric-row {
+  padding-inline-start: 10px;
+  border-inline-start: 6px solid var(--section-color);
+}
+.rubric-row form,
+.rubrics__add {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.rubric-row__meta {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-muted);
+}
+.rubric-row__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.rubrics__add {
+  margin-block-start: 14px;
+  padding-block-start: 12px;
+  border-block-start: 1px solid var(--border-subtle);
+}
+.rubrics__add button {
+  align-self: flex-start;
+}
+.rubrics__error {
+  margin: 8px 0 0;
+  color: var(--danger);
+}
+.rubrics__status {
+  min-height: 1.45em;
+  margin: 6px 0 0;
+  font-size: 14px;
+  color: var(--success);
+}
+.rubric-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--section-color);
+}
+.rubric-badge::before {
+  content: '';
+  flex: none;
+  inline-size: 10px;
+  block-size: 10px;
+  border-radius: 2px;
+  background: var(--section-color);
+}
 
 /* QR codes (wish 5): always black on white, never inverted, nothing on top. */
 .qr-card {

@@ -3,6 +3,7 @@ import type { KeyboardEvent } from 'react';
 import type { ParticipantQuestion } from '../../types';
 import type { QuizLang } from '../../i18n/contentLanguages';
 import { useLanguage } from '../../i18n/LanguageContext';
+import { dirOf } from '../../i18n/languageMeta';
 import { resolveFieldWithLang } from '../../i18n/resolveText';
 import { isAnswered } from '../../lib/answered';
 import type { NavGroup } from '../../lib/navGroups';
@@ -140,8 +141,12 @@ export function QuestionNavigator({ questions, groups, currentIndex, flagged, co
           return (
             <div key={g.key} className="qnav-group" role={name ? 'group' : undefined} aria-label={name?.text} style={sectionStyle(g.colorIndex)}>
               {name && (
-                <span className="qnav-group-label" aria-hidden="true" lang={name.lang} title={name.text}>
-                  {name.text}
+                // The sticky span keeps the page's direction (its inline-start offset must follow the
+                // strip); the bdi gives the name its own, so "?" and "…" land on the right side.
+                <span className="qnav-group-label" aria-hidden="true" title={name.text}>
+                  <bdi lang={name.lang} dir={dirOf(name.lang)}>
+                    {name.text}
+                  </bdi>
                 </span>
               )}
               {g.colorIndex > 0 && <span className="qnav-band" aria-hidden="true" />}

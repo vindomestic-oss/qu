@@ -20,6 +20,7 @@ import { SessionPanel } from '../../components/admin/SessionPanel';
 import { LanguagePairTabs } from '../../components/admin/LanguagePairTabs';
 import { PairField } from '../../components/admin/PairField';
 import { QuizLanguagesBar } from '../../components/admin/QuizLanguagesBar';
+import { RubricsEditor } from '../../components/admin/RubricsEditor';
 import {
   flattenTranslations,
   isContentLang,
@@ -33,6 +34,8 @@ import {
 } from '../../i18n/contentLanguages';
 import { LANGUAGE_META } from '../../i18n/languageMeta';
 import { formatJoinCode } from '../../lib/joinLink';
+import { sectionColors } from '../../lib/navGroups';
+import { sectionStyle } from '../../lib/navLabels';
 
 // The open language pair is remembered per browser tab, so the next question opens with it too.
 const PAIR_STORAGE_KEY = 'quiz_editor_pair_lang';
@@ -249,12 +252,15 @@ export function QuizEditor() {
     (l) => declared.includes(l) || hasText(titleTranslations[l]) || hasText(descriptionTranslations[l]),
   );
   const metaPairLang = pairLang && metaTabLanguages.includes(pairLang) ? pairLang : null;
+  const sections = quiz.sections ?? [];
+  const rubricById = sectionColors(sections);
   const questionFormProps = {
     baseLang: base,
     quizLanguages: declared,
     activeLang: pairLang,
     onActiveLangChange: setPairLang,
     onAddLanguage: handleAddLanguage,
+    sections,
   };
 
   return (
@@ -363,6 +369,20 @@ export function QuizEditor() {
         </div>
       )}
 
+      <RubricsEditor
+        quizId={quizId}
+        base={base}
+        declared={declared}
+        sections={sections}
+        questions={questions}
+        activeLang={pairLang}
+        onActiveLangChange={setPairLang}
+        addable={addable}
+        onAddLanguage={handleAddLanguage}
+        seededRubrics={quiz.seeded_rubrics}
+        onQuizChange={setQuiz}
+      />
+
       <h2 style={{ marginTop: 32 }}>Questions</h2>
       {questions.length === 0 && <p>No questions yet.</p>}
       {questions.map((q, i) => (
@@ -381,6 +401,7 @@ export function QuizEditor() {
                   <strong style={{ display: 'block' }}>
                     {i + 1}. [{q.type}] <span lang={base}>{q.text}</span> ({q.points} pt{q.points !== 1 ? 's' : ''})
                   </strong>
+                  <RubricTag rubric={q.section_id != null ? rubricById.get(q.section_id) : undefined} base={base} />
                   <MissingTranslations languages={declaredTranslations.filter((l) => questionLangStatus(q, l, base) !== 'full')} />
                 </div>
                 <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', flexShrink: 0 }}>
@@ -433,6 +454,17 @@ export function QuizEditor() {
         <button onClick={() => setFormMode('create')}>Add question</button>
       )}
     </div>
+  );
+}
+
+/** The question's rubric under its title in the list: the rubric's colour and its name. */
+function RubricTag({ rubric, base }: { rubric?: { section: { name: string }; colorIndex: number }; base: QuizLang }) {
+  if (!rubric) return null;
+  return (
+    <small className="rubric-badge" style={sectionStyle(rubric.colorIndex)}>
+      <span className="visually-hidden">Rubric: </span>
+      <span lang={base}>{rubric.section.name}</span>
+    </small>
   );
 }
 

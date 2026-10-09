@@ -2,6 +2,7 @@ import Database from 'better-sqlite3';
 import { CONTENT_LANGS, isQuizLang } from '../lib/languages';
 import { computeUsedLanguages } from '../lib/quizLanguages';
 import { CHIDON_5787_ANFAENGER_TITLE, CHIDON_5787_FORTGESCHRITTENE_TITLE } from './quizTitles';
+import { backfillSeededSections } from './chidonSections';
 
 const ADDED_COLUMNS: Record<string, { name: string; type: string }[]> = {
   // ISO time; admin tokens issued before it are rejected (set on creation and on every password change).
@@ -14,7 +15,11 @@ const ADDED_COLUMNS: Record<string, { name: string; type: string }[]> = {
     // backfilled below. Participants are offered only declared languages that are complete.
     { name: 'content_languages', type: 'TEXT' },
   ],
-  questions: CONTENT_LANGS.map((lang) => ({ name: `text_${lang}`, type: 'TEXT' })),
+  questions: [
+    ...CONTENT_LANGS.map((lang) => ({ name: `text_${lang}`, type: 'TEXT' })),
+    // The question's rubric (S11); NULL = none. Deleting the rubric keeps the question.
+    { name: 'section_id', type: 'INTEGER REFERENCES quiz_sections(id) ON DELETE SET NULL' },
+  ],
   choices: CONTENT_LANGS.map((lang) => ({ name: `text_${lang}`, type: 'TEXT' })),
   participants: [
     // NULL means the participant hasn't clicked "Finish" yet; set once, never cleared.
@@ -28,6 +33,8 @@ const ADDED_COLUMNS: Record<string, { name: string; type: string }[]> = {
   ],
   // 1 = new names cannot join (host's "Lock joining"); people already in the session can still rejoin.
   sessions: [{ name: 'joining_locked', type: 'INTEGER NOT NULL DEFAULT 0' }],
+  // Rubric names in the translation languages (the table itself is in schema.sql).
+  quiz_sections: CONTENT_LANGS.map((lang) => ({ name: `name_${lang}`, type: 'TEXT' })),
   answers: [
     // 'auto_choice' | 'auto_blank' | 'rule' | 'ai_confirmed' | 'ai_auto' | 'human' (validated in TypeScript).
     { name: 'grade_source', type: 'TEXT' },
@@ -120,4 +127,9 @@ export function runMigrations(db: Database.Database) {
       }
     })();
   }
+
+  // Indexes on columns added above (schema.sql runs before they exist on old databases).
+  db.exec('CREATE INDEX IF NOT EXISTS idx_questions_section ON questions(section_id)');
+  // Rubrics of the seeded Chidon quizzes; skips quizzes that already have any (later boots: no-op).
+  backfillSeededSections(db);
 }

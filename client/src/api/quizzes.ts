@@ -1,5 +1,5 @@
 import { api } from './client';
-import type { Quiz, QuestionInput } from '../types';
+import type { Quiz, QuestionInput, SectionInput } from '../types';
 import type { QuizLang, WithTranslationInputs } from '../i18n/contentLanguages';
 
 export interface QuizMetaInput extends Partial<WithTranslationInputs<'title'>>, Partial<WithTranslationInputs<'description'>> {
@@ -61,4 +61,21 @@ export function uploadQuestionImage(questionId: number, file: File) {
 
 export function deleteQuestionImage(questionId: number) {
   return api<{ quiz: Quiz }>(`/questions/${questionId}/image`, { method: 'DELETE' });
+}
+
+// Rubrics (wish 10). Every call answers with the whole quiz, like the question calls.
+export function createSection(quizId: number, input: SectionInput) {
+  return api<{ quiz: Quiz }>(`/quizzes/${quizId}/sections`, { method: 'POST', body: JSON.stringify(input) });
+}
+
+export function updateSection(sectionId: number, input: SectionInput) {
+  return api<{ quiz: Quiz }>(`/sections/${sectionId}`, { method: 'PUT', body: JSON.stringify(input) });
+}
+
+export function deleteSection(sectionId: number) {
+  return api<{ quiz: Quiz }>(`/sections/${sectionId}`, { method: 'DELETE' });
+}
+
+export function reorderSections(quizId: number, orderedIds: number[]) {
+  return api<{ quiz: Quiz }>(`/quizzes/${quizId}/sections/reorder`, { method: 'PUT', body: JSON.stringify({ orderedIds }) });
 }

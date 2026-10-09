@@ -3,3 +3,4 @@
 // title: seeds are idempotent by title, so a rename creates a duplicate quiz on the next deploy.
 export const CHIDON_5787_ANFAENGER_TITLE = 'Chidon HaTanach 5787 – Anfänger (München)';
 export const CHIDON_5787_FORTGESCHRITTENE_TITLE = 'Chidon HaTanach 5787 – Fortgeschrittene (München)';
+export const CHIDON_5786_TITLE = 'European Chidon Tanach 5786 (January 2026)';

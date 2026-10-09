@@ -8,6 +8,7 @@ import { quizzesRouter } from '../routes/quizzes';
 import { questionsRouter } from '../routes/questions';
 import { sessionsRouter } from '../routes/sessions';
 import { adminRouter } from '../routes/admin';
+import { sectionsRouter } from '../routes/sections';
 import {
   createAdmin,
   createQuizFixture,
@@ -36,6 +37,10 @@ const EXPECTED_ADMIN_ROUTES = [
   'DELETE /api/quizzes/:id',
   'POST /api/quizzes/:id/questions',
   'PUT /api/quizzes/:id/questions/reorder',
+  'POST /api/quizzes/:id/sections',
+  'PUT /api/quizzes/:id/sections/reorder',
+  'PUT /api/sections/:id',
+  'DELETE /api/sections/:id',
   'GET /api/quizzes/:id/sessions',
   'POST /api/quizzes/:id/sessions',
   'PUT /api/questions/:id',
@@ -96,9 +101,16 @@ describe('route coverage', () => {
   let participantToken: string;
   let participantId: number;
   let answerId: number;
+  let sectionId: number;
 
   before(async () => {
     fx = createQuizFixture(adminId, 'Coverage quiz');
+    sectionId = Number(
+      db
+        .prepare("INSERT INTO quiz_sections (quiz_id, name, sort_order, created_at) VALUES (?, 'Coverage rubric', 0, ?)")
+        .run(fx.quizId, new Date().toISOString()).lastInsertRowid,
+    );
+    db.prepare('UPDATE questions SET section_id = ? WHERE id = ?').run(sectionId, fx.textQuestionId);
     const joined = await join(base, fx.joinCode, 'Coverage Kid');
     assert.equal(joined.status, 200);
     participantToken = joined.body.token;
@@ -116,6 +128,7 @@ describe('route coverage', () => {
       ...collectRoutes(questionsRouter, '/api/questions'),
       ...collectRoutes(sessionsRouter, '/api/sessions'),
       ...collectRoutes(adminRouter, '/api/admin'),
+      ...collectRoutes(sectionsRouter, '/api/sections'),
       'GET /api/auth/me',
     ].sort();
     assert.deepEqual(actual, EXPECTED_ADMIN_ROUTES);
@@ -126,6 +139,7 @@ describe('route coverage', () => {
       '/api/quizzes': fx.quizId,
       '/api/questions': fx.textQuestionId,
       '/api/sessions': fx.sessionId,
+      '/api/sections': sectionId,
       '/api/admin': 0,
       '/api/auth': 0,
     };
@@ -136,6 +150,8 @@ describe('route coverage', () => {
         .rejoin_hash,
       points: (db.prepare('SELECT points_awarded FROM answers WHERE id = ?').get(answerId) as { points_awarded: number | null })
         .points_awarded,
+      sections: db.prepare('SELECT id, name, sort_order FROM quiz_sections WHERE quiz_id = ? ORDER BY id').all(fx.quizId),
+      sectionIds: db.prepare('SELECT id, section_id FROM questions WHERE quiz_id = ? ORDER BY id').all(fx.quizId),
     });
     const beforeState = snapshot();
 
@@ -171,7 +187,10 @@ describe('route coverage', () => {
         .replace(':participantId', String(participantId))
         .replace(':id', String(idFor[mount]));
       for (const v of variants) {
-        const body = method === 'GET' || method === 'DELETE' ? undefined : { points_awarded: 0, title: 'x', locked: true };
+        const body =
+          method === 'GET' || method === 'DELETE'
+            ? undefined
+            : { points_awarded: 0, title: 'x', locked: true, name: 'x', orderedIds: [sectionId] };
         const r = await request(base, method, path, v.token, body);
         assert.equal(r.status, v.status, `${route} with ${v.name}: expected ${v.status}, got ${r.status}`);
         assert.equal(r.body?.code, v.code, `${route} with ${v.name}: code`);

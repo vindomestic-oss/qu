@@ -5,8 +5,10 @@ import { computeUsedLanguages } from '../lib/quizLanguages';
 import { translationColumns, translationValues } from '../lib/sqlTranslations';
 import type { Translations } from '../lib/questionInput';
 import { UPLOAD_DIR } from '../middleware/upload';
+import { FALSE_LABEL_TRANSLATIONS, TRUE_LABEL_TRANSLATIONS } from './chidonSections';
+import { CHIDON_5786_TITLE } from './quizTitles';
 
-const QUIZ_TITLE = 'European Chidon Tanach 5786 (January 2026)';
+const QUIZ_TITLE = CHIDON_5786_TITLE;
 
 // Source images live alongside the TS source (not dist/) so both `tsx` (dev) and the compiled
 // build (dist/db -> ../../src/assets) resolve to the same files without a separate copy step.
@@ -41,9 +43,6 @@ function mc(text: string, options: string[], correctIndex: number, translations:
 function open(text: string, translations: Translations, points = 1, imageFile?: string): QuestionSpec {
   return { type: 'text', text, translations, points, choices: [], imageFile };
 }
-
-const TRUE_LABEL_TRANSLATIONS: Translations = {"de":"Wahr","ru":"Верно","lt":"Teisinga","bg":"Вярно","cs":"Pravda","es":"Verdadero","fi":"Totta","hu":"Igaz","it":"Vero","lv":"Patiess","uk":"Правда"};
-const FALSE_LABEL_TRANSLATIONS: Translations = {"de":"Falsch","ru":"Неверно","lt":"Neteisinga","bg":"Невярно","cs":"Nepravda","es":"Falso","fi":"Väärin","hu":"Hamis","it":"Falso","lv":"Aplams","uk":"Неправда"};
 
 const QUESTIONS: QuestionSpec[] = [
   // --- True / False ---

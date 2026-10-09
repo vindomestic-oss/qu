@@ -11,8 +11,11 @@ export const PARTICIPANT_QUESTION_COLUMNS: readonly string[] = [
   ...translationColumns('text'),
   'image_path',
   'points',
+  'section_id',
 ];
 /** Choice columns during the quiz: no is_correct. */
 export const PARTICIPANT_CHOICE_COLUMNS: readonly string[] = ['id', 'question_id', 'text', ...translationColumns('text'), 'sort_order'];
 /** Choice columns on /my/results, which answers only after the session has ended. */
 export const RESULTS_CHOICE_COLUMNS: readonly string[] = [...PARTICIPANT_CHOICE_COLUMNS, 'is_correct'];
+/** Rubric columns on /my/quiz: the name and its translations, for the question strip's labels. */
+export const PARTICIPANT_SECTION_COLUMNS: readonly string[] = ['id', 'name', ...translationColumns('name'), 'sort_order'];

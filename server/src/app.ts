@@ -9,6 +9,7 @@ import { sessionsRouter } from './routes/sessions';
 import { joinRouter } from './routes/join';
 import { myRouter } from './routes/my';
 import { adminRouter } from './routes/admin';
+import { sectionsRouter } from './routes/sections';
 import { UPLOAD_DIR } from './middleware/upload';
 
 const CLIENT_DIST = path.join(__dirname, '..', '..', 'client', 'dist');
@@ -29,6 +30,7 @@ export function createApp(): express.Express {
   app.use('/api/auth', authRouter);
   app.use('/api/quizzes', quizzesRouter);
   app.use('/api/questions', questionsRouter);
+  app.use('/api/sections', sectionsRouter);
   app.use('/api/sessions', sessionsRouter);
   app.use('/api', joinRouter);
   app.use('/api/my', myRouter);

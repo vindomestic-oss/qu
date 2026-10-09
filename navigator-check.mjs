@@ -1,7 +1,7 @@
 // Question navigator, autosave and finish flow on /play (wish 10). Run against a local server:
 //   E2E_BASE_URL=http://localhost:4000 E2E_ADMIN_PASSWORD=... PW_CHANNEL= node navigator-check.mjs
-// Uses Chidon 5786 (50 questions: 20 choice, 10 open, 20 picture). Rubric labels are checked only
-// when the quiz has rubrics (S11).
+// Uses Chidon 5786 (50 questions: 20 choice, 10 open, 20 picture). Its 4 rubrics (S11) are required:
+// labels, group sizes, colour bands and the card's rubric badge are checked against them.
 import { chromium } from 'playwright';
 
 const BASE = process.env.E2E_BASE_URL || 'http://localhost:5173';
@@ -32,6 +32,17 @@ const { body: run } = await api(`/quizzes/${chidon.id}/sessions`, { method: 'POS
 if (run.session.status === 'pending') await api(`/sessions/${run.session.id}/start`, { method: 'PUT', token });
 const code = run.session.join_code;
 
+// Expected strip groups: runs of consecutive questions with the same rubric (S11).
+const { body: full } = await api(`/quizzes/${chidon.id}`, { token });
+const sections = full.quiz.sections ?? [];
+const sectionName = new Map(sections.map((s) => [s.id, s.name]));
+const runs = [];
+for (const q of [...full.quiz.questions].sort((a, b) => a.sort_order - b.sort_order)) {
+  const name = q.section_id != null ? (sectionName.get(q.section_id) ?? null) : null;
+  if (!runs.length || runs[runs.length - 1].name !== name) runs.push({ name, count: 0 });
+  runs[runs.length - 1].count += 1;
+}
+
 const browser = await chromium.launch({ ...(CHANNEL ? { channel: CHANNEL } : {}), headless: true });
 let counter = 0;
 async function participant({ uiLang, viewport = { width: 1024, height: 768 } } = {}) {
@@ -56,6 +67,29 @@ const visibleQuestionNumber = async (page) => Number((await page.locator('.qcard
   const groups = await page.locator('.qnav-group').count();
   const labels = await page.locator('.qnav-group-label').count();
   log('strip', `${groups} group(s), ${labels} label(s)`);
+  // Chidon 5786 always has its 4 seeded rubrics (S11): never fall back to "no rubrics" here.
+  check(
+    sections.map((s) => s.name).join(' | ') === 'True / False | Multiple choice | Open questions | Picture questions',
+    `Chidon 5786 has its 4 rubrics (${sections.map((s) => s.name).join(' | ')})`,
+  );
+  check(groups === 4 && labels === 4, `4 labelled groups in the strip (${groups} groups, ${labels} labels)`);
+  {
+    check(groups === runs.length, `${runs.length} rubric groups in the strip (got ${groups})`);
+    const texts = await page.locator('.qnav-group-label').allInnerTexts();
+    const expected = runs.filter((r) => r.name).map((r) => r.name);
+    check(JSON.stringify(texts) === JSON.stringify(expected), `rubric labels: ${texts.join(' | ')}`);
+    const sizes = [];
+    for (let g = 0; g < groups; g++) sizes.push(await page.locator('.qnav-group').nth(g).locator('.qnav-item').count());
+    check(JSON.stringify(sizes) === JSON.stringify(runs.map((r) => r.count)), `group sizes ${sizes.join('/')}`);
+    const bands = await page.locator('.qnav-group .qnav-band').count();
+    check(bands === expected.length, `one colour band per labelled group (${bands})`);
+    const colours = await page.locator('.qnav-band').evaluateAll((els) => els.map((e) => getComputedStyle(e).backgroundColor));
+    check(new Set(colours).size === Math.min(new Set(expected).size, 6), `distinct band colours: ${colours.join(', ')}`);
+    const firstLabel = (await page.getByTestId('nav-item-1').getAttribute('aria-label')) ?? '';
+    check(runs[0].name === null || firstLabel.includes(runs[0].name), `item 1 is read with its rubric: "${firstLabel}"`);
+    const badge = page.getByTestId('rubric-badge');
+    check(runs[0].name === null || ((await badge.count()) === 1 && (await badge.innerText()).includes(runs[0].name)), 'Q1 card shows its rubric badge');
+  }
   check((await page.locator('[data-testid=question-nav] [aria-current=step]').count()) === 1, 'exactly one current item');
   await page.getByTestId('nav-item-31').click();
   check((await visibleQuestionNumber(page)) === 31 && page.url().endsWith('?q=31'), 'nav-item-31 shows Q31 and ?q=31');

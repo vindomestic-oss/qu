@@ -10,6 +10,7 @@ import { getQuizLanguageInfo } from '../lib/quizLanguages';
 import {
   PARTICIPANT_CHOICE_COLUMNS,
   PARTICIPANT_QUESTION_COLUMNS,
+  PARTICIPANT_SECTION_COLUMNS,
   RESULTS_CHOICE_COLUMNS,
 } from '../lib/participantColumns';
 
@@ -135,6 +136,10 @@ myRouter.get('/quiz', (req: ParticipantRequest, res) => {
   // The declared list and missing counts are editor data: participants get only the offered list.
   const { content_languages: _declared, ...quizFields } = quizRow;
   const quiz = { ...quizFields, base_language: languageInfo.base_language, offered_languages: languageInfo.offered };
+  // Rubrics label the question strip; their order decides the colour (position modulo 6).
+  const sections = db
+    .prepare(`SELECT ${PARTICIPANT_SECTION_COLUMNS.join(', ')} FROM quiz_sections WHERE quiz_id = ? ORDER BY sort_order, id`)
+    .all(session.quiz_id);
   const questions = db
     .prepare(`SELECT ${PARTICIPANT_QUESTION_COLUMNS.join(', ')} FROM questions WHERE quiz_id = ? ORDER BY sort_order`)
     .all(session.quiz_id) as QuestionRow[];
@@ -164,6 +169,7 @@ myRouter.get('/quiz', (req: ParticipantRequest, res) => {
   res.json({
     session,
     quiz,
+    sections,
     questions: questionsOut,
     participant: { submitted_at: getSubmittedAt(req.participant!.participantId) },
   });

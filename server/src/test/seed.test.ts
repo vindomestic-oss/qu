@@ -136,3 +136,44 @@ test('seeded quizzes declare exactly the languages they contain; the 5787 quizze
   assert.equal(second.status, 0, second.stderr);
   assert.deepEqual(read(), quizzes);
 });
+
+test('the real seed gives the Chidon quizzes their rubrics (5/15/10/20 and 20/10); the next boot changes nothing', () => {
+  const dbPath = freshDbPath();
+  const env = { PATH: process.env.PATH, QUIZ_DB_PATH: dbPath, UPLOAD_DIR: path.join(tmpDir, 'uploads'), ADMIN_USERNAME: 'admin' };
+  const seedAll = () => spawnSync(process.execPath, ['--import', 'tsx', 'src/db/seed.ts'], { cwd: SERVER_DIR, encoding: 'utf-8', env });
+  const first = seedAll();
+  assert.equal(first.status, 0, first.stderr);
+  assert.match(first.stdout, /Rubrics added to "European Chidon Tanach 5786 \(January 2026\)" \(id \d+\): 5 \/ 15 \/ 10 \/ 20 questions/);
+
+  const read = () => {
+    const db = new Database(dbPath, { readonly: true });
+    try {
+      const sections = db
+        .prepare(
+          `SELECT q.title, s.name, s.sort_order, (SELECT COUNT(*) FROM questions x WHERE x.section_id = s.id) AS n
+           FROM quiz_sections s JOIN quizzes q ON q.id = s.quiz_id ORDER BY q.id, s.sort_order`,
+        )
+        .all() as { title: string; name: string; n: number }[];
+      const unassigned = db
+        .prepare("SELECT q.title, COUNT(*) AS n FROM questions x JOIN quizzes q ON q.id = x.quiz_id WHERE x.section_id IS NULL GROUP BY q.title")
+        .all() as { title: string; n: number }[];
+      return { sections, unassigned, all: db.prepare('SELECT * FROM quiz_sections ORDER BY id').all() };
+    } finally {
+      db.close();
+    }
+  };
+  const state = read();
+  const of = (re: RegExp) => state.sections.filter((s) => re.test(s.title)).map((s) => `${s.name}: ${s.n}`);
+  assert.deepEqual(of(/5786/), ['True / False: 5', 'Multiple choice: 15', 'Open questions: 10', 'Picture questions: 20']);
+  for (const re of [/5787 – Anfänger/, /5787 – Fortgeschrittene/]) {
+    assert.deepEqual(of(re), ['Teil A: Single-Choice-Fragen: 20', 'Teil B: Offene Fragen: 10']);
+  }
+  // Every Chidon question has a rubric; quizzes without a plan (the sample quiz) get none.
+  assert.deepEqual(state.unassigned.filter((u) => /Chidon/.test(u.title)), []);
+  assert.equal(state.sections.filter((s) => /World Geography/.test(s.title)).length, 0);
+
+  const second = seedAll();
+  assert.equal(second.status, 0, second.stderr);
+  assert.doesNotMatch(second.stdout, /Rubrics added/);
+  assert.deepEqual(read(), state);
+});

@@ -118,7 +118,7 @@ export function findKeys(value: unknown, keys: readonly string[], path = '$'): s
 
 export function tableCounts(): Record<string, number> {
   const out: Record<string, number> = {};
-  for (const t of ['quizzes', 'questions', 'choices', 'sessions', 'participants', 'answers']) {
+  for (const t of ['quizzes', 'questions', 'choices', 'sessions', 'participants', 'answers', 'quiz_sections']) {
     out[t] = (db.prepare(`SELECT COUNT(*) AS n FROM ${t}`).get() as { n: number }).n;
   }
   return out;

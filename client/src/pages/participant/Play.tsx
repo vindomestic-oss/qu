@@ -18,6 +18,7 @@ import { Countdown } from '../../components/participant/Countdown';
 import { LangStack } from '../../components/participant/LangStack';
 import { QuestionNavigator } from '../../components/participant/QuestionNavigator';
 import { QuestionOverviewDialog } from '../../components/participant/QuestionOverviewDialog';
+import { RubricBadge } from '../../components/participant/RubricBadge';
 import { ThemeToggle } from '../../components/ThemeToggle';
 import { QuestionLanguageBar } from '../../components/participant/QuestionLanguageBar';
 import { Logo } from '../../components/Logo';
@@ -573,6 +574,7 @@ export function Play() {
               <span className="is-hidden" aria-hidden="true">
                 {t('play.questionOf', { n: questions.length, total: questions.length })}
               </span>
+              <RubricBadge groups={groups} index={index} languages={languages} contentLanguage={contentLanguage} base={base} />
             </span>
             <button
               type="button"
