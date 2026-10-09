@@ -120,8 +120,10 @@ html {
   scroll-padding-block-end: calc(72px + env(safe-area-inset-bottom));
 }
 
+/* Raleway first: it has no Hebrew letters, so they fall through to the Hebrew fonts, while Latin
+   text and digits keep Raleway (Arial Hebrew draws small old-style digits). */
 :lang(he) {
-  font-family: 'Arial Hebrew', 'Noto Sans Hebrew', 'Segoe UI', Arial, sans-serif;
+  font-family: 'Raleway', 'Arial Hebrew', 'Noto Sans Hebrew', system-ui, 'Segoe UI', Arial, sans-serif;
 }
 
 body {

@@ -19,11 +19,15 @@
 .play-title {
   margin: 0;
   font-size: 20px;
+  min-inline-size: 0;
+  flex: 1;
+}
+/* The title carries its own lang/dir, so a long title is cut at its own end with "…". */
+.play-title__text {
+  display: block;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  min-inline-size: 0;
-  flex: 1;
 }
 .countdown {
   display: inline-flex;
@@ -105,21 +109,25 @@
 .qcard-body h2:focus {
   outline: none;
 }
+/* The frame reserves the space; only the picture itself gets the light plate, so dark mode has no
+   white bars beside a letterboxed picture and no white block while it loads. */
 .qcard-media {
   position: relative;
   inline-size: 100%;
   aspect-ratio: 16 / 9;
-  max-block-size: 32svh;
-  background: var(--image-bg);
+  max-block-size: 31svh;
+  background: var(--surface-alt);
   border-radius: 6px;
   overflow: hidden;
 }
 .qcard-media img {
   position: absolute;
   inset: 0;
-  inline-size: 100%;
-  block-size: 100%;
-  object-fit: contain;
+  margin: auto;
+  max-inline-size: 100%;
+  max-block-size: 100%;
+  background: var(--image-bg);
+  color: var(--text-dark);
 }
 .choices {
   display: flex;
@@ -132,7 +140,7 @@
   padding-inline: 12px;
   display: flex;
   gap: 12px;
-  align-items: center;
+  align-items: flex-start;
   border: 1px solid var(--border);
   border-radius: 6px;
 }
@@ -145,6 +153,8 @@
 }
 .choice input {
   flex: none;
+  /* centred on the first line of the visible text, not on the box of the longest translation */
+  margin-block: calc((1.45em - 20px) / 2) 0;
 }
 .text-answer textarea {
   inline-size: 100%;
@@ -154,22 +164,39 @@
 .text-answer button {
   margin-block-start: 8px;
 }
+.play-actionbar button,
+.text-answer button {
+  min-block-size: 44px;
+}
 .qcard-status {
   margin-block-start: auto;
   block-size: 44px;
   display: flex;
   align-items: center;
+  gap: 8px;
   border-block-start: 1px solid var(--border-subtle);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
   color: var(--text-muted);
 }
-.qcard-status--saved {
+/* Up to two lines inside the fixed 44 px, so a long error on a phone is not cut mid-word. */
+.qcard-status__text {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  font-size: 15px;
+  line-height: 1.25;
+}
+.qcard-status[data-tone='saved'] {
   color: var(--success);
 }
-.qcard-status--error {
+.qcard-status[data-tone='error'] {
   color: var(--danger);
+}
+.qcard-status__retry {
+  margin-inline-start: auto;
+  flex-shrink: 0;
+  padding-block: 4px;
 }
 .play-actionbar {
   position: sticky;
@@ -193,6 +220,8 @@
 /* Both labels share one grid cell, so the button keeps its width ("Next" / "Review"). */
 .btn-stack {
   display: inline-grid;
+  align-content: center;
+  white-space: nowrap;
 }
 .btn-stack > span {
   grid-area: 1 / 1;
@@ -202,6 +231,10 @@
 }
 .lang-stack {
   display: inline-grid;
+}
+/* Block level for the question: each translation fills the width and aligns by its own dir. */
+.qcard-body h2 > .lang-stack {
+  display: grid;
 }
 .lang-stack > * {
   grid-area: 1 / 1;

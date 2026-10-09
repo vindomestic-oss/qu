@@ -188,13 +188,19 @@ export function seedChidonQuiz() {
 export function syncChidonPictures(): void {
   if (!fs.existsSync(CHIDON_PICS_DIR)) return;
   let copied = 0;
-  for (const file of fs.readdirSync(CHIDON_PICS_DIR)) {
-    const from = path.join(CHIDON_PICS_DIR, file);
-    const to = path.join(UPLOAD_DIR, file);
-    if (!fs.existsSync(to) || fs.statSync(to).size !== fs.statSync(from).size) {
-      fs.copyFileSync(from, to);
-      copied += 1;
+  try {
+    for (const entry of fs.readdirSync(CHIDON_PICS_DIR, { withFileTypes: true })) {
+      if (!entry.isFile() || !/\.jpe?g$/i.test(entry.name)) continue;
+      const from = path.join(CHIDON_PICS_DIR, entry.name);
+      const to = path.join(UPLOAD_DIR, entry.name);
+      if (!fs.existsSync(to) || fs.statSync(to).size !== fs.statSync(from).size) {
+        fs.copyFileSync(from, to);
+        copied += 1;
+      }
     }
+  } catch (err) {
+    // A failed copy must not stop the server from starting; the old picture stays in place.
+    console.error('Chidon pictures could not be synced:', err);
   }
   if (copied > 0) console.log(`Chidon pictures synced: ${copied} file(s).`);
 }

@@ -89,6 +89,16 @@ async function boxes(page) {
   };
 }
 
+// First answer element of the question on screen: an option row, or the text field. No waiting:
+// a locator with no match would otherwise sit through Playwright's 30 s timeout.
+async function answerBox(page) {
+  for (const sel of ['.choice', '.text-answer textarea']) {
+    const el = page.locator(sel).first();
+    if (await el.count()) return el.boundingBox();
+  }
+  return null;
+}
+
 async function clickNext(page) {
   await page.getByTestId('nav-next').click();
   await page.waitForTimeout(30);
@@ -110,7 +120,7 @@ for (const viewport of [
       if (!first) first = b;
       const tag = `${viewport.width}x${viewport.height} ${colorScheme} Q${i + 1}`;
       if (!near(b.next.x, first.next.x) || !near(b.next.y, first.next.y)) fail(`${tag}: Next moved (${b.next.x},${b.next.y})`);
-      if (!near(b.header.y, first.header.y) || !near(b.header.height, first.header.height)) fail(`${tag}: header moved`);
+      if (['x', 'y', 'width', 'height'].some((k) => !near(b.header[k], first.header[k]))) fail(`${tag}: header moved`);
       if (b.nav && first.nav && (!near(b.nav.y, first.nav.y) || !near(b.nav.height, first.nav.height))) fail(`${tag}: navigator moved`);
       if (!near(b.card.y, first.card.y) || !near(b.card.x, first.card.x) || !near(b.card.width, first.card.width)) fail(`${tag}: card top/x/width moved`);
       // The card reaches down to the action bar (only main's 12 px padding in between).
@@ -144,7 +154,7 @@ async function languageSweep(run, label, checkHebrew) {
       : await chips.allInnerTexts();
     const ref = await boxes(page);
     const h2Ref = await page.locator('.qcard-body h2').boundingBox();
-    const optRef = await page.locator('.choice').first().boundingBox().catch(() => null);
+    const optRef = await answerBox(page);
     for (const name of options) {
       if (await trigger.count()) {
         await trigger.click();
@@ -154,11 +164,11 @@ async function languageSweep(run, label, checkHebrew) {
       }
       const b = await boxes(page);
       const h2 = await page.locator('.qcard-body h2').boundingBox();
-      const opt = await page.locator('.choice').first().boundingBox().catch(() => null);
+      const opt = await answerBox(page);
       const tag = `${label} Q${i + 1} ${name}`;
       if (!near(b.card.y, ref.card.y) || !near(b.next.y, ref.next.y)) fail(`${tag}: card or Next moved`);
       if (!near(h2.y, h2Ref.y) || !near(h2.height, h2Ref.height)) fail(`${tag}: question text box moved`);
-      if (opt && optRef && !near(opt.y, optRef.y)) fail(`${tag}: first option moved`);
+      if (opt && optRef && !near(opt.y, optRef.y)) fail(`${tag}: first answer element moved`);
       if (checkHebrew && name === 'עברית') {
         const visible = await page.locator('.qcard-body h2 .lang-stack > span:not(.lang-stack__hidden)').first();
         const attrs = [await visible.getAttribute('lang'), await visible.getAttribute('dir')];
@@ -229,6 +239,8 @@ await languageSweep(geoRun, 'Geography', true);
   await page.waitForTimeout(400);
   const statusText = await page.locator('.qcard-status').innerText();
   if (!statusText.trim()) fail('error slot: no message after a failed save');
+  const slotHeight = (await page.locator('.qcard-status').boundingBox()).height;
+  if (!near(slotHeight, 44)) fail(`error slot: height ${slotHeight}, expected the fixed 44 px`);
   const card2 = await page.locator('[data-testid=question-card]').boundingBox();
   const opt2 = await page.locator('.choice').first().boundingBox();
   if (!near(card.y, card2.y) || !near(card.height, card2.height) || !near(opt.y, opt2.y)) fail('error slot: card or option moved');
@@ -237,6 +249,35 @@ await languageSweep(geoRun, 'Geography', true);
   await page.waitForTimeout(400);
   if ((await page.locator('.qcard-status').innerText()).trim()) fail('error slot: message not cleared after a good save');
   log('error-slot', `message "${statusText.trim()}"`);
+  await page.context().close();
+}
+
+// 6. A save that fails while the child moves on stays visible on other questions, survives Previous,
+//    and "Try again" saves it (Chidon Q21 is a text question, saved on blur when Next is pressed).
+{
+  const page = await participant({ viewport: { width: 390, height: 844 } });
+  for (let i = 0; i < 20; i++) await clickNext(page);
+  const answer = `Layout check answer ${Date.now()}`;
+  await page.locator('.text-answer textarea').fill(answer);
+  await page.route('**/api/my/answers/*', (r) => r.abort('failed'));
+  await clickNext(page);
+  await page.waitForTimeout(400);
+  const onNext = (await page.locator('.qcard-status').innerText()).trim();
+  if (!/21/.test(onNext)) fail(`moved-on save: next question does not name question 21 ("${onNext}")`);
+  await page.getByRole('button', { name: /previous/i }).click();
+  await page.waitForTimeout(400);
+  const onBack = (await page.locator('.qcard-status').innerText()).trim();
+  if (!onBack) fail('moved-on save: no error when coming back to question 21');
+  await page.unrouteAll({ behavior: 'ignoreErrors' });
+  await page.locator('.qcard-status__retry').click();
+  await page.waitForTimeout(400);
+  if ((await page.locator('.qcard-status').innerText()).trim()) fail('moved-on save: error not cleared by Try again');
+  await page.reload();
+  await page.waitForSelector('[data-testid=question-card]');
+  for (let i = 0; i < 20; i++) await clickNext(page);
+  const saved = await page.locator('.text-answer textarea').inputValue();
+  if (saved !== answer) fail(`moved-on save: after reload question 21 has "${saved}"`);
+  log('moved-on-save', `next: "${onNext}", back: "${onBack}", after retry + reload: saved`);
   await page.context().close();
 }
 
