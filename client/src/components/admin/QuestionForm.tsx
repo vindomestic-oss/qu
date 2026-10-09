@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
-import type { Question, QuestionInput, QuestionType } from '../../types';
+import type { Question, QuestionInput, QuestionType, QuizSection } from '../../types';
 import { ApiError } from '../../api/client';
 import {
   flattenTranslations,
@@ -27,6 +27,8 @@ interface Props {
   onActiveLangChange: (lang: ContentLangCode | null, anchor?: HTMLElement) => void;
   /** Declares a new language for the whole quiz (saved at once). */
   onAddLanguage: (lang: ContentLangCode, anchor?: HTMLElement) => Promise<void>;
+  /** The quiz's rubrics, in order (wish 10). */
+  sections: QuizSection[];
 }
 
 interface ChoiceState {
@@ -47,8 +49,19 @@ function emptyChoices(): ChoiceState[] {
 
 const hasText = (v: string | undefined) => typeof v === 'string' && v.trim() !== '';
 
-export function QuestionForm({ initial, onSubmit, onCancel, baseLang, quizLanguages, activeLang, onActiveLangChange, onAddLanguage }: Props) {
+export function QuestionForm({
+  initial,
+  onSubmit,
+  onCancel,
+  baseLang,
+  quizLanguages,
+  activeLang,
+  onActiveLangChange,
+  onAddLanguage,
+  sections,
+}: Props) {
   const [type, setType] = useState<QuestionType>(initial?.type ?? 'single');
+  const [sectionId, setSectionId] = useState<number | null>(initial?.section_id ?? null);
   const [text, setText] = useState(initial?.text ?? '');
   // All 14 translations stay in state (and in the payload) even while hidden: a save never erases them.
   const [textTranslations, setTextTranslations] = useState<Record<ContentLangCode, string>>(
@@ -131,6 +144,8 @@ export function QuestionForm({ initial, onSubmit, onCancel, baseLang, quizLangua
         text,
         ...flattenTranslations('text', textTranslations),
         points: Number(pointsText),
+        // Always sent: "— none —" clears the rubric.
+        section_id: sectionId,
         choices:
           type === 'text'
             ? []
@@ -184,6 +199,24 @@ export function QuestionForm({ initial, onSubmit, onCancel, baseLang, quizLangua
           <option value="single">Single choice</option>
           <option value="multiple">Multiple choice</option>
           <option value="text">Text answer</option>
+        </select>
+      </label>
+
+      <label>
+        Rubric
+        <select
+          value={sectionId ?? ''}
+          onChange={(e) => setSectionId(e.target.value ? Number(e.target.value) : null)}
+          style={{ display: 'block', maxWidth: '100%' }}
+        >
+          <option value="">— none —</option>
+          {[...sections]
+            .sort((a, b) => a.sort_order - b.sort_order || a.id - b.id)
+            .map((s) => (
+              <option key={s.id} value={s.id} lang={baseLang}>
+                {s.name}
+              </option>
+            ))}
         </select>
       </label>
 

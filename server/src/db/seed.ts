@@ -6,6 +6,7 @@ import { seedSampleQuiz } from './seedSampleQuiz';
 import { seedChidonQuiz, syncChidonPictures } from './seedChidonQuiz';
 import { seedChidon5787Anfaenger } from './seedChidon5787Anfaenger';
 import { seedChidon5787Fortgeschrittene } from './seedChidon5787Fortgeschrittene';
+import { backfillSeededSections } from './chidonSections';
 
 const IS_PRODUCTION = process.env.NODE_ENV === 'production' || process.env.RENDER === 'true';
 const DEV_DEFAULT_PASSWORD = 'changeme123'; // local development only; refused in production
@@ -61,4 +62,6 @@ if (!anyQuiz && process.env.SEED_SAMPLE_QUIZ !== 'false') {
 // call them on every deploy — this is how new quizzes get added to the live database too.
 seedChidon5787Anfaenger();
 seedChidon5787Fortgeschrittene();
+// On a fresh database the migrations ran before these quizzes existed: give them their rubrics now.
+backfillSeededSections(db);
 syncChidonPictures();

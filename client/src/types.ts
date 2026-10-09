@@ -19,6 +19,8 @@ export interface Question extends WithTranslations<'text'> {
   text: string;
   image_path: string | null;
   points: number;
+  /** The question's rubric (S11); null = none. */
+  section_id: number | null;
   choices: Choice[];
 }
 
@@ -37,6 +39,8 @@ export interface Quiz extends WithTranslations<'title'>, WithTranslations<'descr
   created_by: number;
   created_at: string;
   question_count?: number;
+  /** The quiz's rubrics in order (admin quiz payload only). */
+  sections?: QuizSection[];
   questions?: Question[];
   /** The quiz's pending or running session, if any (list endpoint only). */
   open_session?: { id: number; status: 'pending' | 'active'; join_code: string; ends_at: string | null; joining_locked: number } | null;
@@ -67,6 +71,13 @@ export interface QuestionInput extends WithTranslationInputs<'text'> {
   text: string;
   points: number;
   choices: ChoiceInput[];
+  /** The rubric; null = none. The editor always sends it. */
+  section_id?: number | null;
+}
+
+/** Name of a rubric with all 14 translations (the editor always sends every key). */
+export interface SectionInput extends WithTranslationInputs<'name'> {
+  name: string;
 }
 
 export type SessionStatus = 'pending' | 'active' | 'ended';

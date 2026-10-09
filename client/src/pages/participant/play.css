@@ -209,7 +209,7 @@ html[dir='rtl'] .play-title__text {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  color: var(--text-muted);
+  color: var(--section-color, var(--text-muted)); /* the rubric's colour: 4.5:1 on --bg and --surface */
 }
 .qnav-band {
   display: block;
@@ -519,6 +519,38 @@ html[dir='rtl'] .play-title__text {
 }
 .qcard-head__count > .is-hidden {
   visibility: hidden;
+}
+/* Rubric of the question on screen (wish 10): a second line in the counter's cell, in the colour of
+   its group in the strip. It never widens the cell (long names end in "…"; the full name is its
+   title and the strip's label), so the flag beside it never moves. */
+.qcard-head__count > .qcard-rubric {
+  grid-area: 2 / 1;
+}
+.qcard-rubric {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  inline-size: 0;
+  min-inline-size: 100%;
+  block-size: 16px;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 16px;
+  color: var(--section-color);
+}
+.qcard-rubric:not(:empty)::before {
+  content: '';
+  flex: none;
+  inline-size: 8px;
+  block-size: 8px;
+  border-radius: 2px;
+  background: var(--section-color);
+}
+.qcard-rubric__name {
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .qcard-head__lang {
   margin-inline-start: auto;

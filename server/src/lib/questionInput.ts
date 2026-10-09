@@ -19,6 +19,9 @@ export interface QuestionInput {
   translations: Translations;
   points: number;
   choices: ChoiceInput[];
+  /** The question's rubric. Absent = not sent (a new question gets none, an edit keeps the stored
+   *  one); null = no rubric; a number = that rubric (the route checks it belongs to the quiz). */
+  section_id?: number | null;
 }
 
 export function optionalText(v: unknown): string | null {
@@ -38,6 +41,14 @@ export function extractTranslations(body: any, prefix: string): Translations {
   return translations;
 }
 
+/** The three states of an optional `section_id` in a request body; an error for any other value. */
+function parseSectionId(body: any): { section_id?: number | null } | { error: string } {
+  if (body?.section_id === undefined) return {};
+  if (body.section_id === null) return { section_id: null };
+  if (Number.isSafeInteger(body.section_id) && body.section_id > 0) return { section_id: body.section_id };
+  return { error: 'section_id must be a positive integer or null' };
+}
+
 export function parseQuestionInput(body: any): QuestionInput | { error: string } {
   const { type, text, points, choices } = body ?? {};
 
@@ -54,9 +65,11 @@ export function parseQuestionInput(body: any): QuestionInput | { error: string }
   const parsedPoints = roundPoints(rawPoints);
 
   const translations = extractTranslations(body, 'text');
+  const section = parseSectionId(body);
+  if ('error' in section) return section;
 
   if (type === 'text') {
-    return { type, text: text.trim(), translations, points: parsedPoints, choices: [] };
+    return { type, text: text.trim(), translations, points: parsedPoints, choices: [], ...section };
   }
 
   if (!Array.isArray(choices) || choices.length < 2) {
@@ -90,5 +103,5 @@ export function parseQuestionInput(body: any): QuestionInput | { error: string }
     return { error: 'single-choice questions must have exactly one correct choice' };
   }
 
-  return { type, text: text.trim(), translations, points: parsedPoints, choices: parsedChoices };
+  return { type, text: text.trim(), translations, points: parsedPoints, choices: parsedChoices, ...section };
 }

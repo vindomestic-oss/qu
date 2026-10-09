@@ -13,6 +13,7 @@ import {
   parseStoredLanguages,
 } from '../lib/quizLanguages';
 import { baseOf, declaredLanguagesOf, getQuizWithQuestions as loadQuiz } from '../lib/quizPayload';
+import { createSection, parseSectionInput, reorderSections, SECTION_NOT_IN_QUIZ, sectionBelongsToQuiz } from '../lib/sections';
 
 export const quizzesRouter = Router();
 
@@ -213,6 +214,9 @@ quizzesRouter.post('/:id/questions', (req, res) => {
   // Choice ids in this body are ignored: every choice of a new question is new.
   const parsed = parseQuestionInput(req.body);
   if ('error' in parsed) return res.status(400).json({ error: parsed.error });
+  if (parsed.section_id != null && !sectionBelongsToQuiz(db, parsed.section_id, quizId)) {
+    return res.status(400).json({ error: SECTION_NOT_IN_QUIZ });
+  }
   const base = baseOf(quiz);
 
   const createQuestion = db.transaction(() => {
@@ -220,10 +224,10 @@ quizzesRouter.post('/:id/questions', (req, res) => {
       .prepare('SELECT COUNT(*) as count FROM questions WHERE quiz_id = ?')
       .get(quizId) as { count: number };
 
-    const questionColumns = ['quiz_id', 'sort_order', 'type', 'text', ...translationColumns('text'), 'points'];
+    const questionColumns = ['quiz_id', 'sort_order', 'type', 'text', ...translationColumns('text'), 'points', 'section_id'];
     const result = db
       .prepare(`INSERT INTO questions (${questionColumns.join(', ')}) VALUES (${questionColumns.map(() => '?').join(', ')})`)
-      .run(quizId, count, parsed.type, parsed.text, ...translationValues(parsed.translations), parsed.points);
+      .run(quizId, count, parsed.type, parsed.text, ...translationValues(parsed.translations), parsed.points, parsed.section_id ?? null);
     const questionId = Number(result.lastInsertRowid);
 
     const choiceColumns = ['question_id', 'text', ...translationColumns('text'), 'is_correct', 'sort_order'];
@@ -278,6 +282,29 @@ quizzesRouter.put('/:id/questions/reorder', (req, res) => {
   });
   reorder();
 
+  res.json({ quiz: getQuizWithQuestions(quizId) });
+});
+
+// --- Rubrics (nested under a quiz; rename and delete are in routes/sections.ts) ---
+
+quizzesRouter.post('/:id/sections', (req, res) => {
+  const quizId = Number(req.params.id);
+  const quiz = db.prepare('SELECT id FROM quizzes WHERE id = ?').get(quizId);
+  if (!quiz) return res.status(404).json({ error: 'Quiz not found' });
+
+  const parsed = parseSectionInput(req.body);
+  if ('error' in parsed) return res.status(400).json({ error: parsed.error });
+  createSection(db, quizId, parsed);
+  res.status(201).json({ quiz: getQuizWithQuestions(quizId) });
+});
+
+quizzesRouter.put('/:id/sections/reorder', (req, res) => {
+  const quizId = Number(req.params.id);
+  const quiz = db.prepare('SELECT id FROM quizzes WHERE id = ?').get(quizId);
+  if (!quiz) return res.status(404).json({ error: 'Quiz not found' });
+
+  const error = reorderSections(db, quizId, req.body?.orderedIds);
+  if (error) return res.status(400).json({ error });
   res.json({ quiz: getQuizWithQuestions(quizId) });
 });
 

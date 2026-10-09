@@ -40,6 +40,12 @@ PAIRS.push(
     [`--section-${n}`, '--bg', 3],
     [`--section-${n}`, '--surface', 3],
   ]),
+  // Rubric names are written in their rubric's colour (S11): strip labels and editor badges on --bg,
+  // the card's rubric badge and the editor's rubric list on --surface.
+  ...[1, 2, 3, 4, 5, 6].flatMap((n) => [
+    [`--section-${n}`, '--bg', 4.5],
+    [`--section-${n}`, '--surface', 4.5],
+  ]),
   ['--text-muted', '--surface-hover', 4.5],
   ['--on-success-bg', '--success-bg', 4.5],
   ['--on-danger-bg', '--danger-bg', 4.5],

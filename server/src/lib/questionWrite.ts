@@ -2,6 +2,7 @@ import type Database from 'better-sqlite3';
 import type { QuestionInput } from './questionInput';
 import { translationColumns, translationValues } from './sqlTranslations';
 import { gradeChoiceAnswer } from './grading';
+import { SECTION_NOT_IN_QUIZ, sectionBelongsToQuiz } from './sections';
 
 // Imports only better-sqlite3 types and lib modules, never '../db' (that module opens quiz.db on import).
 
@@ -54,8 +55,11 @@ function parseSelected(raw: string | null): number[] {
  * translations, correctness, position), a choice without id is inserted, and choices of the
  * question whose id was not sent are deleted. Never touches quizzes.content_languages.
  *
+ * The rubric (section_id) changes only when the key was sent: null clears it, an id must be a rubric
+ * of the same quiz.
+ *
  * Throws QuestionWriteError: 404 when the question does not exist; 400 when a sent id belongs to
- * another question; 409 `has_answers` when the type changes between text and choice while answers
+ * another question or a sent rubric to another quiz; 409 `has_answers` when the type changes between text and choice while answers
  * exist; 409 with code `stale_editor` when a choice question with answers gets choices none of which has an id
  * (an editor from before stable ids would otherwise replace every choice the answers point at).
  * When the points or the set of correct choices change, the question's answers are re-graded in the
@@ -84,18 +88,30 @@ export function updateQuestionWithChoices(
       throw new QuestionWriteError(409, STALE_EDITOR_MESSAGE, 'stale_editor');
     }
 
+    if (parsed.section_id != null && !sectionBelongsToQuiz(db, parsed.section_id, question.quiz_id)) {
+      throw new QuestionWriteError(400, SECTION_NOT_IN_QUIZ);
+    }
+    const sendsSection = parsed.section_id !== undefined;
+
     const correctIds = () =>
       (db.prepare('SELECT id FROM choices WHERE question_id = ? AND is_correct = 1 ORDER BY id').all(questionId) as { id: number }[])
         .map((c) => c.id)
         .join(',');
     const correctBefore = correctIds();
 
-    const setClauses = ['type = ?', 'text = ?', ...translationColumns('text').map((c) => `${c} = ?`), 'points = ?'];
+    const setClauses = [
+      'type = ?',
+      'text = ?',
+      ...translationColumns('text').map((c) => `${c} = ?`),
+      'points = ?',
+      ...(sendsSection ? ['section_id = ?'] : []),
+    ];
     db.prepare(`UPDATE questions SET ${setClauses.join(', ')} WHERE id = ?`).run(
       parsed.type,
       parsed.text,
       ...translationValues(parsed.translations),
       parsed.points,
+      ...(sendsSection ? [parsed.section_id ?? null] : []),
       questionId,
     );
 

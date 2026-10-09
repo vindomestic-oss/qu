@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { ParticipantQuestion } from '../../types';
 import type { QuizLang } from '../../i18n/contentLanguages';
 import { useLanguage } from '../../i18n/LanguageContext';
+import { dirOf } from '../../i18n/languageMeta';
 import { resolveFieldWithLang } from '../../i18n/resolveText';
 import { isAnswered } from '../../lib/answered';
 import type { NavGroup } from '../../lib/navGroups';
@@ -129,7 +130,14 @@ export function QuestionOverviewDialog({ open, questions, groups, currentIndex, 
               <section key={g.key} className="qoverview__group" style={sectionStyle(g.colorIndex)}>
                 <h3>
                   {g.colorIndex > 0 && <span className="qnav-band qoverview__band" aria-hidden="true" />}
-                  {name && <span lang={name.lang}>{name.text} </span>}
+                  {/* dir isolates the name, so "1–5" never joins an English name inside a Hebrew line. */}
+                  {name && (
+                    <>
+                      <span lang={name.lang} dir={dirOf(name.lang)}>
+                        {name.text}
+                      </span>{' '}
+                    </>
+                  )}
                   <span className="qoverview__range">
                     {g.startIndex + 1}–{g.endIndex + 1} ·{' '}
                     {open_ > 0 ? t('play.overview.groupUnanswered', { k: open_ }) : t('play.overview.groupAllAnswered')}

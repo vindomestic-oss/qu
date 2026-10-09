@@ -93,3 +93,14 @@ CREATE INDEX IF NOT EXISTS idx_choices_question ON choices(question_id);
 CREATE INDEX IF NOT EXISTS idx_participants_session ON participants(session_id);
 CREATE INDEX IF NOT EXISTS idx_answers_session ON answers(session_id);
 CREATE INDEX IF NOT EXISTS idx_answers_participant ON answers(participant_id);
+
+-- Rubrics (wish 10, S11): author-defined groups of a quiz's questions. Translations (name_<lang>)
+-- and questions.section_id come from migrate.ts; colour = position among the quiz's rubrics.
+CREATE TABLE IF NOT EXISTS quiz_sections (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  quiz_id INTEGER NOT NULL REFERENCES quizzes(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_sections_quiz ON quiz_sections(quiz_id);
