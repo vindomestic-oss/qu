@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { db } from '../db';
-import { requireAdmin } from '../middleware/auth';
+import { requireAdmin } from '../middleware/jwt';
 import { parseQuestionInput } from '../lib/questionInput';
 import { uploadImage } from '../middleware/upload';
 import { deleteImageFile } from '../lib/uploads';

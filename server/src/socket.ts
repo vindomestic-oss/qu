@@ -1,40 +1,33 @@
 import type { Server as HttpServer } from 'http';
 import { Server } from 'socket.io';
-import jwt from 'jsonwebtoken';
-
-const envSecret = process.env.JWT_SECRET;
-if (!envSecret) {
-  throw new Error('JWT_SECRET env var is required');
-}
-const JWT_SECRET: string = envSecret;
+import { authenticate } from './middleware/jwt';
 
 let io: Server | undefined;
-
-function canJoinSession(token: unknown, sessionId: number): boolean {
-  if (typeof token !== 'string') return false;
-  let decoded: unknown;
-  try {
-    decoded = jwt.verify(token, JWT_SECRET);
-  } catch {
-    return false;
-  }
-  if (typeof decoded !== 'object' || decoded === null) return false;
-  const { role, sessionId: tokenSessionId } = decoded as { role?: string; sessionId?: number };
-  if (role === 'admin') return true;
-  return role === 'participant' && tokenSessionId === sessionId;
-}
 
 export function initSocket(server: HttpServer): Server {
   io = new Server(server, { cors: { origin: '*' } });
 
+  // The connection itself grants nothing; every room join is authorised.
   io.on('connection', (socket) => {
-    socket.on('session:join', (payload: unknown) => {
-      const { sessionId, token } = (typeof payload === 'object' && payload !== null ? payload : {}) as {
+    socket.on('session:join', (payload: unknown, ack?: unknown) => {
+      const reply = typeof ack === 'function' ? (ack as (r: object) => void) : () => {};
+      const p = (typeof payload === 'object' && payload !== null ? payload : {}) as {
         sessionId?: unknown;
         token?: unknown;
       };
-      if (typeof sessionId !== 'number' || !canJoinSession(token, sessionId)) return;
-      socket.join(`session:${sessionId}`);
+      if (!Number.isInteger(p.sessionId) || typeof p.token !== 'string') {
+        return reply({ ok: false, error: 'TOKEN_REQUIRED' }); // also the old bare-number form
+      }
+      const asAdmin = authenticate(p.token, 'admin');
+      const asParticipant = asAdmin.ok ? null : authenticate(p.token, 'participant');
+      const allowed =
+        asAdmin.ok ||
+        (asParticipant?.ok === true &&
+          asParticipant.role === 'participant' &&
+          asParticipant.participant.sessionId === p.sessionId);
+      if (!allowed) return reply({ ok: false, error: 'FORBIDDEN' });
+      socket.join(`session:${p.sessionId}`);
+      reply({ ok: true });
     });
   });
 

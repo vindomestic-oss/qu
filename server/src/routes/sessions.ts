@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { db } from '../db';
-import { requireAdmin } from '../middleware/auth';
+import { requireAdmin } from '../middleware/jwt';
 import { getSession, SessionRow } from '../lib/sessions';
 import { broadcastSessionUpdate } from '../socket';
 

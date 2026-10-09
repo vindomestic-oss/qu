@@ -1,13 +1,17 @@
 import { chromium } from 'playwright';
 
 const BASE = process.env.E2E_BASE_URL || 'http://localhost:5173';
+// Local runs only: use the same value as ADMIN_PASSWORD in server/.env if you set one there.
+const ADMIN_PASSWORD = process.env.E2E_ADMIN_PASSWORD ?? 'changeme123';
+// Browser channel: msedge by default; PW_CHANNEL= (empty) uses Playwright's bundled Chromium.
+const CHANNEL = process.env.PW_CHANNEL ?? 'msedge';
 
 function log(label, msg) {
   console.log(`[${label}] ${msg}`);
 }
 
 async function main() {
-  const browser = await chromium.launch({ channel: 'msedge', headless: true });
+  const browser = await chromium.launch({ ...(CHANNEL ? { channel: CHANNEL } : {}), headless: true });
 
   const adminCtx = await browser.newContext();
   const admin = await adminCtx.newPage();
@@ -17,7 +21,7 @@ async function main() {
   log('admin', 'logging in');
   await admin.goto(`${BASE}/admin/login`);
   await admin.getByLabel('Username').fill('admin');
-  await admin.getByLabel('Password').fill('changeme123');
+  await admin.getByLabel('Password').fill(ADMIN_PASSWORD);
   await admin.getByRole('button', { name: /log in/i }).click();
   await admin.waitForURL(/\/admin$/);
   log('admin', 'logged in, on dashboard');

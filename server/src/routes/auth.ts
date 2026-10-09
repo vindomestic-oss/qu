@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import { db } from '../db';
-import { signAdminToken, requireAdmin, AuthedRequest } from '../middleware/auth';
+import { signAdminToken, requireAdmin, AuthedRequest } from '../middleware/jwt';
 
 export const authRouter = Router();
 

@@ -1,8 +1,11 @@
 import { chromium } from 'playwright';
 import fs from 'fs';
 
-const BASE = 'http://localhost:5173';
-const SHOT_DIR = 'C:/qu/screens';
+const BASE = process.env.E2E_BASE_URL || 'http://localhost:5173';
+const SHOT_DIR = process.env.SCREENS_DIR || 'C:/qu/screens';
+const ADMIN_PASSWORD = process.env.E2E_ADMIN_PASSWORD ?? 'changeme123';
+// Browser channel: msedge by default; PW_CHANNEL= (empty) uses Playwright's bundled Chromium.
+const CHANNEL = process.env.PW_CHANNEL ?? 'msedge';
 fs.mkdirSync(SHOT_DIR, { recursive: true });
 
 const VIEWPORTS = {
@@ -31,14 +34,14 @@ async function shot(page, viewportName, pageName) {
 }
 
 async function main() {
-  const browser = await chromium.launch({ channel: 'msedge', headless: true });
+  const browser = await chromium.launch({ ...(CHANNEL ? { channel: CHANNEL } : {}), headless: true });
 
   // Set up real data once (admin login, quiz with a question + image, session)
   const setupCtx = await browser.newContext();
   const setup = await setupCtx.newPage();
   await setup.goto(`${BASE}/admin/login`);
   await setup.getByLabel('Username').fill('admin');
-  await setup.getByLabel('Password').fill('changeme123');
+  await setup.getByLabel('Password').fill(ADMIN_PASSWORD);
   await setup.getByRole('button', { name: /log in/i }).click();
   await setup.waitForURL(/\/admin$/);
 
@@ -89,7 +92,7 @@ async function main() {
     // Admin dashboard + quiz editor (needs login)
     await page.goto(`${BASE}/admin/login`);
     await page.getByLabel('Username').fill('admin');
-    await page.getByLabel('Password').fill('changeme123');
+    await page.getByLabel('Password').fill(ADMIN_PASSWORD);
     await page.getByRole('button', { name: /log in/i }).click();
     await page.waitForURL(/\/admin$/);
     await page.waitForTimeout(200);
@@ -136,7 +139,7 @@ async function main() {
   log('touch-target', `Next/Finish button size: ${JSON.stringify(buttonBox)}`);
 
   await browser.close();
-  log('done', 'Responsive check completed. Screenshots in C:/qu/screens');
+  log('done', `Responsive check completed. Screenshots in ${SHOT_DIR}`);
 }
 
 main().catch((err) => {
