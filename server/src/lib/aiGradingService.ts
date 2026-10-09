@@ -7,7 +7,7 @@ import { createGeminiProvider } from './aiGrading/providers/gemini';
 import { createFakeProvider } from './aiGrading/providers/fake';
 import type { GradeProvider } from './aiGrading/providers/types';
 import { queueParticipant, queueSession, recoverRunning, requeueQuestionForAi, unqueueQuiz, type QueueOutcome } from './aiGrading/queue';
-import { purgeAiRuns } from './aiGrading/retention';
+import { purgeAiData } from './aiGrading/retention';
 
 // Wish 7, layer B (S14): the process-wide AI worker and its triggers, next to the reference check's
 // triggers (autoCheck.ts): "Finish and submit", the end of a session, the panel's "Run AI pre-check",
@@ -69,7 +69,7 @@ export function aiAfterQuizSwitch(quizId: number, enabled: boolean): void {
   if (!enabled) afterQueue(unqueueQuiz(db, quizId));
 }
 
-/** The panel's "Run AI pre-check" (and Retry): queues what is eligible, failed ones included on request. */
+/** The panel's "Run AI pre-check" (and Retry; admins only): queues what is eligible, failed ones included on request. */
 export function aiRunSession(sessionId: number, opts: { questionId?: number; includeFailed?: boolean }): QueueOutcome {
   const out = queueSession(db, sessionId, opts);
   afterQueue(out);
@@ -94,8 +94,10 @@ export function startAiGrading(): void {
   console.log(aiBootLine(db) + (recovered > 0 ? ` · ${recovered} interrupted answers queued again` : ''));
   const purge = () => {
     try {
-      const n = purgeAiRuns(db);
-      if (n > 0) console.log(`AI grading: purged ${n} runs older than 180 days`);
+      const n = purgeAiData(db);
+      if (n.runs + n.answers > 0) {
+        console.log(`AI grading: retention: ${n.runs} runs deleted, AI texts cleared on ${n.answers} answers (older than 180 days)`);
+      }
     } catch (err) {
       console.error('AI grading: purge failed:', err instanceof Error ? err.message : err);
     }

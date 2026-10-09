@@ -14,7 +14,7 @@ import type { GradeOutcome, GradeProvider } from '../lib/aiGrading/providers/typ
 import type { GradePayload } from '../lib/aiGrading/types';
 import { answerLooksLikeInjection, guard } from '../lib/aiGrading/guard';
 import { requeueQuestionForAi } from '../lib/aiGrading/queue';
-import { purgeAiRuns } from '../lib/aiGrading/retention';
+import { purgeAiAnswerTexts, purgeAiData, purgeAiRuns } from '../lib/aiGrading/retention';
 import { GRADER_SYSTEM_PROMPT, PROMPT_VERSION } from '../lib/aiGrading/prompt';
 import { parseGradeResult } from '../lib/aiGrading/schema';
 import { createAdmin, findKeys, join, login, request, startServer } from './helpers';
@@ -749,6 +749,17 @@ describe('a person confirms: accept, accept all confident-correct, override', ()
     assert.equal(JSON.stringify(st.body).includes('spy-model'), false, 'graders see no provider details');
   });
 
+  test('"Run AI pre-check" is admin-only: a grader of the session gets 403 and nothing is queued', async () => {
+    const before = db.prepare("SELECT COUNT(*) AS n FROM answers WHERE ai_status IN ('queued', 'running')").get();
+    const r = await request(base, 'POST', `/api/grading/${s.sessionId}/ai/run`, graderToken, { includeFailed: true });
+    assert.equal(r.status, 403);
+    assert.equal(r.body.code, 'FORBIDDEN');
+    assert.deepEqual(db.prepare("SELECT COUNT(*) AS n FROM answers WHERE ai_status IN ('queued', 'running')").get(), before);
+    assert.equal((await request(base, 'GET', `/api/grading/${s.sessionId}/ai/status`, graderToken)).status, 200, 'graders keep the status');
+    assert.equal((await request(base, 'POST', `/api/grading/${s.sessionId}/ai/run`, adminToken, {})).status, 200, 'admins may run it');
+    await settle();
+  });
+
   test('accept all confident-correct touches only the listed confident-correct rows, writes ai_confirmed with an audit row per answer', async () => {
     const ids = ['high1', 'high2', 'medium', 'partial', 'wrong'].map((k) => row(kids[k].id, fx.q[0]));
     const stale = row(kids.changed.id, fx.q[0]);
@@ -863,6 +874,52 @@ describe('retention and migrations', () => {
     assert.ok(db.prepare('SELECT 1 FROM ai_grading_runs WHERE id = ?').get(young));
     assert.equal((db.prepare('SELECT COUNT(*) AS n FROM answers').get() as { n: number }).n, answersBefore);
     assert.equal(purgeAiRuns(db, now), 0, 'a second run deletes nothing');
+  });
+
+  test('the AI free text on answers of sessions that ended more than 180 days ago is cleared; the rest stays', () => {
+    const now = Date.parse('2026-10-09T12:00:00.000Z');
+    const day = 86_400_000;
+    const fx = textQuiz('Retention quiz', [{ text: 'R?', reference: 'Agag' }]);
+    const sessionAt = (status: string, endsAt: string | null) =>
+      Number(
+        db
+          .prepare('INSERT INTO sessions (quiz_id, join_code, status, ends_at) VALUES (?, ?, ?, ?)')
+          .run(fx.quizId, createUniqueJoinCode(), status, endsAt).lastInsertRowid,
+      );
+    const answerIn = (sessionId: number, name: string) => {
+      const pid = Number(db.prepare('INSERT INTO participants (session_id, display_name) VALUES (?, ?)').run(sessionId, name).lastInsertRowid);
+      return Number(
+        db
+          .prepare(
+            `INSERT INTO answers (session_id, question_id, participant_id, text_answer, answer_norm, points_awarded, is_correct,
+               grade_source, ai_status, ai_verdict, ai_confidence, ai_rationale, ai_flagged, ai_run_id, ai_error)
+             VALUES (?, ?, ?, 'Haman', 'haman', 0, 0, 'human', 'done', 'incorrect', 'high', 'Haman is not the king of Amalek.', 1, 7, 'none')`,
+          )
+          .run(sessionId, fx.q[0], pid).lastInsertRowid,
+      );
+    };
+    const old = answerIn(sessionAt('ended', new Date(now - 181 * day).toISOString()), 'Old');
+    const legacyOld = answerIn(sessionAt('ended', '2026-01-01 10:00:00'), 'Legacy'); // legacy SQL timestamp form
+    const recent = answerIn(sessionAt('ended', new Date(now - 179 * day).toISOString()), 'Recent');
+    const running = answerIn(sessionAt('active', new Date(now - 200 * day).toISOString()), 'Running');
+    const read = (id: number) =>
+      db.prepare('SELECT ai_rationale, ai_error, ai_status, ai_verdict, ai_confidence, ai_flagged, points_awarded, grade_source FROM answers WHERE id = ?').get(id) as Record<string, unknown>;
+    const out = purgeAiData(db, now);
+    assert.equal(out.answers, 2);
+    for (const id of [old, legacyOld]) {
+      assert.deepEqual(read(id), {
+        ai_rationale: null,
+        ai_error: null,
+        ai_status: 'done',
+        ai_verdict: 'incorrect',
+        ai_confidence: 'high',
+        ai_flagged: 1,
+        points_awarded: 0,
+        grade_source: 'human',
+      }, 'only the free text goes; the suggestion and the grade stay');
+    }
+    for (const id of [recent, running]) assert.equal(read(id).ai_rationale, 'Haman is not the king of Amalek.');
+    assert.equal(purgeAiAnswerTexts(db, now), 0, 'a second run changes nothing');
   });
 
   test('the S14 columns and tables exist, defaults are off, and migrations run twice as a no-op', () => {

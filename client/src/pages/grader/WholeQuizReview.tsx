@@ -427,6 +427,7 @@ export function WholeQuizReview() {
       <AiGradingBar
         sessionId={id}
         quizAiEnabled={ai}
+        canRun={snapshot.viewer?.kind === 'admin'}
         blind={blind}
         onBlindChange={setBlind}
         onStatus={(s, polled) => {
@@ -476,7 +477,7 @@ export function WholeQuizReview() {
             <AiSuggestionBadge
               answer={groupSuggestion(members)}
               hidden={blind && members.some((m) => m.points_awarded == null)}
-              onRetry={() => retryAi(q.id)}
+              onRetry={isAdmin ? () => retryAi(q.id) : undefined}
             />
           ) : null;
         const aiAcceptFor = (members: Row[]) =>

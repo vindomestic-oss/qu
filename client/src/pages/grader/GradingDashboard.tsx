@@ -72,7 +72,13 @@ export function GradingDashboard() {
       )}
 
       {/* Wish 7 (S14): the AI pre-check, only for quizzes with AI suggestions. */}
-      <AiGradingBar sessionId={id} quizAiEnabled={quiz.ai_grading_enabled === true} blind={blind} onBlindChange={setBlind} />
+      <AiGradingBar
+        sessionId={id}
+        quizAiEnabled={quiz.ai_grading_enabled === true}
+        canRun={data.viewer.kind === 'admin'}
+        blind={blind}
+        onBlindChange={setBlind}
+      />
 
       <GradingStatsBar sessionId={id} counters={counters} />
 

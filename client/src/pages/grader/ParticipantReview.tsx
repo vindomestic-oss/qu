@@ -192,7 +192,11 @@ export function ParticipantReview() {
                     <AiSuggestionBadge
                       answer={answer}
                       hidden={blind && answer.points_awarded == null}
-                      onRetry={() => void runAi(id, { questionId: q.id, includeFailed: true }).catch(() => {})}
+                      onRetry={
+                        data.viewer?.kind === 'admin'
+                          ? () => void runAi(id, { questionId: q.id, includeFailed: true }).catch(() => {})
+                          : undefined
+                      }
                     />
                   )}
                   {ai && data.gradable && (

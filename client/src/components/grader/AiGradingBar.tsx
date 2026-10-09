@@ -17,6 +17,8 @@ interface Props {
   sessionId: number;
   /** The quiz's AI switch (from the panel payload). */
   quizAiEnabled: boolean;
+  /** Admins only: "Run AI pre-check" starts paid provider calls by hand. */
+  canRun: boolean;
   blind: boolean;
   onBlindChange: (on: boolean) => void;
   /** Every status (for per-question hints); `polled` = from the 5 s poll with changed counts, so the
@@ -24,7 +26,7 @@ interface Props {
   onStatus?: (status: AiGradingStatus, polled: boolean) => void;
 }
 
-export function AiGradingBar({ sessionId, quizAiEnabled, blind, onBlindChange, onStatus }: Props) {
+export function AiGradingBar({ sessionId, quizAiEnabled, canRun, blind, onBlindChange, onStatus }: Props) {
   const { t } = useLanguage();
   const [status, setStatus] = useState<AiGradingStatus | null>(null);
   const [run, setRun] = useState<{ kind: 'idle' } | { kind: 'starting' } | { kind: 'queued'; n: number } | { kind: 'failed' }>({ kind: 'idle' });
@@ -131,9 +133,11 @@ export function AiGradingBar({ sessionId, quizAiEnabled, blind, onBlindChange, o
           <input type="checkbox" checked={blind} onChange={(e) => onBlindChange(e.target.checked)} />
           {t('grader.ai.hideUntilDecided')}
         </label>
-        <button type="button" className="small-button" onClick={() => void start()}>
-          {run.kind === 'starting' ? t('grader.ai.runStarting') : t('grader.ai.run')}
-        </button>
+        {canRun && (
+          <button type="button" className="small-button" onClick={() => void start()}>
+            {run.kind === 'starting' ? t('grader.ai.runStarting') : t('grader.ai.run')}
+          </button>
+        )}
         <span role="status" className="ai-bar__run-status">
           {run.kind === 'queued' && <span className="save-chip save-chip--saved">{t('grader.ai.runQueued', { n: run.n })}</span>}
           {run.kind === 'failed' && <span className="save-chip save-chip--failed">{t('grader.ai.runFailed')}</span>}

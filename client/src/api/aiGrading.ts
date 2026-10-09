@@ -34,7 +34,7 @@ export function getAiStatus(sessionId: number) {
   return staffApi<AiGradingStatus>(sessionId, '/ai/status');
 }
 
-/** Staff: "Run AI pre-check" (and Retry, with includeFailed): the reference check, then the AI queue. */
+/** Admins: "Run AI pre-check" (and Retry, with includeFailed): the reference check, then the AI queue. */
 export function runAi(sessionId: number, opts: { questionId?: number; includeFailed?: boolean } = {}) {
   return staffApi<{ ruleMatched: number; queued: number; skipped: number; modelCallsEnabled: boolean; disabledReason: string | null }>(
     sessionId,

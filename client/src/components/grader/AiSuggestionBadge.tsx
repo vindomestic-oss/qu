@@ -30,7 +30,7 @@ interface Props {
   answer: Answer;
   /** Blind mode: the suggestion stays hidden until the answer is graded. */
   hidden: boolean;
-  /** "Retry" of a failed suggestion (runs the AI pre-check of the question again). */
+  /** "Retry" of a failed suggestion (runs the AI pre-check of the question again; admins only). */
   onRetry?: () => void;
 }
 

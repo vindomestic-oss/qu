@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { db } from '../db';
 import { staffLabel, type StaffRequest } from '../middleware/staffAuth';
+import { MESSAGES } from '../middleware/jwt';
 import { ANSWER_GRADE_COLUMNS, gradeAnswer, isConfidentCorrect, type AnswerGrade } from '../lib/grading';
 import { broadcastGradingChanged } from '../socket';
 import { aiConfig } from '../lib/aiGrading/config';
@@ -28,9 +29,12 @@ gradingAiRouter.get('/status', (req: StaffRequest, res) => {
 /**
  * "Run AI pre-check" (and Retry): the reference check first, then the AI queue for this session
  * (or one question), failed suggestions again with includeFailed. Nothing is queued while model
- * calls or the quiz's switch are off; the reference check still runs.
+ * calls or the quiz's switch are off; the reference check still runs. Admins only: it starts paid
+ * provider calls by hand (graders see the progress and the suggestions; the automatic queueing
+ * after "Finish and submit" and at the session end is unchanged).
  */
 gradingAiRouter.post('/run', (req: StaffRequest, res) => {
+  if (req.staff?.kind !== 'admin') return res.status(403).json({ error: MESSAGES.FORBIDDEN, code: 'FORBIDDEN' });
   const questionId = req.body?.questionId;
   if (questionId !== undefined && !(Number.isSafeInteger(questionId) && questionId > 0)) {
     return res.status(400).json({ error: 'questionId must be a positive whole number' });
