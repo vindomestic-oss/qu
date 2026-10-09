@@ -5,7 +5,7 @@ import { refreshSessionStatus, SessionRow } from '../lib/sessions';
 import { gradeChoiceAnswer } from '../lib/grading';
 import { broadcastLiveUpdate } from '../socket';
 import { translationColumns } from '../lib/sqlTranslations';
-import { getOfferedLanguages } from '../lib/quizLanguages';
+import { getQuizLanguageInfo } from '../lib/quizLanguages';
 import {
   PARTICIPANT_CHOICE_COLUMNS,
   PARTICIPANT_QUESTION_COLUMNS,
@@ -69,14 +69,15 @@ myRouter.get('/session', (req: ParticipantRequest, res) => {
   const quizRow = db.prepare('SELECT id, base_language FROM quizzes WHERE id = ?').get(session.quiz_id) as
     | { id: number; base_language: string }
     | undefined;
-  const languageInfo = quizRow
-    ? getOfferedLanguages(db, session.quiz_id, quizRow.base_language)
-    : { base_language: 'en' as const, offered_languages: ['en'] as const };
+  const languageInfo = quizRow ? getQuizLanguageInfo(db, quizRow) : null;
 
   res.json({
     session,
     participant: { ...req.participant, submitted_at: getSubmittedAt(req.participant!.participantId) },
-    quiz: quizRow ? { id: quizRow.id, ...languageInfo } : null,
+    quiz:
+      quizRow && languageInfo
+        ? { id: quizRow.id, base_language: languageInfo.base_language, offered_languages: languageInfo.offered }
+        : null,
   });
 });
 
@@ -113,9 +114,11 @@ myRouter.get('/quiz', (req: ParticipantRequest, res) => {
     'base_language',
   ];
   const quizRow = db.prepare(`SELECT ${quizColumns.join(', ')} FROM quizzes WHERE id = ?`).get(session.quiz_id) as {
+    id: number;
     base_language: string;
   };
-  const quiz = { ...quizRow, ...getOfferedLanguages(db, session.quiz_id, quizRow.base_language) };
+  const languageInfo = getQuizLanguageInfo(db, quizRow);
+  const quiz = { ...quizRow, base_language: languageInfo.base_language, offered_languages: languageInfo.offered };
   const questions = db
     .prepare(`SELECT ${PARTICIPANT_QUESTION_COLUMNS.join(', ')} FROM questions WHERE quiz_id = ? ORDER BY sort_order`)
     .all(session.quiz_id) as QuestionRow[];
@@ -229,10 +232,11 @@ myRouter.get('/results', (req: ParticipantRequest, res) => {
     return res.status(400).json({ error: 'Results are only available after the session ends' });
   }
 
-  const quizRow = db.prepare('SELECT base_language FROM quizzes WHERE id = ?').get(session.quiz_id) as {
+  const quizRow = db.prepare('SELECT id, base_language FROM quizzes WHERE id = ?').get(session.quiz_id) as {
+    id: number;
     base_language: string;
   };
-  const languageInfo = getOfferedLanguages(db, session.quiz_id, quizRow.base_language);
+  const { base_language, offered } = getQuizLanguageInfo(db, quizRow);
 
   const questions = db
     .prepare(`SELECT ${PARTICIPANT_QUESTION_COLUMNS.join(', ')} FROM questions WHERE quiz_id = ? ORDER BY sort_order`)
@@ -271,5 +275,5 @@ myRouter.get('/results', (req: ParticipantRequest, res) => {
     };
   });
 
-  res.json({ scoredPoints, maxPoints, pendingGrading, breakdown, ...languageInfo });
+  res.json({ scoredPoints, maxPoints, pendingGrading, breakdown, base_language, offered_languages: offered });
 });

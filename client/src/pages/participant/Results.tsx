@@ -1,19 +1,24 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { getMyResults } from '../../api/participant';
 import type { ResultsResponse } from '../../types';
 import { ApiError } from '../../api/client';
 import { useLanguage } from '../../i18n/LanguageContext';
 import { useContentLanguage } from '../../i18n/useContentLanguage';
-import { resolveField } from '../../i18n/resolveText';
-import { UiLanguageMenu } from '../../components/UiLanguageMenu';
-import { QuestionLanguageControl } from '../../components/QuestionLanguageControl';
+import { sanitizeOffered } from '../../i18n/contentLanguages';
+import { resolveFieldWithLang } from '../../i18n/resolveText';
+import { dirOf } from '../../i18n/languageMeta';
+import { QuestionLanguageBar } from '../../components/participant/QuestionLanguageBar';
 import { Logo } from '../../components/Logo';
 
 export function Results() {
-  const { t, isRtl } = useLanguage();
+  const { t } = useLanguage();
   const [results, setResults] = useState<ResultsResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const { contentLanguage, setContentLanguage } = useContentLanguage(results?.offered_languages ?? ['en']);
+  const offered = useMemo(
+    () => (results ? sanitizeOffered(results.offered_languages, results.base_language) : null),
+    [results],
+  );
+  const { contentLanguage, base, setContentLanguage } = useContentLanguage(offered);
 
   useEffect(() => {
     let attempts = 0;
@@ -40,42 +45,41 @@ export function Results() {
   }, []);
 
   if (error) return <p style={{ margin: 40, color: 'var(--danger)' }}>{error}</p>;
-  if (!results) return <p style={{ margin: 40 }}>{t('results.loading')}</p>;
+  if (!results || !offered) return <p style={{ margin: 40 }}>{t('results.loading')}</p>;
 
   return (
-    <div dir={isRtl ? 'rtl' : 'ltr'} style={{ maxWidth: 640, margin: '16px auto' }}>
+    <div style={{ maxWidth: 640, margin: '16px auto', paddingInline: 16 }}>
       <Logo />
-      <UiLanguageMenu />
       <h1>{t('results.title')}</h1>
       <p style={{ fontSize: 20 }}>
         {t('results.score')} <strong>{results.scoredPoints}</strong> / {results.maxPoints}
         {results.pendingGrading > 0 && <span> {t('results.pendingSuffix', { count: results.pendingGrading })}</span>}
       </p>
-      <p>
-        <QuestionLanguageControl
-          languages={results.offered_languages}
-          value={contentLanguage}
-          onChange={setContentLanguage}
-          label={t('play.questionLanguage')}
-        />
-      </p>
+      <div style={{ marginBottom: 12 }}>
+        <QuestionLanguageBar idPrefix="qlang-results" languages={offered} value={contentLanguage} onChange={setContentLanguage} />
+      </div>
 
       {results.breakdown.map((item, i) => {
         const correctChoiceIds = new Set(item.question.choices.filter((c) => c.is_correct).map((c) => c.id));
-        const questionText = resolveField(item.question, 'text', contentLanguage, results.base_language);
+        const questionText = resolveFieldWithLang(item.question, 'text', contentLanguage, base);
         return (
           <div
             key={item.question.id}
             style={{ border: '1px solid var(--border-subtle)', padding: 12, marginBottom: 8, background: 'var(--surface)', borderRadius: 8 }}
           >
             <p style={{ fontWeight: 'bold' }}>
-              {i + 1}. {questionText} {t('results.ptsSuffix', { points: item.question.points })}
+              {i + 1}.{' '}
+              <span lang={questionText.lang} dir={dirOf(questionText.lang)}>
+                {questionText.text}
+              </span>{' '}
+              {t('results.ptsSuffix', { points: item.question.points })}
             </p>
             {item.question.type !== 'text' ? (
-              <ul>
+              <ul dir={dirOf(contentLanguage)}>
                 {item.question.choices.map((c) => {
                   const wasSelected = item.answer?.selected_choice_ids.includes(c.id) ?? false;
                   const isCorrectChoice = correctChoiceIds.has(c.id);
+                  const choiceText = resolveFieldWithLang(c, 'text', contentLanguage, base);
                   return (
                     <li
                       key={c.id}
@@ -84,7 +88,7 @@ export function Results() {
                         color: isCorrectChoice ? 'var(--success)' : wasSelected ? 'var(--danger)' : undefined,
                       }}
                     >
-                      {resolveField(c, 'text', contentLanguage, results.base_language)} {wasSelected ? t('results.yourAnswer') : ''}{' '}
+                      <span lang={choiceText.lang}>{choiceText.text}</span> {wasSelected ? t('results.yourAnswer') : ''}{' '}
                       {isCorrectChoice ? t('results.correct') : ''}
                     </li>
                   );
@@ -92,7 +96,8 @@ export function Results() {
               </ul>
             ) : (
               <p>
-                {t('results.yourAnswerLabel')} {item.answer?.text_answer || <em>{t('results.noAnswer')}</em>}
+                {t('results.yourAnswerLabel')}{' '}
+                {item.answer?.text_answer ? <span dir="auto">{item.answer.text_answer}</span> : <em>{t('results.noAnswer')}</em>}
               </p>
             )}
             <p>

@@ -45,22 +45,22 @@ function isUniqueViolation(err: unknown): boolean {
 joinRouter.post('/join', (req, res) => {
   const { joinCode, displayName, rejoinSecret } = req.body ?? {};
   if (typeof joinCode !== 'string' || !joinCode.trim()) {
-    return res.status(400).json({ error: 'joinCode is required' });
+    return res.status(400).json({ error: 'joinCode is required', code: 'JOIN_CODE_REQUIRED' });
   }
   const name = typeof displayName === 'string' ? normalizeDisplayName(displayName) : '';
   if (!name) {
-    return res.status(400).json({ error: 'displayName is required' });
+    return res.status(400).json({ error: 'displayName is required', code: 'NAME_REQUIRED' });
   }
 
   const sessionRow = db.prepare('SELECT * FROM sessions WHERE join_code = ?').get(joinCode.trim().toUpperCase()) as
     | SessionRow
     | undefined;
   if (!sessionRow) {
-    return res.status(404).json({ error: 'Invalid join code' });
+    return res.status(404).json({ error: 'Invalid join code', code: 'INVALID_CODE' });
   }
   const session = refreshSessionStatus(sessionRow);
   if (session.status === 'ended') {
-    return res.status(400).json({ error: 'This session has already ended' });
+    return res.status(400).json({ error: 'This session has already ended', code: 'SESSION_ENDED' });
   }
 
   // Names that differ only in case, spacing or invisible characters count as the same name, so a

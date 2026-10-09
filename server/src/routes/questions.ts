@@ -5,6 +5,7 @@ import { parseQuestionInput } from '../lib/questionInput';
 import { uploadImage } from '../middleware/upload';
 import { deleteImageFile } from '../lib/uploads';
 import { translationColumns, translationValues } from '../lib/sqlTranslations';
+import { invalidateQuizLanguages } from '../lib/quizLanguages';
 
 export const questionsRouter = Router();
 questionsRouter.use(requireAdmin);
@@ -64,6 +65,7 @@ questionsRouter.put('/:id', (req, res) => {
     );
   });
   update();
+  invalidateQuizLanguages(question.quiz_id);
 
   res.json({ quiz: getQuizWithQuestions(question.quiz_id) });
 });
@@ -74,6 +76,7 @@ questionsRouter.delete('/:id', (req, res) => {
 
   db.prepare('DELETE FROM questions WHERE id = ?').run(question.id);
   deleteImageFile(question.image_path);
+  invalidateQuizLanguages(question.quiz_id);
 
   const remaining = db
     .prepare('SELECT id FROM questions WHERE quiz_id = ? ORDER BY sort_order')

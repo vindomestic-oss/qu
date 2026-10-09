@@ -1,54 +1,95 @@
-import { createContext, useContext, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
-import { DICTIONARIES, RTL_LANGUAGES, UI_LANGUAGES, type Language } from './translations';
+import { useLocation } from 'react-router-dom';
+import { DICTIONARIES, UI_LANGUAGES, type UiLanguage } from './translations';
+import { dirOf } from './languageMeta';
 
 const STORAGE_KEY = 'quiz_ui_language';
 
-function isUiLanguage(value: string | null): value is Language {
-  return value !== null && (UI_LANGUAGES as string[]).includes(value);
+function isUiLanguage(value: string | null): value is UiLanguage {
+  return value !== null && (UI_LANGUAGES as readonly string[]).includes(value);
 }
 
 // Interface language is scoped to this browser tab (sessionStorage), not the device, so the
 // next participant on a shared iPad always starts from English rather than inheriting a
-// previous child's choice. Older builds stored this in localStorage; drop any such leftover.
-localStorage.removeItem(STORAGE_KEY);
-
-function detectDefaultLanguage(): Language {
-  const stored = sessionStorage.getItem(STORAGE_KEY);
-  if (isUiLanguage(stored)) return stored;
+// previous child's choice. The device locale is ignored on purpose.
+function detectDefaultLanguage(): UiLanguage {
+  try {
+    // Older builds stored this in localStorage (with codes like 'lt'); drop any leftover.
+    localStorage.removeItem(STORAGE_KEY);
+  } catch {
+    // storage blocked
+  }
+  try {
+    const stored = sessionStorage.getItem(STORAGE_KEY);
+    if (isUiLanguage(stored)) return stored;
+  } catch {
+    // storage blocked
+  }
   return 'en';
 }
 
 interface LanguageContextValue {
-  language: Language;
-  setLanguage: (lang: Language) => void;
+  uiLanguage: UiLanguage;
+  setUiLanguage: (lang: UiLanguage) => void;
   isRtl: boolean;
   t: (key: string, vars?: Record<string, string | number>) => string;
+  /** Plural-aware lookup: `${baseKey}.${Intl plural category}`, falling back to `${baseKey}.other`; replaces {n}. */
+  tCount: (baseKey: string, n: number) => string;
+  /** True while a quiz is running: the interface-language menu is hidden (decision Q-ui-lang-after-join). */
+  uiLanguageLocked: boolean;
+  setUiLanguageLocked: (locked: boolean) => void;
 }
 
 const LanguageContext = createContext<LanguageContextValue | undefined>(undefined);
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
-  const [language, setLanguageState] = useState<Language>(detectDefaultLanguage);
+  const [uiLanguage, setUiLanguageState] = useState<UiLanguage>(detectDefaultLanguage);
+  const [uiLanguageLocked, setUiLanguageLocked] = useState(false);
+  const { pathname } = useLocation();
+  // /admin/** always stays English and LTR.
+  const isAdmin = pathname.startsWith('/admin');
+  const activeLanguage: UiLanguage = isAdmin ? 'en' : uiLanguage;
+  const isRtl = dirOf(activeLanguage) === 'rtl';
 
-  function setLanguage(lang: Language) {
-    sessionStorage.setItem(STORAGE_KEY, lang);
-    setLanguageState(lang);
-  }
-
-  function t(key: string, vars?: Record<string, string | number>): string {
-    let str = DICTIONARIES[language][key] ?? DICTIONARIES.en[key] ?? key;
-    if (vars) {
-      for (const [k, v] of Object.entries(vars)) {
-        str = str.replace(`{${k}}`, String(v));
-      }
+  const setUiLanguage = useCallback((lang: UiLanguage) => {
+    try {
+      sessionStorage.setItem(STORAGE_KEY, lang);
+    } catch {
+      // storage blocked: the choice applies to this page view only
     }
-    return str;
-  }
+    setUiLanguageState(lang);
+  }, []);
 
-  const isRtl = RTL_LANGUAGES.includes(language);
+  useEffect(() => {
+    document.documentElement.lang = activeLanguage;
+    document.documentElement.dir = isRtl ? 'rtl' : 'ltr';
+  }, [activeLanguage, isRtl]);
 
-  return <LanguageContext.Provider value={{ language, setLanguage, isRtl, t }}>{children}</LanguageContext.Provider>;
+  const value = useMemo<LanguageContextValue>(() => {
+    const dict = DICTIONARIES[activeLanguage];
+    const has = (key: string) => key in dict || key in DICTIONARIES.en;
+    const t = (key: string, vars?: Record<string, string | number>) => {
+      let str = dict[key] ?? DICTIONARIES.en[key] ?? key;
+      if (vars) {
+        for (const [k, v] of Object.entries(vars)) str = str.replace(`{${k}}`, String(v));
+      }
+      return str;
+    };
+    const tCount = (baseKey: string, n: number) => {
+      let category = 'other';
+      try {
+        category = new Intl.PluralRules(activeLanguage).select(n);
+      } catch {
+        // keep 'other'
+      }
+      const key = has(`${baseKey}.${category}`) ? `${baseKey}.${category}` : `${baseKey}.other`;
+      return t(key, { n });
+    };
+    return { uiLanguage, setUiLanguage, isRtl, t, tCount, uiLanguageLocked, setUiLanguageLocked };
+  }, [activeLanguage, uiLanguage, setUiLanguage, isRtl, uiLanguageLocked]);
+
+  return <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>;
 }
 
 export function useLanguage(): LanguageContextValue {

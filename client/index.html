@@ -7,7 +7,9 @@
     <title>EJKA Quiz</title>
     <script>(function(){var t=null;try{t=localStorage.getItem('quiz_ui_theme')}catch(e){}
 if(t!=='light'&&t!=='dark'){t=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'}
-document.documentElement.dataset.theme=t;})();</script>
+document.documentElement.dataset.theme=t;
+var l=null;try{l=sessionStorage.getItem('quiz_ui_language')}catch(e){}
+if(location.pathname.indexOf('/admin')!==0&&['en','de','he','ru'].indexOf(l)>=0){document.documentElement.lang=l;if(l==='he')document.documentElement.dir='rtl'}})();</script>
   </head>
   <body>
     <div id="root"></div>

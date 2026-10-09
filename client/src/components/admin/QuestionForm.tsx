@@ -105,6 +105,8 @@ export function QuestionForm({ initial, onSubmit, onCancel }: Props) {
 
   return (
     <form
+      aria-label="Question"
+      data-testid="question-form"
       onSubmit={handleSubmit}
       style={{ border: '1px solid var(--border)', padding: 16, marginTop: 12, display: 'flex', flexDirection: 'column', gap: 10 }}
     >

@@ -2,22 +2,20 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getMyQuiz, getMySession, submitChoiceAnswer, submitQuiz, submitTextAnswer } from '../../api/participant';
 import type { QuizMeta } from '../../api/participant';
-import type { ParticipantQuestion, QuizLanguageInfo, QuizSession } from '../../types';
+import type { ParticipantQuestion, QuizSession } from '../../types';
 import { ApiError } from '../../api/client';
 import { useParticipant } from '../../auth/ParticipantContext';
 import { getSocket, joinSessionRoom } from '../../lib/socket';
 import { useLanguage } from '../../i18n/LanguageContext';
 import { useContentLanguage } from '../../i18n/useContentLanguage';
-import { sanitizeOffered } from '../../i18n/contentLanguages';
-import { resolveField } from '../../i18n/resolveText';
-import { UiLanguageMenu } from '../../components/UiLanguageMenu';
-import { QuestionLanguageControl } from '../../components/QuestionLanguageControl';
+import { sanitizeOffered, type QuizLang } from '../../i18n/contentLanguages';
+import { resolveFieldWithLang } from '../../i18n/resolveText';
+import { dirOf } from '../../i18n/languageMeta';
+import { QuestionLanguageBar } from '../../components/participant/QuestionLanguageBar';
 import { Logo } from '../../components/Logo';
 
-const DEFAULT_LANGUAGE_INFO: QuizLanguageInfo = { base_language: 'en', offered_languages: ['en'] };
-
-function sanitizeLanguageInfo(info: QuizLanguageInfo): QuizLanguageInfo {
-  return { base_language: info.base_language, offered_languages: sanitizeOffered(info.offered_languages, info.base_language) };
+function offeredOf(info: { base_language: QuizLang; offered_languages: unknown }): QuizLang[] {
+  return sanitizeOffered(info.offered_languages, info.base_language);
 }
 
 function formatCountdown(endsAt: string, now: number): string {
@@ -54,12 +52,12 @@ function useImageReady(src: string | null): boolean {
 export function Play() {
   const navigate = useNavigate();
   const { leave } = useParticipant();
-  const { t, isRtl } = useLanguage();
+  const { t, setUiLanguageLocked } = useLanguage();
 
   const [session, setSession] = useState<QuizSession | null>(null);
   const [quizMeta, setQuizMeta] = useState<QuizMeta | null>(null);
-  const [languageInfo, setLanguageInfo] = useState<QuizLanguageInfo>(DEFAULT_LANGUAGE_INFO);
-  const { contentLanguage, setContentLanguage } = useContentLanguage(languageInfo.offered_languages);
+  const [offered, setOffered] = useState<QuizLang[] | null>(null);
+  const { contentLanguage, base, setContentLanguage } = useContentLanguage(offered);
   const [questions, setQuestions] = useState<ParticipantQuestion[] | null>(null);
   const [index, setIndex] = useState(0);
   const [now, setNow] = useState(Date.now());
@@ -79,7 +77,7 @@ export function Play() {
       const { session, quiz, questions, participant } = await getMyQuiz();
       setSession(session);
       setQuizMeta(quiz);
-      setLanguageInfo(sanitizeLanguageInfo(quiz));
+      setOffered(offeredOf(quiz));
       setQuestions(questions);
       setSubmitted(Boolean(participant.submitted_at));
     } catch (err) {
@@ -98,7 +96,7 @@ export function Play() {
       try {
         const { session, quiz, participant } = await getMySession();
         setSession(session);
-        if (quiz) setLanguageInfo(sanitizeLanguageInfo(quiz));
+        if (quiz) setOffered(offeredOf(quiz));
         setSubmitted(Boolean(participant.submitted_at));
         if (session.status === 'ended') {
           goToResults();
@@ -125,6 +123,12 @@ export function Play() {
     return () => clearInterval(tick);
   }, []);
 
+  // The interface-language menu is offered in the waiting room only (decision Q-ui-lang-after-join).
+  useEffect(() => {
+    setUiLanguageLocked(session?.status === 'active');
+    return () => setUiLanguageLocked(false);
+  }, [session?.status, setUiLanguageLocked]);
+
   // Fallback poll of session status while waiting, in case the socket event is missed.
   useEffect(() => {
     if (!session || session.status !== 'pending') return;
@@ -132,7 +136,7 @@ export function Play() {
       try {
         const { session: updated, quiz, participant } = await getMySession();
         setSession(updated);
-        if (quiz) setLanguageInfo(sanitizeLanguageInfo(quiz));
+        if (quiz) setOffered(offeredOf(quiz));
         setSubmitted(Boolean(participant.submitted_at));
         if (updated.status === 'active') await loadQuiz();
         if (updated.status === 'ended') goToResults();
@@ -225,29 +229,28 @@ export function Play() {
 
   if (session && session.status === 'pending') {
     return (
-      <div dir={isRtl ? 'rtl' : 'ltr'} style={{ maxWidth: 480, margin: '24px auto', textAlign: 'center' }}>
+      <div style={{ maxWidth: 480, margin: '24px auto', paddingInline: 16, textAlign: 'center' }}>
         <Logo />
-        <UiLanguageMenu />
         <h1>{t('play.youreIn')}</h1>
         <p>{t('play.waitingForHost')}</p>
         <p>
-          {t('play.joinCode')} <strong style={{ fontSize: 24, letterSpacing: 2 }}>{session.join_code}</strong>
+          {t('play.joinCode')}{' '}
+          <strong dir="ltr" style={{ fontSize: 24, letterSpacing: 2 }}>
+            {session.join_code}
+          </strong>
         </p>
-        <p>
-          <QuestionLanguageControl
-            languages={languageInfo.offered_languages}
-            value={contentLanguage}
-            onChange={setContentLanguage}
-            label={t('play.questionLanguage')}
-          />
-        </p>
+        {offered && (
+          <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 16, display: 'flex', justifyContent: 'center' }}>
+            <QuestionLanguageBar idPrefix="qlang-wait" languages={offered} value={contentLanguage} onChange={setContentLanguage} />
+          </div>
+        )}
       </div>
     );
   }
 
   if (submitted) {
     return (
-      <div dir={isRtl ? 'rtl' : 'ltr'} style={{ maxWidth: 480, margin: '24px auto', textAlign: 'center' }}>
+      <div style={{ maxWidth: 480, margin: '24px auto', paddingInline: 16, textAlign: 'center' }}>
         <Logo />
         <h1>{t('play.submittedTitle')}</h1>
         <p>{t('play.submittedBody')}</p>
@@ -268,34 +271,35 @@ export function Play() {
   }
 
   const question = questions[index];
-  const questionText = resolveField(question, 'text', contentLanguage, languageInfo.base_language);
-  const quizTitle = resolveField(quizMeta, 'title', contentLanguage, languageInfo.base_language);
+  const questionText = resolveFieldWithLang(question, 'text', contentLanguage, base);
+  const quizTitle = resolveFieldWithLang(quizMeta, 'title', contentLanguage, base);
   const hasAnswer =
     question.type === 'text'
       ? Boolean(question.myAnswer?.text_answer?.trim())
       : Boolean(question.myAnswer?.selected_choice_ids.length);
 
   return (
-    <div dir={isRtl ? 'rtl' : 'ltr'} style={{ maxWidth: 640, margin: '16px auto' }}>
+    <div style={{ maxWidth: 640, margin: '16px auto' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-        <h1>{quizTitle}</h1>
+        <h1 lang={quizTitle.lang}>
+          <span dir={dirOf(quizTitle.lang)}>{quizTitle.text}</span>
+        </h1>
         <div>
           {t('play.timeLeft')} <strong>{session.ends_at ? formatCountdown(session.ends_at, now) : '--'}</strong>
         </div>
       </div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
-        <p style={{ margin: 0 }}>{t('play.questionOf', { n: index + 1, total: questions.length })}</p>
-        <QuestionLanguageControl
-          languages={languageInfo.offered_languages}
-          value={contentLanguage}
-          onChange={setContentLanguage}
-          label={t('play.questionLanguage')}
-        />
-      </div>
+      <p style={{ margin: '0 0 8px' }}>{t('play.questionOf', { n: index + 1, total: questions.length })}</p>
       {error && <p style={{ color: 'var(--danger)' }}>{error}</p>}
 
       <div style={{ border: '1px solid var(--border)', padding: 16, background: 'var(--surface)', borderRadius: 8 }}>
-        <p style={{ fontWeight: 'bold' }}>{questionText}</p>
+        <div className="card-head" style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', minHeight: 44, marginBlockEnd: 8 }}>
+          {offered && (
+            <QuestionLanguageBar idPrefix="qlang-play" languages={offered} value={contentLanguage} onChange={setContentLanguage} />
+          )}
+        </div>
+        <p lang={questionText.lang} dir={dirOf(questionText.lang)} style={{ fontWeight: 'bold' }}>
+          {questionText.text}
+        </p>
         {question.image_path && (
           <img
             src={question.image_path}
@@ -307,18 +311,21 @@ export function Play() {
         {!imageReady ? (
           <p style={{ color: 'var(--text-muted)' }}>{t('play.loadingImage')}</p>
         ) : question.type !== 'text' ? (
-          <div>
-            {question.choices.map((c) => (
-              <label key={c.id} style={{ display: 'block', marginBottom: 8 }}>
-                <input
-                  type={question.type === 'single' ? 'radio' : 'checkbox'}
-                  name={`question-${question.id}`}
-                  checked={question.myAnswer?.selected_choice_ids.includes(c.id) ?? false}
-                  onChange={(e) => handleChoiceChange(question, c.id, e.target.checked)}
-                />{' '}
-                {resolveField(c, 'text', contentLanguage, languageInfo.base_language)}
-              </label>
-            ))}
+          <div dir={dirOf(contentLanguage)}>
+            {question.choices.map((c) => {
+              const choiceText = resolveFieldWithLang(c, 'text', contentLanguage, base);
+              return (
+                <label key={c.id} style={{ display: 'block', marginBottom: 8 }}>
+                  <input
+                    type={question.type === 'single' ? 'radio' : 'checkbox'}
+                    name={`question-${question.id}`}
+                    checked={question.myAnswer?.selected_choice_ids.includes(c.id) ?? false}
+                    onChange={(e) => handleChoiceChange(question, c.id, e.target.checked)}
+                  />{' '}
+                  <span lang={choiceText.lang}>{choiceText.text}</span>
+                </label>
+              );
+            })}
           </div>
         ) : (
           <div>
@@ -326,6 +333,7 @@ export function Play() {
               value={question.myAnswer?.text_answer ?? ''}
               onChange={(e) => handleTextChange(question, e.target.value)}
               onBlur={() => handleTextSave(question)}
+              dir="auto"
               style={{ width: '100%', minHeight: 100 }}
             />
             <button
@@ -337,7 +345,7 @@ export function Play() {
                 : t('play.saveAnswer')}
             </button>
             {textSaveStatus?.questionId === question.id && textSaveStatus.state === 'saved' && (
-              <span style={{ color: 'var(--success)', marginLeft: 8 }}>{t('play.saved')}</span>
+              <span style={{ color: 'var(--success)', marginInlineStart: 8 }}>{t('play.saved')}</span>
             )}
           </div>
         )}

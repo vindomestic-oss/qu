@@ -6,6 +6,7 @@ import { deleteImageFile } from '../lib/uploads';
 import { createUniqueJoinCode, refreshSessionStatus, SessionRow } from '../lib/sessions';
 import { translationColumns, translationValues } from '../lib/sqlTranslations';
 import { CONTENT_LANGS, isQuizLang } from '../lib/languages';
+import { invalidateQuizLanguages } from '../lib/quizLanguages';
 
 export const quizzesRouter = Router();
 quizzesRouter.use(requireAdmin);
@@ -157,6 +158,7 @@ quizzesRouter.put('/:id', (req, res) => {
     baseLanguage,
     quizId,
   );
+  invalidateQuizLanguages(quizId);
 
   res.json({ quiz: getQuizWithQuestions(quizId) });
 });
@@ -171,6 +173,7 @@ quizzesRouter.delete('/:id', (req, res) => {
   if (result.changes === 0) return res.status(404).json({ error: 'Quiz not found' });
 
   images.forEach((row) => deleteImageFile(row.image_path));
+  invalidateQuizLanguages(quizId);
   res.status(204).end();
 });
 
@@ -206,7 +209,8 @@ quizzesRouter.post('/:id/questions', (req, res) => {
     return questionId;
   });
 
-  const questionId = createQuestion();
+  createQuestion();
+  invalidateQuizLanguages(quizId);
   res.status(201).json({ quiz: getQuizWithQuestions(quizId) });
 });
 

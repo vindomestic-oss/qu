@@ -17,7 +17,8 @@ import { ApiError } from '../../api/client';
 import { QuestionForm } from '../../components/admin/QuestionForm';
 import { SessionPanel } from '../../components/admin/SessionPanel';
 import { TranslationFields } from '../../components/admin/TranslationFields';
-import { flattenTranslations, unflattenTranslations, type ContentLangCode } from '../../i18n/contentLanguages';
+import { flattenTranslations, unflattenTranslations, QUIZ_LANGS, type ContentLangCode, type QuizLang } from '../../i18n/contentLanguages';
+import { LANGUAGE_META } from '../../i18n/languageMeta';
 
 export function QuizEditor() {
   const { id } = useParams();
@@ -37,6 +38,7 @@ export function QuizEditor() {
     unflattenTranslations('description', undefined),
   );
   const [timeLimitMinutes, setTimeLimitMinutes] = useState(10);
+  const [baseLanguage, setBaseLanguage] = useState<QuizLang>('en');
   const [savingMeta, setSavingMeta] = useState(false);
 
   const [formMode, setFormMode] = useState<'none' | 'create' | number>('none');
@@ -50,6 +52,7 @@ export function QuizEditor() {
       setDescription(quiz.description ?? '');
       setDescriptionTranslations(unflattenTranslations('description', quiz));
       setTimeLimitMinutes(Math.round(quiz.time_limit_seconds / 60));
+      setBaseLanguage(quiz.base_language);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Failed to load quiz');
     } finally {
@@ -82,6 +85,7 @@ export function QuizEditor() {
         ...flattenTranslations('title', titleTranslations),
         ...flattenTranslations('description', descriptionTranslations),
         time_limit_seconds: timeLimitMinutes * 60,
+        base_language: baseLanguage,
       });
       setQuiz(quiz);
     } catch (err) {
@@ -181,6 +185,20 @@ export function QuizEditor() {
             required
             style={{ display: 'block', width: '100%' }}
           />
+        </label>
+        <label>
+          Main language of the texts
+          <select
+            value={baseLanguage}
+            onChange={(e) => setBaseLanguage(e.target.value as QuizLang)}
+            style={{ display: 'block' }}
+          >
+            {QUIZ_LANGS.map((code) => (
+              <option key={code} value={code}>
+                {LANGUAGE_META[code].endonym}
+              </option>
+            ))}
+          </select>
         </label>
         <button type="submit" disabled={savingMeta} style={{ alignSelf: 'flex-start' }}>
           {savingMeta ? 'Saving…' : 'Save quiz details'}

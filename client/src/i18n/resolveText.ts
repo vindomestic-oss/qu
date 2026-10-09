@@ -1,15 +1,19 @@
-import type { Language } from './translations';
+import type { QuizLang } from './contentLanguages';
 
 /**
- * Returns the `${field}_${language}` override if present, falling back to the original
- * `${field}` column — which holds the quiz's base language (English unless the quiz
- * overrides it with a non-English base, e.g. the German-only Chidon 5787 quizzes).
+ * The text to show for `field` in `lang`, and the language it is really in. The base columns hold
+ * the quiz's base language (English unless the quiz overrides it, e.g. the German-only Chidon 5787
+ * quizzes); `${field}_${lang}` holds a translation. Falls back to the base text, marked with the base.
  */
-export function resolveField(row: unknown, field: string, language: Language, base: Language = 'en'): string {
+export function resolveFieldWithLang(row: unknown, field: string, lang: QuizLang, base: QuizLang): { text: string; lang: QuizLang } {
   const r = row as Record<string, unknown>;
-  if (language !== base) {
-    const override = r[`${field}_${language}`];
-    if (typeof override === 'string' && override) return override;
-  }
-  return (r[field] as string) ?? '';
+  const baseText = { text: (r[field] as string) ?? '', lang: base };
+  if (lang === base || lang === 'en') return baseText;
+  const override = r[`${field}_${lang}`];
+  if (typeof override === 'string' && override.trim()) return { text: override, lang };
+  return baseText;
+}
+
+export function resolveField(row: unknown, field: string, lang: QuizLang, base: QuizLang = 'en'): string {
+  return resolveFieldWithLang(row, field, lang, base).text;
 }

@@ -39,6 +39,7 @@
   --text-muted: #5f6b7a; /* 5.43 on --bg, 5.06 on --surface-alt */
   --surface: #ffffff;
   --surface-alt: #f7f7f7;
+  --surface-hover: #f1f4f9; /* text 13.31, muted 4.92 */
   --border: #ccc; /* decorative */
   --border-subtle: #ddd; /* decorative table dividers only */
   --border-strong: #999;
@@ -77,6 +78,7 @@
   --text-muted: #aab3bf; /* 8.71 on --bg, 6.81 on --surface-alt */
   --surface: #1c2026;
   --surface-alt: #252a32; /* text 12.73, muted 6.81, link 7.10, danger 6.32, success 8.47 */
+  --surface-hover: #303743; /* text 10.57, muted 5.65 */
   --border: #59626e;
   --border-subtle: #4a525e; /* 2.34 on --bg; decorative table dividers only */
   --border-strong: #8a94a1;
@@ -243,3 +245,138 @@ label {
   background: var(--surface-alt);
   border-color: var(--input-border); /* --border-strong would drop below 3:1 in light; iPad keeps :hover after a tap */
 }
+
+/* Language dropdown (wish 1): the interface-language menu and, for 3+ languages, the question-language menu. */
+.lang-menu-bar {
+  display: flex;
+  align-items: center;
+}
+.lang-menu {
+  position: relative;
+  display: inline-block;
+}
+.lang-menu__trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding-block: 0;
+  padding-inline: 12px;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--input-border);
+  font-weight: 600;
+}
+.lang-menu__trigger:hover:not(:disabled) {
+  background: var(--surface-hover);
+  border-color: var(--border-strong);
+}
+.lang-menu__trigger[aria-expanded='true'] .lang-menu__chevron {
+  transform: rotate(180deg);
+}
+.lang-menu__stack {
+  display: inline-grid;
+}
+.lang-menu__stack > span {
+  grid-area: 1 / 1;
+}
+.lang-menu__stack > span:not(.is-current) {
+  visibility: hidden;
+}
+.lang-menu__count {
+  font-weight: 400;
+  font-size: 14px;
+  color: var(--text-muted);
+}
+.lang-menu__panel {
+  position: absolute;
+  inset-block-start: calc(100% + 4px);
+  inset-inline-end: 0;
+  z-index: 50;
+  min-inline-size: 100%;
+  max-block-size: min(70vh, 36rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+}
+.lang-menu__panel[hidden] {
+  display: none;
+}
+.lang-menu__option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  inline-size: 100%;
+  min-height: 44px;
+  padding-block: 0;
+  padding-inline: 9px 12px;
+  text-align: start;
+  white-space: nowrap;
+  font-weight: 400;
+  background: transparent;
+  color: var(--text);
+  border: 0;
+  border-inline-start: 3px solid transparent;
+  border-radius: 4px;
+}
+.lang-menu__option:hover:not(:disabled) {
+  background: var(--surface-hover);
+  border-color: transparent;
+}
+.lang-menu__option[aria-current='true'],
+.lang-menu__option[aria-current='true']:hover:not(:disabled) {
+  background: var(--selected-bg);
+  color: var(--selected-text);
+  border-inline-start-color: var(--selected-border);
+  font-weight: 600;
+}
+.lang-menu__check {
+  inline-size: 1em;
+  flex: none;
+}
+.lang-menu__secondary {
+  margin-inline-start: auto;
+  padding-inline-start: 16px;
+  font-size: 14px;
+  color: var(--text-muted);
+}
+.lang-menu__option[aria-current='true'] .lang-menu__secondary {
+  color: inherit;
+}
+
+/* Question-language control (wish 2; wish 9 finalises its place in the card head). */
+.qlang {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.qlang__label {
+  font-size: 14px;
+  color: var(--text-muted);
+}
+.qlang__static {
+  font-weight: 600;
+}
+.qlang .toggle-chip {
+  min-height: 44px;
+  padding-block: 0;
+  padding-inline: 14px;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--input-border);
+}
+.qlang .toggle-chip:hover:not(:disabled) {
+  background: var(--surface-hover);
+}
+.qlang__note {
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
