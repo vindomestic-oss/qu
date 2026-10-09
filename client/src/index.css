@@ -389,3 +389,68 @@ label {
   color: var(--text-muted);
 }
 
+/* QR codes (wish 5): always black on white, never inverted, nothing on top. */
+.qr-card {
+  background: var(--qr-bg);
+  border-radius: 12px;
+  line-height: 0;
+}
+.qr-locked {
+  aspect-ratio: 1 / 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  border: 3px dashed var(--border);
+  border-radius: 12px;
+  color: var(--text-muted);
+  font-weight: 700;
+  font-size: clamp(16px, 3vh, 32px);
+  padding: 8px;
+}
+.join-qr__url {
+  margin: 6px 0 0;
+  font-size: 14px;
+  color: var(--text-muted);
+  overflow-wrap: anywhere;
+}
+.field-highlight {
+  outline: 3px solid var(--link);
+  outline-offset: 1px;
+}
+.note-success {
+  margin: 0;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: var(--success-bg);
+  color: var(--on-success-bg);
+  font-size: 14px;
+}
+.btn-outline-danger,
+.btn-outline-danger:hover:not(:disabled) {
+  background: transparent;
+  color: var(--danger);
+  border-color: var(--danger);
+}
+.btn-outline-danger:hover:not(:disabled) {
+  background: var(--danger-bg);
+  color: var(--on-danger-bg);
+}
+.run-badge {
+  display: inline-block;
+  margin-inline-start: 8px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.run-badge--live {
+  background: var(--success-bg);
+  color: var(--on-success-bg);
+}
+.run-badge--lobby {
+  background: var(--surface-alt);
+  color: var(--link);
+  border: 1px solid var(--border-subtle);
+}
+

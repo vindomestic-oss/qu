@@ -1,34 +1,35 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { createOrGetSession, endSession, getSession, startSession } from '../../api/sessions';
+import { createOrGetSession, endSession, getSession, setJoiningLocked, startSession } from '../../api/sessions';
 import type { QuizSession } from '../../types';
 import { ApiError } from '../../api/client';
 import { useStaffLive } from '../../lib/useStaffLive';
 import { useLiveStatus } from '../../lib/useLiveStatus';
 import { LiveMonitor } from './LiveMonitor';
+import { JoinLinkActions } from './JoinLinkActions';
+import { JoinQrCode } from '../JoinQrCode';
+import { displayHost, formatJoinCode } from '../../lib/joinLink';
+import { formatCountdown } from '../../lib/time';
 
 interface Props {
   quizId: number;
   initialSession?: QuizSession;
   onSessionEnded?: () => void;
+  /** Called after create, start, end and lock, so the editor's session history refreshes at once. */
+  onSessionChanged?: () => void;
 }
 
-function formatCountdown(endsAt: string, now: number): string {
-  const remainingMs = new Date(endsAt).getTime() - now;
-  if (remainingMs <= 0) return '0:00';
-  const totalSeconds = Math.ceil(remainingMs / 1000);
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-  return `${minutes}:${seconds.toString().padStart(2, '0')}`;
-}
-
-export function SessionPanel({ quizId, initialSession, onSessionEnded }: Props) {
+export function SessionPanel({ quizId, initialSession, onSessionEnded, onSessionChanged }: Props) {
   const [session, setSession] = useState<QuizSession | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [now, setNow] = useState(Date.now());
+  const [now, setNow] = useState(() => Date.now());
   const onSessionEndedRef = useRef(onSessionEnded);
-  onSessionEndedRef.current = onSessionEnded;
+  const onSessionChangedRef = useRef(onSessionChanged);
+  useEffect(() => {
+    onSessionEndedRef.current = onSessionEnded;
+    onSessionChangedRef.current = onSessionChanged;
+  });
 
   // Restores an in-progress session after a page reload/navigation, since this
   // component otherwise starts with no memory of a session created earlier.
@@ -103,6 +104,7 @@ export function SessionPanel({ quizId, initialSession, onSessionEnded }: Props) 
     try {
       const { session } = await createOrGetSession(quizId);
       setSession(session);
+      onSessionChangedRef.current?.();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Failed to create session');
     } finally {
@@ -118,6 +120,7 @@ export function SessionPanel({ quizId, initialSession, onSessionEnded }: Props) 
       const { session: updated } = await startSession(session.id);
       seqRef.current += 1;
       setSession(updated);
+      onSessionChangedRef.current?.();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Failed to start session');
     } finally {
@@ -134,11 +137,83 @@ export function SessionPanel({ quizId, initialSession, onSessionEnded }: Props) 
       const { session: updated } = await endSession(session.id);
       seqRef.current += 1;
       setSession(updated);
+      onSessionChangedRef.current?.();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Failed to end session');
     } finally {
       setBusy(false);
     }
+  }
+
+  async function handleToggleLock() {
+    if (!session) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const { session: updated } = await setJoiningLocked(session.id, !session.joining_locked);
+      setSession(updated);
+      onSessionChangedRef.current?.();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Failed to change joining');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const joinedCount = live.data?.participants.length ?? 0;
+
+  function joinBlock(s: QuizSession) {
+    return (
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'center', marginBottom: 12 }}>
+        <JoinQrCode code={s.join_code} width="180px" locked={Boolean(s.joining_locked)} />
+        <div>
+          <div style={{ color: 'var(--text-muted)' }}>Join code</div>
+          <div
+            data-testid="join-code"
+            data-code={s.join_code}
+            style={{ fontSize: 32, fontWeight: 800, fontFamily: 'ui-monospace, Menlo, Consolas, monospace', letterSpacing: 2 }}
+          >
+            <bdi dir="ltr">{formatJoinCode(s.join_code)}</bdi>
+          </div>
+          <div style={{ color: 'var(--text-muted)', marginBottom: 8 }}>
+            <bdi dir="ltr">
+              {displayHost}/j/{s.join_code}
+            </bdi>
+          </div>
+          <JoinLinkActions code={s.join_code} />
+        </div>
+      </div>
+    );
+  }
+
+  function hostTools(s: QuizSession) {
+    return (
+      <>
+        <button type="button" onClick={handleToggleLock} disabled={busy}>
+          {s.joining_locked ? 'Unlock joining' : 'Lock joining'}
+        </button>{' '}
+        <Link to={`/admin/sessions/${s.id}/host`} target="_blank" rel="noopener">
+          Open projector screen
+        </Link>
+      </>
+    );
+  }
+
+  // Names stay in a collapsed block, so they are not shown if someone projects the editor (Q-names).
+  function joinedAndDetails(s: QuizSession) {
+    return (
+      <>
+        <p style={{ fontSize: 20, fontWeight: 700 }} aria-live="polite" aria-atomic="true">
+          Joined: {joinedCount}
+        </p>
+        <details>
+          <summary style={{ cursor: 'pointer', padding: '10px 0' }}>
+            Details (host only)
+          </summary>
+          <LiveMonitor sessionId={s.id} data={live.data} onRefresh={live.refresh} />
+        </details>
+      </>
+    );
   }
 
   return (
@@ -148,35 +223,33 @@ export function SessionPanel({ quizId, initialSession, onSessionEnded }: Props) 
 
       {!session && (
         <button onClick={handleCreateOrShow} disabled={busy}>
-          Create session / get join code
+          Start quiz (open lobby)
         </button>
       )}
 
       {session && session.status === 'pending' && (
         <div>
-          <p>
-            Join code: <strong style={{ fontSize: 24, letterSpacing: 2 }}>{session.join_code}</strong>
-          </p>
+          {joinBlock(session)}
           <button onClick={handleStart} disabled={busy}>
             Start now
-          </button>
-          <LiveMonitor sessionId={session.id} data={live.data} onRefresh={live.refresh} />
+          </button>{' '}
+          {hostTools(session)}
+          {joinedAndDetails(session)}
         </div>
       )}
 
       {session && session.status === 'active' && (
         <div>
+          {joinBlock(session)}
           <p>
-            Join code: <strong style={{ fontSize: 24, letterSpacing: 2 }}>{session.join_code}</strong>
-          </p>
-          <p>
-            Time remaining: <strong>{session.ends_at ? formatCountdown(session.ends_at, now) : '--'}</strong>
+            Time remaining: <strong>{session.ends_at ? formatCountdown(session.ends_at, now, session.started_at) : '--'}</strong>
           </p>
           <button onClick={handleEnd} disabled={busy}>
             End early
           </button>{' '}
+          {hostTools(session)}{' '}
           <Link to={`/admin/sessions/${session.id}/results`}>Grade finished participants</Link>
-          <LiveMonitor sessionId={session.id} data={live.data} onRefresh={live.refresh} />
+          {joinedAndDetails(session)}
         </div>
       )}
 

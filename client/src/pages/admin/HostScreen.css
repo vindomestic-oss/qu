@@ -1,0 +1,167 @@
+/* Projector screen (wish 4). Theme tokens only; the QR card itself is fixed black on white. */
+.host {
+  max-width: 1800px;
+  margin: 0 auto;
+  padding: 8px 24px 24px;
+}
+.host-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+}
+.host-header h1 {
+  margin: 0;
+  font-size: clamp(22px, 3vh, 34px);
+}
+.host-header__actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-inline-start: auto;
+}
+.host-pill {
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-weight: 600;
+  border: 1px solid var(--border-subtle);
+  background: var(--surface-alt);
+  color: var(--link);
+}
+.host-pill--active {
+  background: var(--success-bg);
+  color: var(--on-success-bg);
+  border-color: var(--success);
+}
+.host-pill--ended {
+  color: var(--text-muted);
+}
+.host-lobby {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+  align-items: center;
+  margin-top: 16px;
+}
+@media (min-width: 900px) {
+  .host-lobby {
+    grid-template-columns: auto 1fr;
+  }
+}
+.host-lobby__info p {
+  margin: 0;
+}
+.host-label {
+  color: var(--text-muted);
+  font-size: clamp(16px, 2.5vh, 28px);
+  margin-top: 12px !important;
+}
+/* Sizes follow the smaller of height and width, so the address and the code stay on one line on a
+   projector, a laptop and a phone. */
+.host-address {
+  font-size: clamp(18px, min(5vh, 2.6vw), 64px);
+  font-weight: 700;
+  white-space: nowrap;
+}
+.host-code {
+  font-weight: 800;
+  font-size: clamp(36px, min(12vh, 8vw), 160px);
+  line-height: 1;
+  font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+}
+.host-code--muted {
+  color: var(--text-muted);
+}
+.host-code-small {
+  font-weight: 800;
+  font-size: clamp(24px, min(6vh, 6vw), 64px);
+  line-height: 1;
+  font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+  margin: 8px 0 0;
+}
+.host-caption {
+  margin-top: 16px;
+  color: var(--text-muted);
+  font-size: clamp(14px, 2vh, 22px);
+}
+.host-caption p {
+  margin: 2px 0 !important;
+}
+/* The admin page is LTR; keep the Hebrew line aligned with the others. */
+.host-caption p[dir='rtl'] {
+  text-align: left;
+}
+.host-joined {
+  font-size: clamp(24px, 5vh, 56px);
+  font-weight: 700;
+  margin: 16px 0 !important;
+}
+.host-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.host-live {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  margin-top: 8px;
+}
+/* Longhands: a "font" shorthand after font-variant-numeric would reset the tabular digits, and the
+   countdown would shift sideways every second. */
+.host-countdown {
+  font-weight: 800;
+  font-size: clamp(56px, min(18vh, 24vw), 220px);
+  line-height: 1;
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font-variant-numeric: tabular-nums;
+  margin: 8px 0 0;
+}
+.host-live__join {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 16px;
+}
+.host-ended {
+  margin-top: 32px;
+}
+.host-details {
+  margin-top: 32px;
+}
+.host-details summary {
+  cursor: pointer;
+  padding: 10px 0; /* 44 px tap target; keeps the native disclosure marker */
+}
+.host-qr-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: safe center;
+  gap: 16px;
+  padding: 16px;
+  background: var(--qr-bg);
+  color: var(--qr-fg);
+}
+.host-qr-overlay .host-code {
+  margin: 0;
+  color: var(--qr-fg);
+}
+/* The overlay is always white: its text and the locked card use the QR colours, not theme tokens. */
+.host-qr-overlay .qr-locked {
+  color: var(--qr-fg);
+  border-color: #767676; /* theme-exempt: on the fixed white overlay */
+}
+.host-qr-overlay__close {
+  position: absolute;
+  inset-block-start: 16px;
+  inset-inline-end: 16px;
+}

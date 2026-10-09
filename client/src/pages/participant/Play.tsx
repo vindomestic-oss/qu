@@ -13,6 +13,7 @@ import { resolveFieldWithLang } from '../../i18n/resolveText';
 import { dirOf } from '../../i18n/languageMeta';
 import { QuestionLanguageBar } from '../../components/participant/QuestionLanguageBar';
 import { Logo } from '../../components/Logo';
+import { formatJoinCode } from '../../lib/joinLink';
 
 function offeredOf(info: { base_language: QuizLang; offered_languages: unknown }): QuizLang[] {
   return sanitizeOffered(info.offered_languages, info.base_language);
@@ -161,7 +162,8 @@ export function Play() {
     joinRoom('session', sessionId);
     const handler = async (updated: QuizSession) => {
       if (updated.id !== sessionId) return;
-      setSession(updated);
+      // Lock toggles also broadcast during the lobby; merge so nothing local is lost.
+      setSession((prev) => (prev ? { ...prev, ...updated } : updated));
       if (updated.status === 'active' && !questionsRef.current) await loadQuiz();
       if (updated.status === 'ended') goToResults();
     };
@@ -261,8 +263,8 @@ export function Play() {
         <p>{t('play.waitingForHost')}</p>
         <p>
           {t('play.joinCode')}{' '}
-          <strong dir="ltr" style={{ fontSize: 24, letterSpacing: 2 }}>
-            {session.join_code}
+          <strong style={{ fontSize: 24, letterSpacing: 2 }}>
+            <bdi dir="ltr">{formatJoinCode(session.join_code)}</bdi>
           </strong>
         </p>
         {offered && (

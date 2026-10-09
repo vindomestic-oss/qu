@@ -5,6 +5,8 @@ import { useAuth } from '../../auth/AuthContext';
 import { createQuiz, deleteQuiz, listQuizzes } from '../../api/quizzes';
 import type { Quiz } from '../../types';
 import { ApiError, downloadAdminFile } from '../../api/client';
+import { createOrGetSession } from '../../api/sessions';
+import { formatJoinCode } from '../../lib/joinLink';
 
 export function AdminDashboard() {
   const { admin, logout } = useAuth();
@@ -19,9 +21,9 @@ export function AdminDashboard() {
   const [creating, setCreating] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [backupError, setBackupError] = useState<string | null>(null);
+  const [startingId, setStartingId] = useState<number | null>(null);
 
   async function refresh() {
-    setLoading(true);
     try {
       const { quizzes } = await listQuizzes();
       setQuizzes(quizzes);
@@ -34,7 +36,32 @@ export function AdminDashboard() {
 
   useEffect(() => {
     refresh();
+    // Badges (Lobby / Live) go stale while the admin is on another tab or the projector screen.
+    const onFocus = () => refresh();
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') refresh();
+    };
+    window.addEventListener('focus', onFocus);
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      window.removeEventListener('focus', onFocus);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
   }, []);
+
+  // One open run per quiz (Q-parallel-runs): the server returns the open one or creates it.
+  async function handleStart(quizId: number) {
+    setError(null);
+    setStartingId(quizId);
+    try {
+      const { session } = await createOrGetSession(quizId);
+      navigate(`/admin/sessions/${session.id}/host`);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Failed to open the quiz run');
+    } finally {
+      setStartingId(null);
+    }
+  }
 
   function handleLogout() {
     logout();
@@ -133,29 +160,52 @@ export function AdminDashboard() {
         <p>No quizzes yet.</p>
       ) : (
         <ul style={{ listStyle: 'none', padding: 0 }}>
-          {quizzes.map((q) => (
-            <li
-              key={q.id}
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                padding: '10px 0',
-                borderBottom: '1px solid var(--border-subtle)',
-              }}
-            >
-              <div>
-                <strong>{q.title}</strong> — {q.question_count ?? 0} question(s),{' '}
-                {Math.round(q.time_limit_seconds / 60)} min
-              </div>
-              <div>
-                <Link to={`/admin/quizzes/${q.id}`} style={{ marginRight: 12 }}>
-                  Edit
-                </Link>
-                <button onClick={() => handleDelete(q.id)}>Delete</button>
-              </div>
-            </li>
-          ))}
+          {quizzes.map((q) => {
+            const open = q.open_session;
+            const hasQuestions = Boolean(q.question_count);
+            return (
+              <li
+                key={q.id}
+                style={{
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  gap: '8px 12px',
+                  padding: '10px 0',
+                  borderBottom: '1px solid var(--border-subtle)',
+                }}
+              >
+                <div style={{ flex: '1 1 260px' }}>
+                  <strong>{q.title}</strong>
+                  <div style={{ color: 'var(--text-muted)', fontSize: 14 }}>
+                    {q.question_count ?? 0} question(s) · {Math.round(q.time_limit_seconds / 60)} min
+                    {open && (
+                      <span className={open.status === 'active' ? 'run-badge run-badge--live' : 'run-badge run-badge--lobby'}>
+                        {open.status === 'active' ? 'Live' : 'Lobby'} · <bdi dir="ltr">{formatJoinCode(open.join_code)}</bdi>
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                    <button
+                      type="button"
+                      onClick={() => handleStart(q.id)}
+                      disabled={!hasQuestions || startingId === q.id}
+                    >
+                      {!open ? '▶ Start quiz' : open.status === 'pending' ? 'Open lobby' : 'Live – open'}
+                    </button>
+                    {!hasQuestions && <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>Add questions first</span>}
+                  </div>
+                  <Link to={`/admin/quizzes/${q.id}`}>Edit</Link>
+                  <button type="button" className="btn-outline-danger" onClick={() => handleDelete(q.id)}>
+                    Delete
+                  </button>
+                </div>
+              </li>
+            );
+          })}
         </ul>
       )}
 

@@ -52,7 +52,9 @@ joinRouter.post('/join', (req, res) => {
     return res.status(400).json({ error: 'displayName is required', code: 'NAME_REQUIRED' });
   }
 
-  const sessionRow = db.prepare('SELECT * FROM sessions WHERE join_code = ?').get(joinCode.trim().toUpperCase()) as
+  // Tolerant input: lower case, spaces and hyphens are fine ("abc-234"); the client maps Cyrillic look-alikes.
+  const code = joinCode.replace(/[\s-]/g, '').toUpperCase();
+  const sessionRow = db.prepare('SELECT * FROM sessions WHERE join_code = ?').get(code) as
     | SessionRow
     | undefined;
   if (!sessionRow) {
@@ -76,6 +78,10 @@ joinRouter.post('/join', (req, res) => {
 
   let participantId: number;
   let secret: string;
+  if (!existing && session.joining_locked) {
+    // People already in the session can still rejoin above; only new names are stopped.
+    return res.status(403).json({ error: 'Joining is closed', code: 'JOINING_LOCKED' });
+  }
   if (!existing) {
     secret = newSecret();
     try {

@@ -19,6 +19,7 @@ import { SessionPanel } from '../../components/admin/SessionPanel';
 import { TranslationFields } from '../../components/admin/TranslationFields';
 import { flattenTranslations, unflattenTranslations, QUIZ_LANGS, type ContentLangCode, type QuizLang } from '../../i18n/contentLanguages';
 import { LANGUAGE_META } from '../../i18n/languageMeta';
+import { formatJoinCode } from '../../lib/joinLink';
 
 export function QuizEditor() {
   const { id } = useParams();
@@ -209,6 +210,7 @@ export function QuizEditor() {
         quizId={quizId}
         initialSession={sessionHistory.find((s) => s.status !== 'ended')}
         onSessionEnded={refreshSessionHistory}
+        onSessionChanged={refreshSessionHistory}
       />
 
       {sessionHistory.length > 0 && (
@@ -217,7 +219,7 @@ export function QuizEditor() {
           <ul style={{ listStyle: 'none', padding: 0 }}>
             {sessionHistory.map((s) => (
               <li key={s.id} style={{ padding: '4px 0' }}>
-                {s.join_code} — {s.status}
+                <bdi dir="ltr">{formatJoinCode(s.join_code)}</bdi> — {s.status}
                 {s.started_at ? ` — started ${new Date(s.started_at).toLocaleString()}` : ''}{' '}
                 <Link to={`/admin/sessions/${s.id}/results`}>View results</Link>
               </li>

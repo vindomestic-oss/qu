@@ -1,8 +1,10 @@
 import { chromium } from 'playwright';
 import fs from 'fs';
+import os from 'os';
+import path from 'path';
 
 const BASE = process.env.E2E_BASE_URL || 'http://localhost:5173';
-const SHOT_DIR = process.env.SCREENS_DIR || 'C:/qu/screens';
+const SHOT_DIR = process.env.SCREENS_DIR || path.join(os.tmpdir(), 'qu-screens');
 const ADMIN_PASSWORD = process.env.E2E_ADMIN_PASSWORD ?? 'changeme123';
 // Browser channel: msedge by default; PW_CHANNEL= (empty) uses Playwright's bundled Chromium.
 const CHANNEL = process.env.PW_CHANNEL ?? 'msedge';
@@ -29,8 +31,8 @@ async function checkOverflow(page, name) {
 }
 
 async function shot(page, viewportName, pageName) {
-  const path = `${SHOT_DIR}/${viewportName}-${pageName}.png`;
-  await page.screenshot({ path, fullPage: true });
+  const file = path.join(SHOT_DIR, `${viewportName}-${pageName}.png`);
+  await page.screenshot({ path: file, fullPage: true });
 }
 
 async function main() {
@@ -64,9 +66,9 @@ async function main() {
   await qForm.getByRole('button', { name: /save question/i }).click();
   await setup.waitForTimeout(300);
 
-  await setup.getByRole('button', { name: /create session/i }).click();
+  await setup.getByRole('button', { name: /start quiz \(open lobby\)/i }).click();
   await setup.waitForTimeout(300);
-  const joinCodeText = await setup.locator('strong').filter({ hasText: /^[A-Z0-9]{6}$/ }).first().innerText();
+  const joinCodeText = await setup.getByTestId('join-code').getAttribute('data-code');
   log('setup', `quiz ${quizId} ready, join code ${joinCodeText}`);
 
   await setupCtx.close();
