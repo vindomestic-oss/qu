@@ -157,7 +157,7 @@ export function SessionResults() {
         <>
           <h2 style={{ marginTop: 32 }}>Grade text answers</h2>
           {session.status !== 'ended' && (
-            <p style={{ color: '#555' }}>
+            <p style={{ color: 'var(--text-muted)' }}>
               {notYetFinishedCount > 0
                 ? `${notYetFinishedCount} participant(s) haven't clicked "Finish" yet — their answers aren't shown here until they do.`
                 : 'All participants who have joined so far have finished — their answers are shown below.'}
