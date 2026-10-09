@@ -29,6 +29,8 @@ interface Props {
   onAddLanguage: (lang: ContentLangCode, anchor?: HTMLElement) => Promise<void>;
   /** The quiz's rubrics, in order (wish 10). */
   sections: QuizSection[];
+  /** Points a new question starts with (the quiz's default). */
+  defaultPoints?: number;
 }
 
 interface ChoiceState {
@@ -59,6 +61,7 @@ export function QuestionForm({
   onActiveLangChange,
   onAddLanguage,
   sections,
+  defaultPoints = 1,
 }: Props) {
   const [type, setType] = useState<QuestionType>(initial?.type ?? 'single');
   const [sectionId, setSectionId] = useState<number | null>(initial?.section_id ?? null);
@@ -68,7 +71,10 @@ export function QuestionForm({
     unflattenTranslations('text', initial),
   );
   // A string draft: clearing the field shows an empty field (not "0"), and typing never gives "03".
-  const [pointsText, setPointsText] = useState(String(initial?.points ?? 1));
+  const [pointsText, setPointsText] = useState(String(initial?.points ?? defaultPoints));
+  // Text questions only, for graders (wish 8): never shown to participants.
+  const [referenceAnswer, setReferenceAnswer] = useState(initial?.reference_answer ?? '');
+  const [graderNotes, setGraderNotes] = useState(initial?.grader_notes ?? '');
   const [choices, setChoices] = useState<ChoiceState[]>(
     initial && initial.choices.length > 0
       ? initial.choices.map((c) => ({
@@ -148,6 +154,7 @@ export function QuestionForm({
         points: Number(pointsText),
         // Always sent: "— none —" clears the rubric.
         section_id: effectiveSectionId,
+        ...(type === 'text' ? { reference_answer: referenceAnswer, grader_notes: graderNotes } : {}),
         choices:
           type === 'text'
             ? []
@@ -248,6 +255,32 @@ export function QuestionForm({
           style={{ display: 'block', width: 100 }}
         />
       </label>
+
+      {type === 'text' && (
+        <>
+          <label>
+            Model answer (graders only)
+            <textarea
+              value={referenceAnswer}
+              onChange={(e) => setReferenceAnswer(e.target.value)}
+              rows={2}
+              maxLength={2000}
+              style={{ display: 'block', width: '100%' }}
+            />
+          </label>
+          <label>
+            Grader notes
+            <textarea
+              value={graderNotes}
+              onChange={(e) => setGraderNotes(e.target.value)}
+              rows={2}
+              maxLength={2000}
+              placeholder="e.g. also accept Ishmael"
+              style={{ display: 'block', width: '100%' }}
+            />
+          </label>
+        </>
+      )}
 
       {type !== 'text' && (
         <div>

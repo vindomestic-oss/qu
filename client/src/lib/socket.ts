@@ -1,6 +1,7 @@
 import { io, Socket } from 'socket.io-client';
 import { getToken } from '../api/client';
 import { getParticipantToken } from '../api/participantClient';
+import { getStaffToken } from '../api/graderClient';
 
 export type RoomKind = 'session' | 'staff';
 
@@ -12,13 +13,19 @@ function roomKey(kind: RoomKind, id: number): string {
   return `${kind}:${id}`;
 }
 
+/** Fired on window when the server refuses a staff room (e.g. a revoked grader link); detail = sessionId. */
+export const STAFF_JOIN_REFUSED_EVENT = 'quiz:staff-join-refused';
+
 // The token is read at every (re)join, so a fresh login or a rejoin is picked up. Admins use the
-// session room only for session:update; staff data (session:live) arrives in the staff room.
+// session room only for session:update; staff data (session:live) arrives in the staff room. The
+// staff room takes the admin token, or the grader token of that session (grading panel, wish 8).
 function emitJoin(kind: RoomKind, id: number): void {
-  const token = kind === 'staff' ? getToken() : (getParticipantToken() ?? getToken());
+  const token = kind === 'staff' ? (getStaffToken(id)?.token ?? null) : (getParticipantToken() ?? getToken());
   if (!token || !socket) return;
   socket.emit(`${kind}:join`, { sessionId: id, token }, (r?: { ok: boolean; error?: string }) => {
-    if (!r?.ok) console.warn(`${kind}:join refused`, r?.error);
+    if (r?.ok) return;
+    console.warn(`${kind}:join refused`, r?.error);
+    if (kind === 'staff') window.dispatchEvent(new CustomEvent(STAFF_JOIN_REFUSED_EVENT, { detail: id }));
   });
 }
 

@@ -153,22 +153,30 @@ async function main() {
   const resultsText = await part.locator('body').innerText();
   log('participant', `results page text: ${resultsText.replace(/\n/g, ' | ')}`);
 
-  // --- Admin: grading + scoreboard + CSV export ---
-  await admin.getByRole('link', { name: /view results \/ grade answers/i }).click();
+  // --- Admin: grading (grading panel, wish 8) + scoreboard + CSV export ---
+  // The panel's link (the session history below has one per run too).
+  await admin.getByRole('link', { name: /^view results$/i }).first().click();
   await admin.waitForURL(/\/admin\/sessions\/\d+\/results$/);
   log('admin', `on results page: ${admin.url()}`);
-  await admin.waitForTimeout(300);
+  await admin.getByTestId('scoreboard').waitFor();
 
   const scoreboardBefore = await admin.locator('body').innerText();
   log('admin', `scoreboard before grading: ${scoreboardBefore.replace(/\n/g, ' | ').slice(0, 400)}`);
 
-  // Grade the pending text answer with full points (1/1)
-  const pointsInput = admin.locator('input[type="number"]').last();
-  await pointsInput.fill('1');
-  await admin.getByRole('button', { name: /^save$/i }).click();
-  await admin.waitForTimeout(500);
-  log('admin', 'graded text answer with 1 point');
+  // Grade the text answer in the whole-quiz review: anonymous "Answer 1", "Correct" = full points.
+  await admin.getByRole('link', { name: /grade answers/i }).click();
+  await admin.waitForURL(/\/grade\/\d+\/quiz\?filter=needs_review$/);
+  await admin.getByText('Answer 1', { exact: true }).waitFor();
+  if (!(await admin.getByText('Mass attracts mass, curving spacetime.').isVisible())) {
+    throw new Error('the text answer is not shown in the grading panel');
+  }
+  await admin.getByRole('button', { name: /^correct$/i }).first().click();
+  await admin.getByText('Saved', { exact: true }).waitFor({ timeout: 5000 });
+  log('admin', 'graded the text answer as correct in the grading panel');
 
+  await admin.goBack();
+  await admin.waitForURL(/\/admin\/sessions\/\d+\/results$/);
+  await admin.getByTestId('scoreboard').getByText('3 / 3').waitFor({ timeout: 5000 });
   const scoreboardAfter = await admin.locator('body').innerText();
   log('admin', `scoreboard after grading: ${scoreboardAfter.replace(/\n/g, ' | ').slice(0, 400)}`);
 

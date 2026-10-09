@@ -1,3 +1,5 @@
+// LEGACY: the server seed (server/src/db/seedChidonQuiz.ts, `npm run seed`) creates this quiz, with
+// the graders' model answers. This script is kept for reference only.
 // Seeds the "European Chidon Tanach 5786" exam quiz via the API.
 // Usage: SEED_BASE_URL=... ADMIN_USERNAME=... ADMIN_PASSWORD=... node seed-chidon-quiz.mjs
 

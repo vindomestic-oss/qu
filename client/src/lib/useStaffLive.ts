@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { getSocket, joinRoom, leaveRoom } from './socket';
+import { getSocket, joinRoom, leaveRoom, STAFF_JOIN_REFUSED_EVENT } from './socket';
 
 export type StaffEvent = 'session:live' | 'grading:changed' | 'session:update';
 
@@ -36,13 +36,25 @@ export function useStaffLive(sessionId: number | null, refetch: () => void, { ev
         }, Math.max(wait, 0));
       }
     };
+    // The server dropped this client (a revoked grader link) or refused the room: refetch, so the
+    // request's 401 leads to "access expired or revoked" instead of a silently frozen page.
+    const onDisconnect = (reason: string) => {
+      if (reason === 'io server disconnect') throttled();
+    };
+    const onRefused = (e: Event) => {
+      if ((e as CustomEvent<number>).detail === sessionId) throttled();
+    };
     const names = eventsKey.split(',') as StaffEvent[];
     joinRoom('staff', sessionId);
     for (const name of names) socket.on(name, throttled);
     socket.on('connect', throttled);
+    socket.on('disconnect', onDisconnect);
+    window.addEventListener(STAFF_JOIN_REFUSED_EVENT, onRefused);
     return () => {
       for (const name of names) socket.off(name, throttled);
       socket.off('connect', throttled);
+      socket.off('disconnect', onDisconnect);
+      window.removeEventListener(STAFF_JOIN_REFUSED_EVENT, onRefused);
       if (trailing) clearTimeout(trailing);
       leaveRoom('staff', sessionId);
     };

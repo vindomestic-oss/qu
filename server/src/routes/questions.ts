@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { db } from '../db';
-import { requireAdmin } from '../middleware/jwt';
+import { requireAdmin, type AuthedRequest } from '../middleware/jwt';
 import { parseQuestionInput } from '../lib/questionInput';
 import { uploadImage } from '../middleware/upload';
 import { deleteImageFile } from '../lib/uploads';
@@ -31,7 +31,7 @@ function getQuizWithQuestions(quizId: number) {
   return loadQuiz(db, quizId);
 }
 
-questionsRouter.put('/:id', (req, res) => {
+questionsRouter.put('/:id', (req: AuthedRequest, res) => {
   const question = getQuestion(Number(req.params.id));
   if (!question) return res.status(404).json({ error: 'Question not found' });
 
@@ -40,7 +40,7 @@ questionsRouter.put('/:id', (req, res) => {
 
   let result;
   try {
-    result = updateQuestionWithChoices(db, question.id, parsed);
+    result = updateQuestionWithChoices(db, question.id, parsed, `admin:${req.admin!.username}`);
   } catch (err) {
     if (err instanceof QuestionWriteError) return res.status(err.status).json(err.body);
     throw err;

@@ -22,6 +22,11 @@ export interface Question extends WithTranslations<'text'> {
   /** The question's rubric (S11); null = none. */
   section_id: number | null;
   choices: Choice[];
+  /** Text questions only, for graders (wish 8); never sent to participants. */
+  reference_answer?: string | null;
+  /** JSON array of accepted variants (filled by the Chidon answer keys; edited from S13). */
+  accepted_answers?: string | null;
+  grader_notes?: string | null;
 }
 
 export interface Quiz extends WithTranslations<'title'>, WithTranslations<'description'> {
@@ -44,6 +49,10 @@ export interface Quiz extends WithTranslations<'title'>, WithTranslations<'descr
   /** A seeded Chidon quiz: deleting all its rubrics brings the standard ones back on the next server start. */
   seeded_rubrics?: boolean;
   questions?: Question[];
+  /** Points a new question starts with (integers and halves). */
+  default_points?: number;
+  /** Sum of the questions' points (editor payload). */
+  total_points?: number;
   /** The quiz's pending or running session, if any (list endpoint only). */
   open_session?: { id: number; status: 'pending' | 'active'; join_code: string; ends_at: string | null; joining_locked: number } | null;
 }
@@ -75,6 +84,9 @@ export interface QuestionInput extends WithTranslationInputs<'text'> {
   choices: ChoiceInput[];
   /** The rubric; null = none. The editor always sends it. */
   section_id?: number | null;
+  /** Text questions only; omitted keys keep the stored value. */
+  reference_answer?: string;
+  grader_notes?: string;
 }
 
 /** Name of a rubric with all 14 translations (the editor always sends every key). */
@@ -171,6 +183,9 @@ export interface SessionAnswer {
   points_awarded: number | null;
   graded_at: string | null;
   submitted_at: string;
+  graded_by?: string | null;
+  grade_source?: string | null;
+  grade_version?: number;
 }
 
 export interface SessionResultsResponse {
@@ -203,4 +218,144 @@ export interface LiveStatusResponse {
   session: QuizSession;
   participants: LiveParticipant[];
   questions: LiveQuestion[];
+}
+
+// --- Grading panel (wish 8) ---------------------------------------------------------------------
+
+export type GradingParticipantStatus = 'not_started' | 'answering' | 'needs_review' | 'graded';
+
+export interface GradingQuizMeta {
+  id: number;
+  title: string;
+  question_count: number;
+  total_points: number;
+  base_language: QuizLang;
+  offered_languages: QuizLang[];
+}
+
+export interface GradingSummary {
+  session: { id: number; status: SessionStatus; started_at: string | null; ends_at: string | null };
+  quiz: GradingQuizMeta;
+  viewer: { kind: 'admin' | 'grader'; name: string };
+  counters: {
+    participants_joined: number;
+    participants_answering: number;
+    participants_submitted: number;
+    answers_given: number;
+    answers_possible: number;
+    correct: number;
+    incorrect: number;
+    needs_review: number;
+    awaiting_submission: number;
+  };
+  participants: {
+    id: number;
+    /** 1-based join order. */
+    number: number;
+    /** Admins and graders (Q-names); never in whole-quiz mode. */
+    display_name?: string;
+    answered_count: number;
+    needs_review_count: number;
+    score: number;
+    max_score: number;
+    submitted_at: string | null;
+    submit_source: string | null;
+    status: GradingParticipantStatus;
+  }[];
+  questions: {
+    id: number;
+    sort_order: number;
+    type: QuestionType;
+    text: string;
+    points: number;
+    answered_count: number;
+    correct_count: number;
+    needs_review_count: number;
+    correct_rate: number | null;
+  }[];
+}
+
+export interface GradingChoice extends WithTranslations<'text'> {
+  id: number;
+  text: string;
+  is_correct: number;
+  sort_order: number;
+}
+
+export interface GradingQuestion extends WithTranslations<'text'> {
+  id: number;
+  sort_order: number;
+  type: QuestionType;
+  text: string;
+  image_path: string | null;
+  points: number;
+  reference_answer: string | null;
+  grader_notes: string | null;
+  choices: GradingChoice[];
+}
+
+/** The grading fields of an answer (also the `current` of a 409 conflict). */
+export interface AnswerGrade {
+  id: number;
+  is_correct: number | null;
+  points_awarded: number | null;
+  graded_at: string | null;
+  graded_by: string | null;
+  grade_source: string | null;
+  grade_version: number;
+}
+
+export interface GradingAnswer extends AnswerGrade {
+  text_answer?: string;
+  selected_choice_ids?: number[];
+}
+
+export interface ParticipantReviewResponse {
+  session: { id: number; status: SessionStatus; ends_at: string | null };
+  quiz: GradingQuizMeta;
+  participant: {
+    id: number;
+    number: number;
+    display_name?: string;
+    joined_at: string;
+    submitted_at: string | null;
+    submit_source: string | null;
+    status: GradingParticipantStatus;
+  };
+  prev_id: number | null;
+  next_id: number | null;
+  gradable: boolean;
+  totals: { score: number; max: number; needs_review: number; answered: number };
+  items: { question: GradingQuestion; answer: GradingAnswer | null }[];
+}
+
+export interface WholeQuizQuestion {
+  question: GradingQuestion;
+  stats: {
+    answered: number;
+    correct: number;
+    needs_review: number;
+    awaiting_submission: number;
+    no_answer: number;
+    not_submitted_participants: number;
+    choice_counts?: Record<string, number>;
+  };
+  answers: (GradingAnswer & { label: number })[];
+}
+
+export interface WholeQuizResponse {
+  session: { id: number; status: SessionStatus; started_at: string | null; ends_at: string | null };
+  quiz: GradingQuizMeta;
+  filter: 'needs_review' | 'all';
+  progress: { graded: number; total: number };
+  questions: WholeQuizQuestion[];
+}
+
+export interface GraderLink {
+  id: number;
+  label: string | null;
+  created_at: string;
+  expires_at: string;
+  revoked_at: string | null;
+  last_used_at: string | null;
 }

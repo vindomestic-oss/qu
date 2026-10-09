@@ -104,3 +104,41 @@ CREATE TABLE IF NOT EXISTS quiz_sections (
   created_at TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_sections_quiz ON quiz_sections(quiz_id);
+-- Grader access (wish 8): a revocable, expiring code for one session. Only the sha256 of the
+-- normalised code is stored. Timestamps are ISO-8601 UTC written from JS (no SQL defaults).
+CREATE TABLE IF NOT EXISTS grader_links (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  session_id INTEGER NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
+  code_hash TEXT NOT NULL UNIQUE,
+  label TEXT,
+  created_by INTEGER REFERENCES admins(id),
+  created_at TEXT NOT NULL,
+  expires_at TEXT NOT NULL,
+  revoked_at TEXT,
+  last_used_at TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_grader_links_session ON grader_links(session_id);
+
+-- Append-only audit of every grade change (wish 8; wish 7 adds AI actions). One row per change,
+-- written in the same transaction as the change. actions: 'manual' | 'regrade_points'.
+-- Rows outlive their answer: answer_id becomes NULL when the answer (or its question) is deleted,
+-- while session, question and participant ids stay (no foreign keys on those on purpose).
+-- is_correct = the verdict after the change, old_is_correct = before.
+CREATE TABLE IF NOT EXISTS grade_events (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  answer_id INTEGER REFERENCES answers(id) ON DELETE SET NULL,
+  session_id INTEGER NOT NULL,
+  question_id INTEGER,
+  participant_id INTEGER,
+  actor TEXT,
+  action TEXT,
+  old_points REAL,
+  new_points REAL,
+  old_is_correct INTEGER,
+  is_correct INTEGER,
+  grade_source TEXT,
+  ai_run_id INTEGER,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_grade_events_answer ON grade_events(answer_id);
+CREATE INDEX IF NOT EXISTS idx_grade_events_session ON grade_events(session_id);

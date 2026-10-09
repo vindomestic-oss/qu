@@ -7,6 +7,7 @@ import type { Translations } from '../lib/questionInput';
 import { UPLOAD_DIR } from '../middleware/upload';
 import { FALSE_LABEL_TRANSLATIONS, TRUE_LABEL_TRANSLATIONS } from './chidonSections';
 import { CHIDON_5786_TITLE } from './quizTitles';
+import { answerKeyFor, CHIDON_5786_KEY, type AnswerKeyEntry } from './chidonAnswerKey';
 
 const QUIZ_TITLE = CHIDON_5786_TITLE;
 
@@ -15,7 +16,8 @@ const QUIZ_TITLE = CHIDON_5786_TITLE;
 export const CHIDON_PICS_DIR = path.join(__dirname, '..', '..', 'src', 'assets', 'chidon-pics');
 
 type ChoiceSpec = { text: string; isCorrect: boolean; translations?: Translations };
-type QuestionSpec = { type: 'single' | 'text'; text: string; translations?: Translations; points: number; choices: ChoiceSpec[]; imageFile?: string };
+type GraderKey = Pick<AnswerKeyEntry, 'reference' | 'accepted' | 'notes'>;
+type QuestionSpec = { type: 'single' | 'text'; text: string; translations?: Translations; points: number; choices: ChoiceSpec[]; imageFile?: string; key?: GraderKey };
 
 function tf(text: string, answer: boolean, translations: Translations, trueLabelTranslations: Translations, falseLabelTranslations: Translations): QuestionSpec {
   return {
@@ -40,8 +42,15 @@ function mc(text: string, options: string[], correctIndex: number, translations:
   };
 }
 
-function open(text: string, translations: Translations, points = 1, imageFile?: string): QuestionSpec {
-  return { type: 'text', text, translations, points, choices: [], imageFile };
+// The 5th parameter is the graders' model answer; by default it comes from chidonAnswerKey.ts (same text).
+function open(
+  text: string,
+  translations: Translations,
+  points = 1,
+  imageFile?: string,
+  key: GraderKey | undefined = answerKeyFor(CHIDON_5786_KEY, text),
+): QuestionSpec {
+  return { type: 'text', text, translations, points, choices: [], imageFile, key };
 }
 
 const QUESTIONS: QuestionSpec[] = [
@@ -137,7 +146,18 @@ export function seedChidonQuiz() {
       );
     const quizId = Number(quizResult.lastInsertRowid);
 
-    const questionColumns = ['quiz_id', 'sort_order', 'type', 'text', ...translationColumns('text'), 'image_path', 'points'];
+    const questionColumns = [
+      'quiz_id',
+      'sort_order',
+      'type',
+      'text',
+      ...translationColumns('text'),
+      'image_path',
+      'points',
+      'reference_answer',
+      'accepted_answers',
+      'grader_notes',
+    ];
     const insertQuestion = db.prepare(`INSERT INTO questions (${questionColumns.join(', ')}) VALUES (${questionColumns.map(() => '?').join(', ')})`);
     const choiceColumns = ['question_id', 'text', ...translationColumns('text'), 'is_correct', 'sort_order'];
     const insertChoice = db.prepare(`INSERT INTO choices (${choiceColumns.join(', ')}) VALUES (${choiceColumns.map(() => '?').join(', ')})`);
@@ -161,6 +181,9 @@ export function seedChidonQuiz() {
         ...translationValues(q.translations ?? {}),
         imagePath,
         q.points,
+        q.key?.reference ?? null,
+        q.key ? JSON.stringify(q.key.accepted) : null,
+        q.key?.notes ?? null,
       );
       const questionId = Number(qResult.lastInsertRowid);
       q.choices.forEach((c, ci) => {

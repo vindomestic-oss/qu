@@ -131,10 +131,45 @@ test('seeded quizzes declare exactly the languages they contain; the 5787 quizze
     assert.deepEqual(byTitle(re).offered, ['de']);
   }
 
+  // Answer keys (wish 8): every open question of the Chidon quizzes has its model answer, 30 / 10 / 10.
+  // The keys are typed by hand; this catches a key text that does not match its seed question.
+  const keys = () => {
+    const db = new Database(dbPath, { readonly: true });
+    try {
+      const missing = db
+        .prepare(
+          `SELECT COUNT(*) FROM questions q JOIN quizzes z ON z.id = q.quiz_id
+           WHERE q.type = 'text' AND coalesce(q.reference_answer, '') = ''
+             AND (z.title LIKE 'European Chidon Tanach 5786%' OR z.title LIKE 'Chidon HaTanach 5787%')`,
+        )
+        .pluck()
+        .get();
+      const filled = db
+        .prepare(
+          `SELECT z.title, COUNT(*) AS n FROM questions q JOIN quizzes z ON z.id = q.quiz_id
+           WHERE q.reference_answer IS NOT NULL AND q.accepted_answers IS NOT NULL GROUP BY z.id ORDER BY z.title`,
+        )
+        .all();
+      const choiceWithKey = db.prepare("SELECT COUNT(*) FROM questions WHERE type <> 'text' AND reference_answer IS NOT NULL").pluck().get();
+      return { missing, filled, choiceWithKey };
+    } finally {
+      db.close();
+    }
+  };
+  const keyState = keys();
+  assert.equal(keyState.missing, 0);
+  assert.equal(keyState.choiceWithKey, 0);
+  assert.deepEqual(keyState.filled, [
+    { title: 'Chidon HaTanach 5787 – Anfänger (München)', n: 10 },
+    { title: 'Chidon HaTanach 5787 – Fortgeschrittene (München)', n: 10 },
+    { title: 'European Chidon Tanach 5786 (January 2026)', n: 30 },
+  ]);
+
   // The next boot (seed again, which also runs the migrations) changes nothing.
   const second = seedAll();
   assert.equal(second.status, 0, second.stderr);
   assert.deepEqual(read(), quizzes);
+  assert.deepEqual(keys(), keyState);
 });
 
 test('the real seed gives the Chidon quizzes their rubrics (5/15/10/20 and 20/10); the next boot changes nothing', () => {

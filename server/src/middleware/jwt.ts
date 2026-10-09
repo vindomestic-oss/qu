@@ -2,7 +2,7 @@ import type { Request, Response, NextFunction } from 'express';
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import { db } from '../db';
-import { parseDbTime } from '../lib/time';
+import { nowIso, parseDbTime } from '../lib/time';
 
 // The only file that reads JWT_SECRET. One secret for every token kind on purpose: an explicit
 // `role` claim plus mutually exclusive shape checks keep the kinds apart (RFC 8725 §3.11, §3.12).
@@ -20,9 +20,16 @@ export interface ParticipantIdentity {
   sessionId: number;
   displayName: string;
 }
+/** A grader who entered with a grader link (wish 8): one session only, revocable. */
+export interface GraderIdentity {
+  sessionId: number;
+  linkId: number;
+  graderName: string;
+}
 export type AuthResult =
   | { ok: true; role: 'admin'; admin: AdminIdentity }
   | { ok: true; role: 'participant'; participant: ParticipantIdentity }
+  | { ok: true; role: 'grader'; grader: GraderIdentity }
   | { ok: false; status: 401 | 403; code: 'INVALID_TOKEN' | 'FORBIDDEN' };
 
 /**
@@ -55,7 +62,14 @@ export function signParticipantToken(p: ParticipantIdentity & { tokenVersion: nu
     { algorithm: 'HS256', expiresIn: '6h' },
   );
 }
-// S12 (wish 8) adds signGraderToken(...) with role 'grader' here.
+/** Grader token (wish 8): accepted only by requireStaffForSession and staff:join, for its own session. */
+export function signGraderToken(p: GraderIdentity, ttlSeconds: number): string {
+  return jwt.sign(
+    { role: 'grader', sessionId: p.sessionId, linkId: p.linkId, graderName: p.graderName },
+    JWT_SECRET,
+    { algorithm: 'HS256', expiresIn: Math.max(1, Math.floor(ttlSeconds)) },
+  );
+}
 
 function verifySignature(token: string): Record<string, unknown> | null {
   try {
@@ -77,17 +91,61 @@ export function classifyPayload(p: Record<string, unknown>): TokenRole | null {
     p.adminId === undefined;
   if (p.role === 'admin') return adminShape ? 'admin' : null;
   if (p.role === 'participant') return participantShape ? 'participant' : null;
-  if (p.role === 'grader') return 'grader'; // only requireStaffForSession (S12) accepts it
+  // Only requireStaffForSession and staff:join accept it. The name is optional in the shape check, so
+  // any signed grader-role token is "a valid token of another kind" (403) on admin and participant routes.
+  if (p.role === 'grader') {
+    const graderShape =
+      Number.isInteger(p.sessionId) &&
+      Number.isInteger(p.linkId) &&
+      (p.graderName === undefined || typeof p.graderName === 'string') &&
+      p.adminId === undefined &&
+      p.participantId === undefined;
+    return graderShape ? 'grader' : null;
+  }
   if (p.role !== undefined) return null;
   return adminShape ? 'admin' : participantShape ? 'participant' : null;
 }
 
+/**
+ * A grader token is valid only while its link row exists for the same session, is not revoked and not
+ * expired, checked on every call (so a revoke takes effect at once), and only if the token was issued
+ * after the link was created (a free-plan restart wipes the database and reuses ids; the secret stays).
+ */
+function authenticateGrader(p: Record<string, unknown>): AuthResult {
+  const row = db.prepare('SELECT session_id, created_at, expires_at, revoked_at FROM grader_links WHERE id = ?').get(p.linkId) as
+    | { session_id: number; created_at: string; expires_at: string; revoked_at: string | null }
+    | undefined;
+  if (!row || row.session_id !== p.sessionId || row.revoked_at !== null || !(row.expires_at > nowIso())) {
+    return { ok: false, status: 401, code: 'INVALID_TOKEN' };
+  }
+  if (typeof p.iat !== 'number' || p.iat < Math.floor(Date.parse(row.created_at) / 1000)) {
+    return { ok: false, status: 401, code: 'INVALID_TOKEN' };
+  }
+  return {
+    ok: true,
+    role: 'grader',
+    grader: {
+      sessionId: p.sessionId as number,
+      linkId: p.linkId as number,
+      graderName: typeof p.graderName === 'string' ? p.graderName : '',
+    },
+  };
+}
+
+/** The kind of a correctly signed token, without database checks; null when unsigned or of no known shape. */
+export function tokenRole(token: string): { role: TokenRole; payload: Record<string, unknown> } | null {
+  const p = verifySignature(token);
+  const role = p ? classifyPayload(p) : null;
+  return p && role ? { role, payload: p } : null;
+}
+
 /** Signature, kind and database checks. Used by the HTTP middlewares and by socket.ts. */
-export function authenticate(token: string, want: 'admin' | 'participant'): AuthResult {
+export function authenticate(token: string, want: TokenRole): AuthResult {
   const p = verifySignature(token);
   const role = p ? classifyPayload(p) : null;
   if (!p || role === null) return { ok: false, status: 401, code: 'INVALID_TOKEN' };
   if (role !== want) return { ok: false, status: 403, code: 'FORBIDDEN' };
+  if (role === 'grader') return authenticateGrader(p);
   if (role === 'admin') {
     const row = db
       .prepare('SELECT id, username, password_hash, tokens_valid_after FROM admins WHERE id = ?')
@@ -126,13 +184,13 @@ export function authenticate(token: string, want: 'admin' | 'participant'): Auth
   };
 }
 
-function bearer(req: Request): string | undefined {
+export function bearer(req: Request): string | undefined {
   const h = req.headers.authorization;
   const t = h?.startsWith('Bearer ') ? h.slice(7).trim() : '';
   return t || undefined;
 }
 
-const MESSAGES = { INVALID_TOKEN: 'Invalid or expired token', FORBIDDEN: 'This token cannot be used here' };
+export const MESSAGES = { INVALID_TOKEN: 'Invalid or expired token', FORBIDDEN: 'This token cannot be used here' };
 
 export interface AuthedRequest extends Request {
   admin?: AdminIdentity;

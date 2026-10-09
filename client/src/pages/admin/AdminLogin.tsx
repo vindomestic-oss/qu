@@ -5,9 +5,11 @@ import { useAuth } from '../../auth/AuthContext';
 import { ApiError } from '../../api/client';
 import { Logo } from '../../components/Logo';
 
-/** Only same-app admin paths, so ?next= cannot send anyone to another site. */
+/** Only same-app admin and grading-panel paths, so ?next= cannot send anyone to another site. */
 function safeNext(next: string | null): string {
-  if (!next || !next.startsWith('/admin') || next.startsWith('//') || next.includes('\\')) return '/admin';
+  if (!next || !(next.startsWith('/admin') || next.startsWith('/grade/')) || next.startsWith('//') || next.includes('\\')) {
+    return '/admin';
+  }
   if (next.startsWith('/admin/login')) return '/admin';
   return next;
 }

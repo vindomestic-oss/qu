@@ -1,11 +1,13 @@
 import { db } from './index';
 import { computeUsedLanguages } from '../lib/quizLanguages';
+import { answerKeyFor, CHIDON_5787_ANFAENGER_KEY, type AnswerKeyEntry } from './chidonAnswerKey';
 import { CHIDON_5787_ANFAENGER_TITLE } from './quizTitles';
 
 const QUIZ_TITLE = CHIDON_5787_ANFAENGER_TITLE;
 
 type ChoiceSpec = { text: string; isCorrect: boolean };
-type QuestionSpec = { type: 'single' | 'text'; text: string; points: number; choices: ChoiceSpec[] };
+type GraderKey = Pick<AnswerKeyEntry, 'reference' | 'accepted' | 'notes'>;
+type QuestionSpec = { type: 'single' | 'text'; text: string; points: number; choices: ChoiceSpec[]; key?: GraderKey };
 
 function mc(text: string, options: string[], correctIndex: number): QuestionSpec {
   return {
@@ -16,8 +18,9 @@ function mc(text: string, options: string[], correctIndex: number): QuestionSpec
   };
 }
 
-function open(text: string): QuestionSpec {
-  return { type: 'text', text, points: 1, choices: [] };
+// The 2nd parameter is the graders' model answer; by default it comes from chidonAnswerKey.ts (same text).
+function open(text: string, key: GraderKey | undefined = answerKeyFor(CHIDON_5787_ANFAENGER_KEY, text)): QuestionSpec {
+  return { type: 'text', text, points: 1, choices: [], key };
 }
 
 const QUESTIONS: QuestionSpec[] = [
@@ -81,14 +84,24 @@ export function seedChidon5787Anfaenger() {
     const quizId = Number(quizResult.lastInsertRowid);
 
     const insertQuestion = db.prepare(
-      'INSERT INTO questions (quiz_id, sort_order, type, text, points) VALUES (?, ?, ?, ?, ?)',
+      `INSERT INTO questions (quiz_id, sort_order, type, text, points, reference_answer, accepted_answers, grader_notes)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
     );
     const insertChoice = db.prepare(
       'INSERT INTO choices (question_id, text, is_correct, sort_order) VALUES (?, ?, ?, ?)',
     );
 
     QUESTIONS.forEach((q, qi) => {
-      const qResult = insertQuestion.run(quizId, qi, q.type, q.text, q.points);
+      const qResult = insertQuestion.run(
+        quizId,
+        qi,
+        q.type,
+        q.text,
+        q.points,
+        q.key?.reference ?? null,
+        q.key ? JSON.stringify(q.key.accepted) : null,
+        q.key?.notes ?? null,
+      );
       const questionId = Number(qResult.lastInsertRowid);
       q.choices.forEach((c, ci) => {
         insertChoice.run(questionId, c.text, c.isCorrect ? 1 : 0, ci);

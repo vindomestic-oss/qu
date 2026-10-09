@@ -290,7 +290,7 @@ describe('updateQuestionWithChoices: regrading', () => {
     );
     assert.equal(answer(auto).points_awarded, 1);
     assert.equal(answer(humanFull).points_awarded, 1);
-    assert.deepEqual(answer(humanClamped), { ...answer(humanClamped), points_awarded: 1, is_correct: 1 }, 'clamped to the new maximum, which is full points');
+    assert.deepEqual(answer(humanClamped), { ...answer(humanClamped), points_awarded: 1, is_correct: 0 }, 'clamped to the new maximum; the grader\'s verdict stays');
     assert.deepEqual(answer(humanPartial), { ...answer(humanPartial), points_awarded: 0.5, is_correct: 0, grade_version: 0 }, 'below the new maximum: untouched');
 
     updateQuestionWithChoices(
