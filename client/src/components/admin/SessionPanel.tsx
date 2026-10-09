@@ -203,7 +203,7 @@ export function SessionPanel({ quizId, initialSession, onSessionEnded, onSession
   function joinedAndDetails(s: QuizSession) {
     return (
       <>
-        <p style={{ fontSize: 20, fontWeight: 700 }} aria-live="polite">
+        <p style={{ fontSize: 20, fontWeight: 700 }} aria-live="polite" aria-atomic="true">
           Joined: {joinedCount}
         </p>
         <details>

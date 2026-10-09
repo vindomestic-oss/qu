@@ -46,6 +46,8 @@ export function HostScreen() {
   const [busy, setBusy] = useState(false);
   const [now, setNow] = useState(() => Date.now());
   const [showQr, setShowQr] = useState(false);
+  const showQrRef = useRef<HTMLButtonElement>(null);
+  const wasShowingQrRef = useRef(false);
   const [isFullscreen, setIsFullscreen] = useState(Boolean(document.fullscreenElement));
   const refetchingRef = useRef(false);
   const refetchAgainRef = useRef(false);
@@ -122,6 +124,12 @@ export function HostScreen() {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, []);
+
+  // Back to "Show QR" when the overlay closes.
+  useEffect(() => {
+    if (wasShowingQrRef.current && !showQr) showQrRef.current?.focus();
+    wasShowingQrRef.current = showQr;
+  }, [showQr]);
 
   useEffect(() => {
     const onChange = () => setIsFullscreen(Boolean(document.fullscreenElement));
@@ -202,9 +210,12 @@ export function HostScreen() {
 
   return (
     <div className="host">
-      <header className="host-header">
+      <div className="host-content" inert={showQr || undefined}>
+      <div className="host-header">
         <h1>{quiz.title}</h1>
-        <span className={`host-pill host-pill--${session.status}`}>{STATUS_LABEL[session.status]}</span>
+        <span className={`host-pill host-pill--${session.status}`} role="status">
+          {STATUS_LABEL[session.status]}
+        </span>
         <span className="host-header__actions">
           {document.fullscreenEnabled && (
             <button type="button" onClick={toggleFullscreen}>
@@ -213,7 +224,7 @@ export function HostScreen() {
           )}
           <Link to={`/admin/quizzes/${quiz.id}`}>Back to quiz</Link>
         </span>
-      </header>
+      </div>
       {error && (
         <p role="alert" style={{ color: 'var(--danger)' }}>
           {error}
@@ -233,7 +244,7 @@ export function HostScreen() {
               <bdi dir="ltr">{code}</bdi>
             </p>
             {!locked && <JoinCaption />}
-            <p className="host-joined" aria-live="polite">
+            <p className="host-joined" aria-live="polite" aria-atomic="true">
               Joined: {joined}
             </p>
             <div className="host-buttons">
@@ -251,10 +262,10 @@ export function HostScreen() {
 
       {session.status === 'active' && (
         <main className="host-live">
-          <p className="host-countdown" aria-label="Time left">
+          <p className="host-countdown" role="timer" aria-label="Time left">
             {session.ends_at ? formatCountdown(session.ends_at, now, session.started_at) : '--'}
           </p>
-          <p className="host-joined" aria-live="polite">
+          <p className="host-joined" aria-live="polite" aria-atomic="true">
             Joined: {joined}
           </p>
           <div className="host-live__join">
@@ -264,7 +275,7 @@ export function HostScreen() {
             </p>
           </div>
           <div className="host-buttons">
-            <button type="button" onClick={() => setShowQr(true)}>
+            <button type="button" ref={showQrRef} onClick={() => setShowQr(true)}>
               Show QR
             </button>
             {lockButton}
@@ -293,10 +304,20 @@ export function HostScreen() {
           <LiveMonitor sessionId={session.id} data={live.data} onRefresh={live.refresh} />
         </details>
       )}
+      </div>
 
       {showQr && session.status !== 'ended' && (
-        <div className="host-qr-overlay" role="dialog" aria-label="Join QR code" onClick={() => setShowQr(false)}>
-          <JoinQrCode code={session.join_code} width="min(80vh, 80vw)" locked={locked} />
+        <div
+          className="host-qr-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Join QR code"
+          onClick={() => setShowQr(false)}
+        >
+          <button type="button" className="host-qr-overlay__close" autoFocus onClick={() => setShowQr(false)}>
+            Close
+          </button>
+          <JoinQrCode code={session.join_code} width="min(72vh, 80vw)" locked={locked} />
           <p className="host-code">
             <bdi dir="ltr">{code}</bdi>
           </p>
