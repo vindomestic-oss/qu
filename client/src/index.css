@@ -269,7 +269,7 @@ label {
 }
 .lang-menu__trigger:hover:not(:disabled) {
   background: var(--surface-hover);
-  border-color: var(--border-strong);
+  border-color: var(--input-border); /* keeps 3:1; iPad keeps :hover after the tap that opens the list */
 }
 .lang-menu__trigger[aria-expanded='true'] .lang-menu__chevron {
   transform: rotate(180deg);
@@ -294,9 +294,8 @@ label {
   inset-inline-end: 0;
   z-index: 50;
   min-inline-size: 100%;
-  max-block-size: min(70vh, 36rem);
+  max-block-size: min(70vh, 36rem); /* LanguageMenu narrows it to the space actually left on screen */
   overflow-y: auto;
-  overscroll-behavior: contain;
   margin: 0;
   padding: 4px;
   list-style: none;
@@ -307,6 +306,10 @@ label {
 }
 .lang-menu__panel[hidden] {
   display: none;
+}
+.lang-menu__panel--up {
+  inset-block-start: auto;
+  inset-block-end: calc(100% + 4px);
 }
 .lang-menu__option {
   display: flex;
@@ -364,15 +367,21 @@ label {
 .qlang__static {
   font-weight: 600;
 }
+.qlang--center {
+  justify-content: center;
+}
 .qlang .toggle-chip {
   min-height: 44px;
   padding-block: 0;
   padding-inline: 14px;
+}
+/* Only the unpressed chip is restyled here; the pressed one keeps the .toggle-chip selected colours. */
+.qlang .toggle-chip:not([aria-pressed='true']) {
   background: var(--surface);
   color: var(--text);
   border: 1px solid var(--input-border);
 }
-.qlang .toggle-chip:hover:not(:disabled) {
+.qlang .toggle-chip:not([aria-pressed='true']):hover:not(:disabled) {
   background: var(--surface-hover);
 }
 .qlang__note {

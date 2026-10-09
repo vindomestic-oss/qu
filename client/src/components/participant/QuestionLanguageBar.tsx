@@ -9,16 +9,18 @@ interface Props {
   onChange: (lang: QuizLang) => void;
   idPrefix: string;
   note?: string;
+  /** Centre the label and control when they wrap (waiting room). */
+  centered?: boolean;
 }
 
 /**
  * Question-language control (decision Q-card-languages): 1 language → static text, 2 → two chips,
  * 3 or more → one menu with a count. Switching never touches answers: no request, no remount.
  */
-export function QuestionLanguageBar({ languages, value, onChange, idPrefix, note }: Props) {
+export function QuestionLanguageBar({ languages, value, onChange, idPrefix, note, centered }: Props) {
   const { t, tCount } = useLanguage();
   return (
-    <div className="qlang" role="group" aria-labelledby={`${idPrefix}-label`}>
+    <div className={centered ? 'qlang qlang--center' : 'qlang'} role="group" aria-labelledby={`${idPrefix}-label`}>
       <span id={`${idPrefix}-label`} className="qlang__label">
         {t('play.questionLanguage')}
       </span>

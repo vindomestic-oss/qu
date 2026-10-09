@@ -123,9 +123,10 @@ export function Play() {
     return () => clearInterval(tick);
   }, []);
 
-  // The interface-language menu is offered in the waiting room only (decision Q-ui-lang-after-join).
+  // The interface-language menu is offered in the waiting room only (decision Q-ui-lang-after-join),
+  // also while a reload of a running quiz is still loading.
   useEffect(() => {
-    setUiLanguageLocked(session?.status === 'active');
+    setUiLanguageLocked(session?.status !== 'pending');
     return () => setUiLanguageLocked(false);
   }, [session?.status, setUiLanguageLocked]);
 
@@ -241,7 +242,13 @@ export function Play() {
         </p>
         {offered && (
           <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 16, display: 'flex', justifyContent: 'center' }}>
-            <QuestionLanguageBar idPrefix="qlang-wait" languages={offered} value={contentLanguage} onChange={setContentLanguage} />
+            <QuestionLanguageBar
+              idPrefix="qlang-wait"
+              languages={offered}
+              value={contentLanguage}
+              onChange={setContentLanguage}
+              centered
+            />
           </div>
         )}
       </div>

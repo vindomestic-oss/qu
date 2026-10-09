@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { FocusEvent, KeyboardEvent } from 'react';
 import type { QuizLang } from '../i18n/contentLanguages';
 import { LANGUAGE_META, localizedLanguageName } from '../i18n/languageMeta';
@@ -41,6 +41,9 @@ function ChevronIcon() {
 export function LanguageMenu<L extends QuizLang>({ idPrefix, options, value, onChange, icon = 'none', countLabel, labelledBy }: Props<L>) {
   const { uiLanguage } = useLanguage();
   const [open, setOpen] = useState(false);
+  // Fit the open list to the screen: as much height as is left below the trigger, or open upwards
+  // when the space below is small, so no option ends up out of reach (12 languages on a phone).
+  const [placement, setPlacement] = useState<{ up: boolean; maxHeight: number } | null>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
@@ -69,6 +72,17 @@ export function LanguageMenu<L extends QuizLang>({ idPrefix, options, value, onC
       document.removeEventListener('pointerdown', down);
       document.removeEventListener('keydown', key);
     };
+  }, [open]);
+
+  useLayoutEffect(() => {
+    if (!open || !triggerRef.current) return;
+    const rect = triggerRef.current.getBoundingClientRect();
+    const margin = 8;
+    const below = window.innerHeight - rect.bottom - margin;
+    const above = rect.top - margin;
+    const up = below < 200 && above > below;
+    // eslint-disable-next-line react/set-state-in-effect -- measuring layout needs an effect
+    setPlacement({ up, maxHeight: Math.max(120, Math.min(up ? above : below, 576)) });
   }, [open]);
 
   function optionButtons(): HTMLButtonElement[] {
@@ -128,7 +142,13 @@ export function LanguageMenu<L extends QuizLang>({ idPrefix, options, value, onC
         <ChevronIcon />
         {countLabel && <span className="lang-menu__count">· {countLabel}</span>}
       </button>
-      <ul id={`${idPrefix}-list`} ref={listRef} className="lang-menu__panel" hidden={!open}>
+      <ul
+        id={`${idPrefix}-list`}
+        ref={listRef}
+        className={placement?.up ? 'lang-menu__panel lang-menu__panel--up' : 'lang-menu__panel'}
+        style={placement ? { maxBlockSize: placement.maxHeight } : undefined}
+        hidden={!open}
+      >
         {options.map((code, i) => {
           const endonym = LANGUAGE_META[code].endonym;
           const secondary = showSecondary ? localizedLanguageName(code, uiLanguage) : '';
