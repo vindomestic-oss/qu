@@ -2,6 +2,7 @@ import type { Server as HttpServer } from 'http';
 import { Server } from 'socket.io';
 import { authenticate } from './middleware/jwt';
 import { db } from './db';
+import { nowIso } from './lib/time';
 
 // Rooms: `session:<id>` (participants and staff) carries only session:update. `staff:<id>` (admins, and
 // graders with a valid link for that one session) carries session:update, session:live and
@@ -137,15 +138,17 @@ export async function disconnectGraderLink(sessionId: number, linkId: number): P
 
 /**
  * Session status changes go to everyone in the session, participants and staff alike; graders get
- * the row without its join code.
+ * the row without its join code. Every payload carries server_now (ISO), so screens can correct
+ * their countdowns for a device clock that is off (S15; display only, the server ends the session).
  */
 export function broadcastSessionUpdate(sessionId: number, payload: unknown) {
   if (!io) return;
-  io.to(`session:${sessionId}`).to(`staff:${sessionId}`).except(`graders:${sessionId}`).emit('session:update', payload);
+  const stamped = typeof payload === 'object' && payload !== null ? { ...payload, server_now: nowIso() } : payload;
+  io.to(`session:${sessionId}`).to(`staff:${sessionId}`).except(`graders:${sessionId}`).emit('session:update', stamped);
   const forGraders =
-    typeof payload === 'object' && payload !== null
-      ? Object.fromEntries(Object.entries(payload).filter(([key]) => key !== 'join_code'))
-      : payload;
+    typeof stamped === 'object' && stamped !== null
+      ? Object.fromEntries(Object.entries(stamped).filter(([key]) => key !== 'join_code'))
+      : stamped;
   io.to(`graders:${sessionId}`).emit('session:update', forGraders);
 }
 

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLanguage } from '../../i18n/LanguageContext';
 import { formatCountdown } from '../../lib/time';
+import { serverNow } from '../../lib/clock';
 
 interface Props {
   endsAt: string;
@@ -16,7 +17,8 @@ interface Props {
  */
 export function Countdown({ endsAt, onExpire, onAlmostOver }: Props) {
   const { t } = useLanguage();
-  const [now, setNow] = useState(() => Date.now());
+  // The server's time (device clock + offset, S15), so a tablet with a wrong clock counts right.
+  const [now, setNow] = useState(() => serverNow());
   const expireRef = useRef(onExpire);
   const almostRef = useRef(onAlmostOver);
   const firedRef = useRef({ expire: false, almost: false });
@@ -27,7 +29,7 @@ export function Countdown({ endsAt, onExpire, onAlmostOver }: Props) {
 
   useEffect(() => {
     firedRef.current = { expire: false, almost: false };
-    const tick = setInterval(() => setNow(Date.now()), 1000);
+    const tick = setInterval(() => setNow(serverNow()), 1000);
     return () => clearInterval(tick);
   }, [endsAt]);
 

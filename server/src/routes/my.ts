@@ -78,6 +78,8 @@ myRouter.get('/session', (req: ParticipantRequest, res) => {
 
   res.json({
     session,
+    // The server's clock, for the countdown's offset (S15). Display only: the server ends the session.
+    server_now: nowIso(),
     participant: { ...req.participant, submitted_at: getSubmittedAt(req.participant!.participantId) },
     quiz:
       quizRow && languageInfo
@@ -172,6 +174,7 @@ myRouter.get('/quiz', (req: ParticipantRequest, res) => {
 
   res.json({
     session,
+    server_now: nowIso(),
     quiz,
     sections,
     questions: questionsOut,

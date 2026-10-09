@@ -11,6 +11,7 @@ import { GraderAccessDialog } from './GraderAccessDialog';
 import { JoinQrCode } from '../JoinQrCode';
 import { displayHost, formatJoinCode } from '../../lib/joinLink';
 import { formatCountdown } from '../../lib/time';
+import { serverNow } from '../../lib/clock';
 
 interface Props {
   quizId: number;
@@ -24,7 +25,7 @@ export function SessionPanel({ quizId, initialSession, onSessionEnded, onSession
   const [session, setSession] = useState<QuizSession | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [now, setNow] = useState(() => Date.now());
+  const [now, setNow] = useState(() => serverNow());
   const [graderAccessOpen, setGraderAccessOpen] = useState(false);
   const onSessionEndedRef = useRef(onSessionEnded);
   const onSessionChangedRef = useRef(onSessionChanged);
@@ -40,7 +41,7 @@ export function SessionPanel({ quizId, initialSession, onSessionEnded, onSession
   }, [initialSession, session]);
 
   useEffect(() => {
-    const tick = setInterval(() => setNow(Date.now()), 1000);
+    const tick = setInterval(() => setNow(serverNow()), 1000);
     return () => clearInterval(tick);
   }, []);
 

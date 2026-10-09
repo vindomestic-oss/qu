@@ -2,6 +2,7 @@ import { io, Socket } from 'socket.io-client';
 import { getToken } from '../api/client';
 import { getParticipantToken } from '../api/participantClient';
 import { getStaffToken } from '../api/graderClient';
+import { recordServerNow } from './clock';
 
 export type RoomKind = 'session' | 'staff';
 
@@ -32,6 +33,9 @@ function emitJoin(kind: RoomKind, id: number): void {
 export function getSocket(): Socket {
   if (!socket) {
     socket = io({ path: '/socket.io' });
+    // Every session:update carries the server's clock (S15); registered first, so the countdowns of
+    // the screens that handle the event already use it.
+    socket.on('session:update', (payload?: { server_now?: unknown }) => recordServerNow(payload?.server_now));
     // A reconnect starts with no rooms on the server: join every room that is still in use.
     socket.on('connect', () => {
       for (const [key, count] of roomRefs) {

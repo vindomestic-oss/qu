@@ -7,6 +7,7 @@ import { useStaffLive } from '../../lib/useStaffLive';
 import { useLiveStatus } from '../../lib/useLiveStatus';
 import { useWakeLock } from '../../lib/useWakeLock';
 import { formatCountdown } from '../../lib/time';
+import { serverNow } from '../../lib/clock';
 import { displayHost, formatJoinCode } from '../../lib/joinLink';
 import { JoinQrCode } from '../../components/JoinQrCode';
 import { LiveMonitor } from '../../components/admin/LiveMonitor';
@@ -44,7 +45,7 @@ export function HostScreen() {
   const [notFound, setNotFound] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [now, setNow] = useState(() => Date.now());
+  const [now, setNow] = useState(() => serverNow());
   const [showQr, setShowQr] = useState(false);
   const showQrRef = useRef<HTMLButtonElement>(null);
   const wasShowingQrRef = useRef(false);
@@ -100,7 +101,7 @@ export function HostScreen() {
   const joined = live.data?.participants.length ?? 0;
 
   useEffect(() => {
-    const tick = setInterval(() => setNow(Date.now()), 1000);
+    const tick = setInterval(() => setNow(serverNow()), 1000);
     return () => clearInterval(tick);
   }, []);
 

@@ -71,7 +71,8 @@ sessionsRouter.get('/:id', (req, res) => {
        FROM quizzes q WHERE q.id = ?`,
     )
     .get(session.quiz_id);
-  res.json({ session, quiz });
+  // server_now: the host screen corrects its countdown for a device clock that is off (S15).
+  res.json({ session, quiz, server_now: nowIso() });
 });
 
 // "Lock joining" (decision Q-lock-joining): new names get 403 JOINING_LOCKED; rejoining stays possible.

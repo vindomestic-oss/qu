@@ -1,4 +1,5 @@
 import { ApiError } from './client';
+import { recordServerNow } from '../lib/clock';
 
 const TOKEN_KEY = 'quiz_participant_token';
 
@@ -22,10 +23,14 @@ export async function participantApi<T>(path: string, options: RequestInit = {})
   };
   if (token) headers.Authorization = `Bearer ${token}`;
 
+  const sentAt = Date.now();
   const res = await fetch(`/api${path}`, { ...options, headers });
+  const receivedAt = Date.now();
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     throw new ApiError(res.status, data.error || 'Request failed', data.code);
   }
+  // /api/my/session and /api/my/quiz carry the server's clock for the countdown (S15).
+  recordServerNow(data?.server_now, sentAt, receivedAt);
   return data as T;
 }

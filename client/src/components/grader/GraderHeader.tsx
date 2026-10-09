@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { setGraderToken } from '../../api/graderClient';
 import { useLanguage } from '../../i18n/LanguageContext';
 import { formatCountdown } from '../../lib/time';
+import { serverNow } from '../../lib/clock';
 import type { SessionStatus } from '../../types';
 import { Interpolate } from './Interpolate';
 
@@ -31,12 +32,12 @@ export function GraderHeader({ sessionId, title, session, viewer, back, heading,
     };
   }, [docTitle]);
   const navigate = useNavigate();
-  const [now, setNow] = useState(() => Date.now());
+  const [now, setNow] = useState(() => serverNow());
   const running = session.status === 'active' && session.ends_at !== null;
 
   useEffect(() => {
     if (!running) return;
-    const tick = setInterval(() => setNow(Date.now()), 1000);
+    const tick = setInterval(() => setNow(serverNow()), 1000);
     return () => clearInterval(tick);
   }, [running]);
 
