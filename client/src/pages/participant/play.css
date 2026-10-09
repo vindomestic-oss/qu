@@ -1,0 +1,224 @@
+/* Stable question page (wish 11): header, navigator slot, card, sticky action bar never move. */
+.play {
+  max-inline-size: 760px;
+  margin-inline: auto;
+  padding-inline: 16px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr); /* long content never widens the page past the screen */
+  grid-template-rows: auto auto 1fr auto;
+  min-block-size: 100vh;
+  min-block-size: 100svh; /* svh, not dvh: dvh changes while Safari's toolbars collapse */
+}
+.play-header {
+  block-size: 56px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-block-end: 1px solid var(--border-subtle);
+}
+.play-title {
+  margin: 0;
+  font-size: 20px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-inline-size: 0;
+  flex: 1;
+}
+.countdown {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  min-inline-size: 7ch;
+  text-align: end;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+/* Navigator slot: always rendered so the grid rows never shift; filled by S8. */
+.play-nav {
+  block-size: 0;
+}
+.play-main {
+  display: flex;
+  flex-direction: column;
+  padding-block: 12px;
+}
+.qcard {
+  flex: 1 0 auto;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0 16px;
+}
+.qcard-head {
+  block-size: 44px;
+  margin-block: 8px 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.qcard-head__count {
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+}
+.qcard-head__lang {
+  margin-inline-start: auto;
+  flex-shrink: 0;
+}
+/* On a phone the card head keeps one row: the visible label and the count go, the menu stays and
+   keeps its accessible name ("Question language English"). */
+@media (max-width: 600px) {
+  .qcard-head .qlang__label {
+    position: absolute;
+    inline-size: 1px;
+    block-size: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .qcard-head .lang-menu__count {
+    display: none;
+  }
+}
+.qcard-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.qcard-body h2 {
+  margin: 0;
+  font-size: 19px;
+  line-height: 1.4;
+}
+.qcard-body h2:focus {
+  outline: none;
+}
+.qcard-media {
+  position: relative;
+  inline-size: 100%;
+  aspect-ratio: 16 / 9;
+  max-block-size: 32svh;
+  background: var(--image-bg);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.qcard-media img {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: contain;
+}
+.choices {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.choice {
+  min-block-size: 44px;
+  padding-block: 8px;
+  padding-inline: 12px;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+.choice:has(input:checked) {
+  border: 2px solid var(--link);
+  padding-block: 7px;
+  padding-inline: 11px;
+  background: var(--selected-bg);
+  color: var(--selected-text);
+}
+.choice input {
+  flex: none;
+}
+.text-answer textarea {
+  inline-size: 100%;
+  resize: none;
+  padding: 8px;
+}
+.text-answer button {
+  margin-block-start: 8px;
+}
+.qcard-status {
+  margin-block-start: auto;
+  block-size: 44px;
+  display: flex;
+  align-items: center;
+  border-block-start: 1px solid var(--border-subtle);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text-muted);
+}
+.qcard-status--saved {
+  color: var(--success);
+}
+.qcard-status--error {
+  color: var(--danger);
+}
+.play-actionbar {
+  position: sticky;
+  inset-block-end: 0;
+  z-index: 10;
+  block-size: calc(64px + env(safe-area-inset-bottom));
+  padding-block-end: env(safe-area-inset-bottom);
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg);
+  border-block-start: 1px solid var(--border-subtle);
+}
+.play-actionbar > :first-child {
+  justify-self: start;
+}
+.play-actionbar > :last-child {
+  justify-self: end;
+}
+/* Both labels share one grid cell, so the button keeps its width ("Next" / "Review"). */
+.btn-stack {
+  display: inline-grid;
+}
+.btn-stack > span {
+  grid-area: 1 / 1;
+}
+.btn-stack > .is-hidden {
+  visibility: hidden;
+}
+.lang-stack {
+  display: inline-grid;
+}
+.lang-stack > * {
+  grid-area: 1 / 1;
+}
+.lang-stack__hidden {
+  visibility: hidden;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .qcard-body {
+    animation: qfade 120ms ease-out;
+  }
+  @keyframes qfade {
+    from {
+      opacity: 0.4;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+}

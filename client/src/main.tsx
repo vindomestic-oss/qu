@@ -7,6 +7,8 @@ import { AuthProvider } from './auth/AuthContext.tsx'
 import { ParticipantProvider } from './auth/ParticipantContext.tsx'
 import { LanguageProvider } from './i18n/LanguageContext.tsx'
 
+if (import.meta.env.DEV) void import('./lib/layoutShiftLogger.ts')
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>

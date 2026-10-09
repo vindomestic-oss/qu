@@ -113,6 +113,17 @@
   box-sizing: border-box;
 }
 
+html {
+  /* No sideways jump when a classic scrollbar appears (Windows); focused fields stay above the
+     sticky action bar on /play (WCAG 2.4.11). */
+  scrollbar-gutter: stable;
+  scroll-padding-block-end: calc(72px + env(safe-area-inset-bottom));
+}
+
+:lang(he) {
+  font-family: 'Arial Hebrew', 'Noto Sans Hebrew', 'Segoe UI', Arial, sans-serif;
+}
+
 body {
   margin: 0;
   background: var(--bg);
