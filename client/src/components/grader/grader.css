@@ -974,3 +974,84 @@ html:has(.quiz-bar) {
     font-size: 21px;
   }
 }
+
+/* --- Keyboard shortcuts (wish 8, S15) ---------------------------------------------------------- */
+.shortcut-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.participant-head__tools {
+  margin-inline-start: auto;
+}
+/* Phones (rarely with a keyboard): the icon alone keeps the sticky bar at two lines; the word stays
+   the button's name for screen readers. */
+@media (max-width: 480px) {
+  .quiz-bar .shortcut-button {
+    min-inline-size: 44px;
+    justify-content: center;
+  }
+  .quiz-bar .shortcut-button__label {
+    position: absolute;
+    inline-size: 1px;
+    block-size: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+/* The row J/K/N moved to: a clear frame around the whole answer (the global ring is 2 px). */
+.answer-row[data-grade-row]:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+.shortcut-dialog .grade-muted {
+  margin: 0 0 8px;
+}
+.shortcut-table {
+  inline-size: 100%;
+  border-collapse: collapse;
+  margin-block: 8px 12px;
+}
+.shortcut-table th,
+.shortcut-table td {
+  padding: 6px 8px;
+  border-block-end: 1px solid var(--border-subtle);
+  text-align: start;
+  vertical-align: top;
+}
+.shortcut-table th {
+  font-weight: 400;
+  white-space: nowrap;
+}
+.shortcut-table__or {
+  color: var(--text-muted);
+  font-size: 13px;
+}
+.shortcut-dialog kbd {
+  display: inline-block;
+  min-inline-size: 1.6em;
+  padding: 1px 6px;
+  border: 1px solid var(--border-strong);
+  border-block-end-width: 2px;
+  border-radius: 4px;
+  background: var(--surface-alt);
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  text-align: center;
+}
+.shortcut-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-block-size: 44px;
+  cursor: pointer;
+}
+.shortcut-toggle input {
+  inline-size: 22px;
+  block-size: 22px;
+  margin: 0;
+}

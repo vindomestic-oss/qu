@@ -19,6 +19,8 @@ import { isAiAcceptable } from '../../components/grader/aiSuggestion';
 import { AiAcceptButton } from '../../components/grader/AiAccept';
 import { useAiAcceptKey } from '../../lib/useAiAcceptKey';
 import { useAiBlindMode } from '../../lib/useAiBlindMode';
+import { useShortcutsEnabled } from '../../lib/graderShortcuts';
+import { GraderShortcuts } from '../../components/grader/GraderShortcuts';
 import { runAi } from '../../api/aiGrading';
 import type { AnswerGrade, ParticipantReviewResponse } from '../../types';
 import '../../components/grader/grader.css';
@@ -38,7 +40,9 @@ export function ParticipantReview() {
   // Wish 7 (S14): the same AI suggestion per answer as in the whole-quiz review.
   const [blind] = useAiBlindMode();
   const ai = data?.quiz.ai_grading_enabled === true;
-  useAiAcceptKey(ai && !blind);
+  // Wish 8 (S15): the keyboard shortcuts' switch covers A too (WCAG 2.1.4).
+  const keysOn = useShortcutsEnabled();
+  useAiAcceptKey(ai && !blind && keysOn);
 
   useEffect(() => {
     reload();
@@ -104,6 +108,9 @@ export function ParticipantReview() {
             <bdi>{name}</bdi>
           </h1>
           <StatusTag status={p.status} />
+          <span className="participant-head__tools">
+            <GraderShortcuts aiAccept={ai && data.gradable && !blind} />
+          </span>
         </div>
         <p className="participant-head__facts">
           <span>{t('grader.participant.answered', { n: data.totals.answered, total: data.items.length })}</span>

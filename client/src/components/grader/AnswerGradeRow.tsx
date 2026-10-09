@@ -9,6 +9,7 @@ import { CheckIcon, CrossIcon } from './icons';
 import { AUTO_SOURCES, formatPoints, graderIdentity } from './format';
 import { Interpolate } from './Interpolate';
 import { RuleMatchedLabel } from './AnswerHints';
+import { useGradeShortcut, useShortcutsEnabled } from '../../lib/graderShortcuts';
 
 interface Attempt {
   is_correct: boolean;
@@ -78,6 +79,8 @@ export function AnswerGradeRow({
   // save a second time); actions during a save are ignored instead.
   const inFlight = useRef(false);
   const id = useId();
+  const rowRef = useRef<HTMLDivElement>(null);
+  const keysOn = useShortcutsEnabled();
 
   const graded = answer.points_awarded !== null;
   const max = formatPoints(maxPoints, uiLanguage);
@@ -153,6 +156,35 @@ export function AnswerGradeRow({
     }
   }
 
+  // Wish 8 (S15): grade keys aimed at this row (GraderShortcuts). A digit is that many points: 0 and
+  // the maximum are "Incorrect" and "Correct"; other points follow the field's rule (an existing
+  // verdict stays, otherwise points > 0 count as correct).
+  useGradeShortcut(rowRef, (action) => {
+    if (disabled) return 'not_gradable';
+    if (inFlight.current) return 'busy';
+    if (action.kind === 'correct' || action.kind === 'incorrect') {
+      verdict(action.kind === 'correct');
+      return 'ok';
+    }
+    if (action.kind === 'editPoints') {
+      inputRef.current?.focus();
+      inputRef.current?.select();
+      return 'ok';
+    }
+    const value = action.points;
+    if (value > maxPoints + 1e-9) return { result: 'too_high', max: maxPoints };
+    if (value === 0 || Math.abs(value - maxPoints) < 1e-9) {
+      verdict(value > 0);
+      return 'ok';
+    }
+    setDraft(null);
+    setDraftBase(null);
+    const isCorrect = graded && answer.is_correct !== null ? answer.is_correct === 1 : value > 0;
+    if (graded && Math.abs((answer.points_awarded ?? 0) - value) < 1e-9 && (answer.is_correct === 1) === isCorrect) return 'ok';
+    void save({ is_correct: isCorrect, points_awarded: value, expected_version: answer.grade_version });
+    return 'ok';
+  });
+
   const pointsValue = draft ?? (graded ? String(answer.points_awarded) : '');
   const meta = (() => {
     if (!graded) return t('grader.row.notGraded');
@@ -172,9 +204,15 @@ export function AnswerGradeRow({
 
   return (
     <div
+      ref={rowRef}
       className={`answer-row${disabled ? ' is-disabled' : ''}${tools ? ' answer-row--tools' : ''}`}
       role="group"
       aria-labelledby={heading ? `${id}-h` : undefined}
+      // Wish 8 (S15): J/K/N move the focus here (programmatic only, never a Tab stop).
+      tabIndex={-1}
+      data-grade-row=""
+      data-graded={graded ? 'true' : 'false'}
+      data-gradable={disabled ? 'false' : 'true'}
     >
       <div className="answer-row__content">
         {heading && (
@@ -193,6 +231,8 @@ export function AnswerGradeRow({
             className="grade-toggle grade-toggle--correct"
             aria-pressed={graded && answer.is_correct === 1}
             disabled={disabled}
+            aria-keyshortcuts={keysOn ? 'C' : undefined}
+            title={keysOn ? t('grader.keys.tooltip', { key: 'C' }) : undefined}
             onClick={() => verdict(true)}
           >
             <CheckIcon /> {t('grader.row.correct')}
@@ -203,6 +243,8 @@ export function AnswerGradeRow({
             className="grade-toggle grade-toggle--incorrect"
             aria-pressed={graded && answer.is_correct === 0}
             disabled={disabled}
+            aria-keyshortcuts={keysOn ? 'X' : undefined}
+            title={keysOn ? t('grader.keys.tooltip', { key: 'X' }) : undefined}
             onClick={() => verdict(false)}
           >
             <CrossIcon /> {t('grader.row.incorrect')}

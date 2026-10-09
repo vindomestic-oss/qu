@@ -18,6 +18,8 @@ import { groupSuggestion, isAiAcceptable } from '../../components/grader/aiSugge
 import { AiAcceptAll, AiAcceptButton } from '../../components/grader/AiAccept';
 import { useAiAcceptKey } from '../../lib/useAiAcceptKey';
 import { useAiBlindMode } from '../../lib/useAiBlindMode';
+import { useShortcutsEnabled } from '../../lib/graderShortcuts';
+import { GraderShortcuts } from '../../components/grader/GraderShortcuts';
 import { runAi } from '../../api/aiGrading';
 import { QuestionLanguageBar } from '../../components/participant/QuestionLanguageBar';
 import type { AiGradingStatus, AnswerGrade, GradingAnswer, GradingQuestion, WholeQuizQuestion, WholeQuizResponse } from '../../types';
@@ -127,7 +129,9 @@ export function WholeQuizReview() {
   // Wish 7 (S14): AI suggestions, the blind mode and the per-question "check the key" hints.
   const [blind, setBlind] = useAiBlindMode();
   const [aiStatus, setAiStatus] = useState<AiGradingStatus | null>(null);
-  useAiAcceptKey(snapshot?.quiz.ai_grading_enabled === true && !blind);
+  // Wish 8 (S15): the keyboard shortcuts' switch covers A too (WCAG 2.1.4).
+  const keysOn = useShortcutsEnabled();
+  useAiAcceptKey(snapshot?.quiz.ai_grading_enabled === true && !blind && keysOn);
 
   const snapshotRef = useRef<Snapshot | null>(null);
   const rowsRef = useRef(rows);
@@ -412,6 +416,7 @@ export function WholeQuizReview() {
         <button type="button" className="small-button" onClick={loadSnapshot}>
           {t('grader.quiz.refresh')}
         </button>
+        <GraderShortcuts aiAccept={ai && !blind} />
       </div>
 
       {error && (

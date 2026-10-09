@@ -41,6 +41,7 @@ export const AI_EN: Dict = {
   'grader.ai.hidden': 'AI suggestion hidden until you decide',
   'grader.ai.accept': 'Accept: correct, {points} pt',
   'grader.ai.acceptKey': 'Shortcut: A',
+  'grader.keys.accept': 'Accept the AI suggestion',
   'grader.ai.changedMeanwhile': 'Graded by someone else in the meantime: {n}',
 
   // Per question: accept all confident-correct.
@@ -105,6 +106,7 @@ export const AI_DE: Dict = {
   'grader.ai.hidden': 'KI-Vorschlag verborgen, bis du entschieden hast',
   'grader.ai.accept': 'Übernehmen: richtig, {points} P.',
   'grader.ai.acceptKey': 'Taste: A',
+  'grader.keys.accept': 'KI-Vorschlag übernehmen',
   'grader.ai.changedMeanwhile': 'Inzwischen von jemand anderem bewertet: {n}',
 
   'grader.ai.acceptAll': 'Alle sicher richtigen übernehmen ({n})',
@@ -167,6 +169,7 @@ export const AI_RU: Dict = {
   'grader.ai.hidden': 'Подсказка ИИ скрыта, пока вы не решите',
   'grader.ai.accept': 'Принять: верно, {points} б.',
   'grader.ai.acceptKey': 'Клавиша: A',
+  'grader.keys.accept': 'Принять подсказку ИИ',
   'grader.ai.changedMeanwhile': 'Тем временем оценил кто-то другой: {n}',
 
   'grader.ai.acceptAll': 'Засчитать все уверенно верные ({n})',
@@ -229,6 +232,7 @@ export const AI_HE: Dict = {
   'grader.ai.hidden': 'הצעת הבינה המלאכותית מוסתרת עד שתחליטו',
   'grader.ai.accept': 'אישור: נכון, {points} נק׳',
   'grader.ai.acceptKey': 'מקש: A',
+  'grader.keys.accept': 'אישור ההצעה של הבינה המלאכותית',
   'grader.ai.changedMeanwhile': 'נבדקו בינתיים על ידי מישהו אחר: {n}',
 
   'grader.ai.acceptAll': 'אישור כל התשובות הנכונות בוודאות ({n})',
