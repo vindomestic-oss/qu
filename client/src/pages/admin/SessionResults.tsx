@@ -21,8 +21,11 @@ function computeScore(participantId: number, questions: Question[], answers: Ses
 }
 
 function toCsvCell(value: unknown): string {
-  const s = String(value ?? '');
-  if (/[",\n]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
+  let s = String(value ?? '');
+  // A text that starts like a formula (=, +, -, @, tab, CR) would run in Excel or LibreOffice:
+  // a leading apostrophe keeps it text. Numbers (scores) are left alone.
+  if (typeof value === 'string' && /^[=+\-@\t\r]/.test(s)) s = `'${s}`;
+  if (/[",\n\r]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
   return s;
 }
 

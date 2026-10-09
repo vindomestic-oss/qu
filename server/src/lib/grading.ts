@@ -97,14 +97,22 @@ export function gradeAnswer(db: Db, sessionId: number, input: GradeInput): Grade
   return db.transaction((): GradeResult => {
     const row = db
       .prepare(
-        `SELECT a.id, a.points_awarded, q.points AS max_points, p.submitted_at
+        `SELECT a.id, a.question_id, a.participant_id, a.points_awarded, a.is_correct, q.points AS max_points, p.submitted_at
          FROM answers a
          JOIN questions q ON q.id = a.question_id
          JOIN participants p ON p.id = a.participant_id
          WHERE a.id = ? AND a.session_id = ?`,
       )
       .get(input.answerId, sessionId) as
-      | { id: number; points_awarded: number | null; max_points: number; submitted_at: string | null }
+      | {
+          id: number;
+          question_id: number;
+          participant_id: number;
+          points_awarded: number | null;
+          is_correct: number | null;
+          max_points: number;
+          submitted_at: string | null;
+        }
       | undefined;
     if (!row) return { ok: false, status: 404, error: 'not_found' };
     if (!isValidPoints(input.points, { allowZero: true }) || input.points > row.max_points + 1e-9) {
@@ -127,10 +135,13 @@ export function gradeAnswer(db: Db, sessionId: number, input: GradeInput): Grade
     insertGradeEvent(db, {
       answerId: row.id,
       sessionId,
+      questionId: row.question_id,
+      participantId: row.participant_id,
       actor: input.actor,
       action: 'manual',
       oldPoints: row.points_awarded,
       newPoints: points,
+      oldIsCorrect: row.is_correct,
       isCorrect: input.isCorrect ? 1 : 0,
       gradeSource: 'human',
     });
@@ -141,10 +152,13 @@ export function gradeAnswer(db: Db, sessionId: number, input: GradeInput): Grade
 export interface GradeEventInput {
   answerId: number;
   sessionId: number;
+  questionId: number;
+  participantId: number;
   actor: string | null;
   action: 'manual' | 'regrade_points';
   oldPoints: number | null;
   newPoints: number | null;
+  oldIsCorrect: number | null;
   isCorrect: number | null;
   gradeSource: string | null;
 }
@@ -152,9 +166,23 @@ export interface GradeEventInput {
 /** One row of the append-only audit; call it in the transaction of the change it records. */
 export function insertGradeEvent(db: Db, e: GradeEventInput): void {
   db.prepare(
-    `INSERT INTO grade_events (answer_id, session_id, actor, action, old_points, new_points, is_correct, grade_source, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-  ).run(e.answerId, e.sessionId, e.actor, e.action, e.oldPoints, e.newPoints, e.isCorrect, e.gradeSource, new Date().toISOString());
+    `INSERT INTO grade_events (answer_id, session_id, question_id, participant_id, actor, action, old_points, new_points,
+       old_is_correct, is_correct, grade_source, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+  ).run(
+    e.answerId,
+    e.sessionId,
+    e.questionId,
+    e.participantId,
+    e.actor,
+    e.action,
+    e.oldPoints,
+    e.newPoints,
+    e.oldIsCorrect,
+    e.isCorrect,
+    e.gradeSource,
+    new Date().toISOString(),
+  );
 }
 
 /** Participant status on the grading panel (wish 8). */

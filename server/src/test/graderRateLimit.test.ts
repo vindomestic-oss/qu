@@ -47,7 +47,14 @@ test('20 wrong codes in 15 minutes are answered, the 21st is 429; a forged X-For
   assert.equal(limited.body.code, 'RATE_LIMITED');
   assert.ok(Number(limited.headers.get('retry-after')) > 0);
   assert.equal(limited.headers.get('x-ratelimit-limit'), null, 'no legacy headers');
-  // With TRUST_PROXY_HOPS=0 the client cannot pick another counter, and a right code is refused too.
+  // With TRUST_PROXY_HOPS=0 the client cannot pick another counter.
   assert.equal((await exchange('WRNG-WRNG-WRNG-WRNG', { 'X-Forwarded-For': '203.0.113.9' })).status, 429);
-  assert.equal((await exchange(code, { 'X-Forwarded-For': '198.51.100.7' })).status, 429);
+});
+
+test('a valid code still passes after 20 wrong ones from the same address (shared proxy or NAT)', async () => {
+  const ok = await exchange(code, { 'X-Forwarded-For': '198.51.100.7' });
+  assert.equal(ok.status, 200);
+  assert.ok(ok.body.token);
+  // ... while wrong codes stay refused.
+  assert.equal((await exchange('WRNG-WRNG-WRNG-WRNG')).status, 429);
 });

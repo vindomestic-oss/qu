@@ -31,6 +31,7 @@ export interface QuestionWriteResult {
 interface AnswerGradeRow {
   id: number;
   session_id: number;
+  participant_id: number;
   selected_choice_ids: string | null;
   is_correct: number | null;
   points_awarded: number | null;
@@ -65,7 +66,7 @@ function parseSelected(raw: string | null): number[] {
  * When the points or the set of correct choices change, the question's answers are re-graded in the
  * same transaction (wish 8): automatic grades are recomputed, except answers that selected a choice
  * which no longer exists (kept as graded); human grades that had full points move to the new
- * maximum, other human grades are clamped to it, and a grade at the maximum counts as correct.
+ * maximum, other human grades are clamped to it, and their verdict (is_correct) is kept.
  * Every grade it changes gets a grade_events row ('regrade_points') in the same transaction.
  * Model-answer fields (wish 8) apply to text questions only and are cleared for choice types.
  */
@@ -173,7 +174,7 @@ export function updateQuestionWithChoices(
     const choiceIds = new Set(choices.map((c) => c.id));
     const answers = db
       .prepare(
-        'SELECT id, session_id, selected_choice_ids, is_correct, points_awarded, grade_source FROM answers WHERE question_id = ?',
+        'SELECT id, session_id, participant_id, selected_choice_ids, is_correct, points_awarded, grade_source FROM answers WHERE question_id = ?',
       )
       .all(questionId) as AnswerGradeRow[];
     const setGrade = db.prepare(
@@ -193,20 +194,23 @@ export function updateQuestionWithChoices(
         }
       } else if (a.grade_source !== 'auto_blank' && a.points_awarded !== null) {
         // Human (or later AI-confirmed) grades: a full-points correct grade follows the new maximum,
-        // any other grade is only clamped to it. A grade at the maximum is correct, as in the grade route.
+        // any other grade is only clamped to it. The verdict is the grader's and never changes here.
         const wasFull = a.is_correct === 1 && samePoints(a.points_awarded, question.points);
         const points = wasFull ? parsed.points : Math.min(a.points_awarded, parsed.points);
-        next = { isCorrect: points >= parsed.points - 1e-9 ? 1 : a.is_correct, points };
+        next = { isCorrect: a.is_correct, points };
       }
       if (!next || (next.isCorrect === a.is_correct && samePoints(next.points, a.points_awarded))) continue;
       setGrade.run(next.isCorrect, next.points, a.id);
       insertGradeEvent(db, {
         answerId: a.id,
         sessionId: a.session_id,
+        questionId,
+        participantId: a.participant_id,
         actor,
         action: 'regrade_points',
         oldPoints: a.points_awarded,
         newPoints: next.points,
+        oldIsCorrect: a.is_correct,
         isCorrect: next.isCorrect,
         gradeSource: a.grade_source,
       });

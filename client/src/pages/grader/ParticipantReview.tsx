@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { getParticipantReview } from '../../api/grading';
 import { useLanguage } from '../../i18n/LanguageContext';
@@ -50,7 +50,18 @@ export function ParticipantReview() {
     );
   }
 
-  if (!data || data.participant.id !== pid) {
+  // Previous / Next: the old participant stays on screen until the new one has loaded, then focus
+  // moves to the new name (not to the top of the page).
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  const shownPid = data?.participant.id ?? null;
+  const lastShown = useRef<number | null>(null);
+  useEffect(() => {
+    if (shownPid === null || shownPid === lastShown.current) return;
+    if (lastShown.current !== null) headingRef.current?.focus();
+    lastShown.current = shownPid;
+  }, [shownPid]);
+
+  if (!data) {
     return (
       <div className="grade-page">
         <p role={error ? 'alert' : 'status'}>{error ? t('grader.error.load') : t('grader.loading')}</p>
@@ -68,7 +79,7 @@ export function ParticipantReview() {
       : t('grader.participant.submittedAt', { time: formatServerTime(p.submitted_at, uiLanguage) }));
 
   return (
-    <div className="grade-page">
+    <div className="grade-page" aria-busy={data.participant.id !== pid || undefined}>
       <GraderHeader
         sessionId={id}
         title={data.quiz.title}
@@ -78,7 +89,7 @@ export function ParticipantReview() {
 
       <section className="participant-head" aria-labelledby="participant-name">
         <div className="participant-head__main">
-          <h1 id="participant-name" className="grade-header__title">
+          <h1 id="participant-name" className="grade-header__title" ref={headingRef} tabIndex={-1}>
             <bdi>{name}</bdi>
           </h1>
           <StatusTag status={p.status} />
@@ -96,14 +107,16 @@ export function ParticipantReview() {
         <nav className="participant-head__arrows" aria-label={t('grader.table.title')}>
           {data.prev_id !== null ? (
             <Link className="arrow-link" to={`/grade/${id}/participants/${data.prev_id}`} rel="prev">
-              <span aria-hidden="true">{'‹'}</span> {t('grader.participant.prev')}
+              <span aria-hidden="true">{'‹'}</span>
+              <span>{t('grader.participant.prev')}</span>
             </Link>
           ) : (
             <span />
           )}
           {data.next_id !== null && (
-            <Link className="arrow-link" to={`/grade/${id}/participants/${data.next_id}`} rel="next">
-              {t('grader.participant.next')} <span aria-hidden="true">{'›'}</span>
+            <Link className="arrow-link arrow-link--next" to={`/grade/${id}/participants/${data.next_id}`} rel="next">
+              <span>{t('grader.participant.next')}</span>
+              <span aria-hidden="true">{'›'}</span>
             </Link>
           )}
         </nav>
@@ -140,6 +153,8 @@ export function ParticipantReview() {
               answer={answer}
               maxPoints={q.points}
               disabled={!data.gradable}
+              heading={t('grader.question.number', { n: i + 1 })}
+              headingHidden
               onGrade={mergeGrade}
             >
               {q.type === 'text' ? (

@@ -35,6 +35,9 @@ export function GraderAccessDialog({ sessionId, open, onClose }: Props) {
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
   const linkInputRef = useRef<HTMLInputElement>(null);
+  const resultRef = useRef<HTMLElement>(null);
+  // Clicks during a create are ignored; the button stays enabled so it keeps keyboard focus.
+  const creating = useRef(false);
   const canCopy = typeof window !== 'undefined' && window.isSecureContext && Boolean(navigator.clipboard);
 
   const refreshLinks = useCallback(async () => {
@@ -64,8 +67,17 @@ export function GraderAccessDialog({ sessionId, open, onClose }: Props) {
     onClose();
   }
 
+  // A new result: focus it and bring it into view (at 375 px it is below the fold).
+  useEffect(() => {
+    if (!created) return;
+    resultRef.current?.focus();
+    resultRef.current?.scrollIntoView({ block: 'nearest' });
+  }, [created]);
+
   async function handleCreate(e: FormEvent) {
     e.preventDefault();
+    if (creating.current) return;
+    creating.current = true;
     setBusy(true);
     setError(null);
     setCopied(false);
@@ -77,6 +89,7 @@ export function GraderAccessDialog({ sessionId, open, onClose }: Props) {
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Failed to create grader access');
     } finally {
+      creating.current = false;
       setBusy(false);
     }
   }
@@ -136,7 +149,7 @@ export function GraderAccessDialog({ sessionId, open, onClose }: Props) {
             <option value={30}>30 days</option>
           </select>
         </label>
-        <button type="submit" disabled={busy}>
+        <button type="submit" aria-disabled={busy || undefined}>
           {busy ? 'Creating…' : 'Create access'}
         </button>
       </form>
@@ -149,7 +162,7 @@ export function GraderAccessDialog({ sessionId, open, onClose }: Props) {
       )}
 
       {created && (
-        <section className="grader-dialog__result" aria-label="New grader access">
+        <section className="grader-dialog__result" aria-label="New grader access" ref={resultRef} tabIndex={-1}>
           <div className="grader-dialog__qr">
             <QrCard value={created.url} width="200px" title="Grader access QR code" />
           </div>

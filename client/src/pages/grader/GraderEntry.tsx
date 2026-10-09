@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { exchangeGraderCode } from '../../api/grading';
@@ -32,14 +32,33 @@ export function GraderEntry() {
   const [busy, setBusy] = useState(false);
   const expired = params.get('expired') === '1';
   const hasAdmin = Boolean(getToken());
+  const codeRef = useRef<HTMLInputElement>(null);
+  const nameRef = useRef<HTMLInputElement>(null);
+  const title = t('grader.entry.title');
 
+  useEffect(() => {
+    const before = document.title;
+    document.title = title;
+    return () => {
+      document.title = before;
+    };
+  }, [title]);
+
+  // The button stays enabled; what is missing is said on submit, next to the field to fix.
   async function submit(e: FormEvent) {
     e.preventDefault();
     setError(null);
-    if (!name.trim()) {
-      setError(t('grader.error.NAME_REQUIRED'));
+    if (code.replace(/-/g, '').length !== 16) {
+      setError(t('grader.error.CODE_INCOMPLETE'));
+      codeRef.current?.focus();
       return;
     }
+    if (!name.trim()) {
+      setError(t('grader.error.NAME_REQUIRED'));
+      nameRef.current?.focus();
+      return;
+    }
+    if (busy) return;
     setBusy(true);
     try {
       const r = await exchangeGraderCode(code, name.trim());
@@ -69,6 +88,8 @@ export function GraderEntry() {
           <span>{t('grader.entry.code')}</span>
           <bdi dir="ltr" className="grade-entry__code">
             <input
+              ref={codeRef}
+              aria-describedby="grade-entry-code-hint"
               value={code}
               onChange={(e) => setCode(groupCode(e.target.value))}
               autoCapitalize="characters"
@@ -83,9 +104,13 @@ export function GraderEntry() {
             />
           </bdi>
         </label>
+        <small id="grade-entry-code-hint" className="grade-muted grade-entry__hint">
+          {t('grader.entry.codeHint')}
+        </small>
         <label className="grade-field">
           <span>{t('grader.entry.name')}</span>
           <input
+            ref={nameRef}
             value={name}
             onChange={(e) => setName(e.target.value)}
             maxLength={NAME_MAX}
@@ -94,16 +119,17 @@ export function GraderEntry() {
             autoFocus={Boolean(codeParam)}
             aria-describedby="grade-entry-name-hint"
           />
-          <small id="grade-entry-name-hint" className="grade-muted">
-            {t('grader.entry.nameHint')}
-          </small>
         </label>
+        {/* Outside the label, so screen readers do not read it twice (it is the field's description). */}
+        <small id="grade-entry-name-hint" className="grade-muted grade-entry__hint">
+          {t('grader.entry.nameHint')}
+        </small>
         {error && (
           <p className="grade-error" role="alert">
             {error}
           </p>
         )}
-        <button type="submit" disabled={busy || code.replace(/-/g, '').length !== 16}>
+        <button type="submit" className="grade-entry__submit" aria-disabled={busy || undefined}>
           {busy ? t('grader.entry.submitting') : t('grader.entry.submit')}
         </button>
       </form>

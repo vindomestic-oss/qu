@@ -15,11 +15,21 @@ interface Props {
   back?: { to: string; label: string };
   /** The page's own heading under the quiz title. */
   heading?: string;
+  /** The quiz title is the page's h1 (overview). */
+  titleIsHeading?: boolean;
 }
 
 /** Quiz title, session state (with the time left while it runs), who is grading, and a way back. */
-export function GraderHeader({ sessionId, title, session, viewer, back, heading }: Props) {
+export function GraderHeader({ sessionId, title, session, viewer, back, heading, titleIsHeading = false }: Props) {
   const { t } = useLanguage();
+  const docTitle = t('grader.docTitle', { quiz: title });
+  useEffect(() => {
+    const before = document.title;
+    document.title = docTitle;
+    return () => {
+      document.title = before;
+    };
+  }, [docTitle]);
   const navigate = useNavigate();
   const [now, setNow] = useState(() => Date.now());
   const running = session.status === 'active' && session.ends_at !== null;
@@ -58,9 +68,15 @@ export function GraderHeader({ sessionId, title, session, viewer, back, heading 
       </div>
       <div className="grade-header__main">
         <div>
-          <p className="grade-header__quiz">
-            <bdi>{title}</bdi>
-          </p>
+          {titleIsHeading ? (
+            <h1 className="grade-header__quiz">
+              <bdi>{title}</bdi>
+            </h1>
+          ) : (
+            <p className="grade-header__quiz">
+              <bdi>{title}</bdi>
+            </p>
+          )}
           {heading && <h1 className="grade-header__title">{heading}</h1>}
         </div>
         <div className="grade-header__meta">
@@ -69,7 +85,7 @@ export function GraderHeader({ sessionId, title, session, viewer, back, heading 
             <span className="grade-header__viewer">
               <Interpolate
                 template={t('grader.header.gradingAs')}
-                values={{ name: <bdi>{viewer.kind === 'admin' ? `${viewer.name} (admin)` : viewer.name}</bdi> }}
+                values={{ name: <bdi>{viewer.kind === 'admin' ? `${viewer.name} (${t('grader.row.admin')})` : viewer.name}</bdi> }}
               />
             </span>
           )}

@@ -150,6 +150,24 @@ export function WholeQuizReview() {
     loadSnapshot();
   }, [loadSnapshot]);
 
+  // The sticky bar must never cover a focused control or a jumped-to question (WCAG 2.4.11): the page
+  // scrolls with a top padding of the bar's measured height + 8 px (html scroll-padding-top).
+  const barRef = useRef<HTMLDivElement>(null);
+  const hasSnapshot = snapshot !== null;
+  useEffect(() => {
+    const bar = barRef.current;
+    if (!bar) return;
+    const root = document.documentElement;
+    const apply = () => root.style.setProperty('--grade-sticky-offset', `${Math.ceil(bar.getBoundingClientRect().height) + 8}px`);
+    apply();
+    const observer = new ResizeObserver(apply);
+    observer.observe(bar);
+    return () => {
+      observer.disconnect();
+      root.style.removeProperty('--grade-sticky-offset');
+    };
+  }, [hasSnapshot]);
+
   // Jump to a question linked from the overview (#q-<id>) once the list is there.
   const jumped = useRef('');
   useEffect(() => {
@@ -234,7 +252,7 @@ export function WholeQuizReview() {
         heading={t('grader.quiz.title')}
       />
 
-      <div className="quiz-bar">
+      <div className="quiz-bar" ref={barRef}>
         <div className="quiz-bar__progress">
           <span>{t('grader.quiz.progress', { graded: progress.graded, total: progress.total })}</span>
           <span
@@ -247,6 +265,20 @@ export function WholeQuizReview() {
           >
             <span className="mini-progress__fill" style={{ inlineSize: `${pct}%` }} />
           </span>
+        </div>
+        {/* Always in the bar with its space kept, so the list never moves and the note is visible
+            wherever the grader has scrolled to. */}
+        <div className={`quiz-bar__new${newCount > 0 ? ' is-active' : ''}`}>
+          <span role="status">{newCount > 0 ? t('grader.quiz.newAnswers', { n: newCount }) : ''}</span>
+          <button
+            type="button"
+            className="small-button"
+            onClick={loadSnapshot}
+            tabIndex={newCount > 0 ? undefined : -1}
+            aria-hidden={newCount > 0 ? undefined : true}
+          >
+            {t('grader.quiz.show')}
+          </button>
         </div>
         <div className="grade-chips" role="group" aria-label={t('grader.quiz.filterLabel')}>
           <button type="button" className="toggle-chip" aria-pressed={filter === 'needs_review'} onClick={() => setFilter('needs_review')}>
@@ -261,14 +293,6 @@ export function WholeQuizReview() {
         </button>
       </div>
 
-      {newCount > 0 && (
-        <p className="grade-banner grade-banner--info" role="status">
-          {t('grader.quiz.newAnswers', { n: newCount })}{' '}
-          <button type="button" className="small-button" onClick={loadSnapshot}>
-            {t('grader.quiz.show')}
-          </button>
-        </p>
-      )}
       {error && (
         <p className="grade-banner grade-banner--warning" role="alert">
           {t('grader.error.load')}
@@ -304,9 +328,12 @@ export function WholeQuizReview() {
             base={base}
             choiceCounts={isText ? undefined : stats.choice_counts}
           >
-            {stats.not_submitted_participants > 0 && (
-              <p className="grade-muted review-card__pending">{t('grader.quiz.notSubmitted', { n: stats.not_submitted_participants })}</p>
-            )}
+            {/* Always one line, so the card keeps its height when the last participant submits. */}
+            <p className="grade-muted review-card__pending">
+              {stats.not_submitted_participants > 0
+                ? t('grader.quiz.notSubmitted', { n: stats.not_submitted_participants })
+                : t('grader.quiz.allSubmitted')}
+            </p>
             {!isText && rowList.length > 0 && (
               <button
                 type="button"
@@ -355,7 +382,9 @@ export function WholeQuizReview() {
         );
       })}
       <p className="grade-footer-link">
-        <Link to={`/grade/${id}`}>{t('grader.header.back')}</Link>
+        <Link to={`/grade/${id}`} className="touch-target">
+          {t('grader.header.back')}
+        </Link>
       </p>
     </div>
   );

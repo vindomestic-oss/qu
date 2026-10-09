@@ -5,8 +5,9 @@ import { db } from './db';
 
 // Rooms: `session:<id>` (participants and staff) carries only session:update. `staff:<id>` (admins, and
 // graders with a valid link for that one session) carries session:update, session:live and
-// grading:changed. This module imports no route or lib/sessions.ts; the broadcast helpers do nothing
-// until initSocket has run.
+// grading:changed. Graders are also in `graders:<id>`, so session:update reaches them without the
+// join code (they never need it to grade). This module imports no route or lib/sessions.ts; the
+// broadcast helpers do nothing until initSocket has run.
 
 let io: Server | undefined;
 
@@ -80,7 +81,12 @@ export function initSocket(server: HttpServer): Server {
       const allowed = mayJoin('staff', sessionId, p.token);
       if (!allowed) return reply({ ok: false, error: 'FORBIDDEN' });
       // Revoking a link disconnects the sockets that carry its id (disconnectGraderLink).
-      if (typeof allowed === 'object') socket.data.linkId = allowed.linkId;
+      if (typeof allowed === 'object') {
+        socket.data.linkId = allowed.linkId;
+        socket.join(`graders:${sessionId}`);
+      } else {
+        socket.leave(`graders:${sessionId}`);
+      }
       socket.join(`staff:${sessionId}`);
       grants(socket).set(`staff:${sessionId}`, { kind: 'staff', sessionId, token: p.token });
       reply({ ok: true });
@@ -90,6 +96,7 @@ export function initSocket(server: HttpServer): Server {
       const p = readPayload(payload);
       if (!Number.isInteger(p.sessionId)) return;
       socket.leave(`staff:${p.sessionId}`);
+      socket.leave(`graders:${p.sessionId}`);
       grants(socket).delete(`staff:${p.sessionId}`);
     });
   });
@@ -109,6 +116,7 @@ export function revalidateRooms(onlySessionId?: number): void {
       if (onlySessionId !== undefined && g.sessionId !== onlySessionId) continue;
       if (!mayJoin(g.kind, g.sessionId, g.token)) {
         socket.leave(room);
+        if (g.kind === 'staff') socket.leave(`graders:${g.sessionId}`);
         grants(socket).delete(room);
       }
     }
@@ -127,9 +135,18 @@ export async function disconnectGraderLink(sessionId: number, linkId: number): P
   return sockets.length;
 }
 
-/** Session status changes go to everyone in the session, participants and staff alike. */
+/**
+ * Session status changes go to everyone in the session, participants and staff alike; graders get
+ * the row without its join code.
+ */
 export function broadcastSessionUpdate(sessionId: number, payload: unknown) {
-  io?.to(`session:${sessionId}`).to(`staff:${sessionId}`).emit('session:update', payload);
+  if (!io) return;
+  io.to(`session:${sessionId}`).to(`staff:${sessionId}`).except(`graders:${sessionId}`).emit('session:update', payload);
+  const forGraders =
+    typeof payload === 'object' && payload !== null
+      ? Object.fromEntries(Object.entries(payload).filter(([key]) => key !== 'join_code'))
+      : payload;
+  io.to(`graders:${sessionId}`).emit('session:update', forGraders);
 }
 
 const LIVE_WINDOW_MS = 500;

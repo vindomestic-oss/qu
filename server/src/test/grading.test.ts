@@ -427,6 +427,31 @@ describe('grading writes', () => {
   });
 });
 
+describe('the staff room', () => {
+  test('graders get session:update without the join code; admins keep it', async () => {
+    const fx = createQuizFixture(adminId, 'Socket payload quiz');
+    const grader = await graderFor(fx.sessionId);
+    const g = await openSocket();
+    const a = await openSocket();
+    assert.equal((await g.timeout(2000).emitWithAck('staff:join', { sessionId: fx.sessionId, token: grader.token })).ok, true);
+    assert.equal((await a.timeout(2000).emitWithAck('staff:join', { sessionId: fx.sessionId, token: adminToken })).ok, true);
+    const next = (s: Socket) =>
+      new Promise<Record<string, unknown>>((resolve, reject) => {
+        const timer = setTimeout(() => reject(new Error('no session:update within 1 s')), 1000);
+        s.once('session:update', (p) => {
+          clearTimeout(timer);
+          resolve(p);
+        });
+      });
+    const [gp, ap] = [next(g), next(a)];
+    assert.equal((await request(base, 'PUT', `/api/sessions/${fx.sessionId}/start`, adminToken)).status, 200);
+    const [forGrader, forAdmin] = [await gp, await ap];
+    assert.equal(forGrader.status, 'active');
+    assert.equal('join_code' in forGrader, false);
+    assert.equal(forAdmin.join_code, fx.joinCode);
+  });
+});
+
 describe('regrades are audited', () => {
   test('changing a question\'s points writes regrade_points events for the grades it changed', async () => {
     const fx = await startedFixture('Regrade audit quiz');
@@ -444,8 +469,48 @@ describe('regrades are audited', () => {
     assert.equal(r.status, 200, JSON.stringify(r.body));
     assert.equal(r.body.quiz.total_points, 4);
     assert.equal(answerRow(kid.id, fx.singleQuestionId).points_awarded, 2);
-    const events = db.prepare('SELECT actor, action, old_points, new_points, is_correct, grade_source FROM grade_events WHERE answer_id = ?').all(a.id);
-    assert.deepEqual(events, [{ actor: 'admin:admin', action: 'regrade_points', old_points: 1, new_points: 2, is_correct: 1, grade_source: 'auto_choice' }]);
+    const events = db
+      .prepare('SELECT actor, action, old_points, new_points, old_is_correct, is_correct, grade_source FROM grade_events WHERE answer_id = ?')
+      .all(a.id);
+    assert.deepEqual(events, [
+      { actor: 'admin:admin', action: 'regrade_points', old_points: 1, new_points: 2, old_is_correct: 1, is_correct: 1, grade_source: 'auto_choice' },
+    ]);
+  });
+
+  test('lowering the points clamps a human grade but never flips the grader\'s verdict', async () => {
+    const fx = await startedFixture('Regrade verdict quiz');
+    const kid = await participant(fx, 'Verdict Kid', { text: 'half right', submit: true });
+    const a = answerRow(kid.id, fx.textQuestionId);
+    const g = await request(base, 'PUT', `/api/grading/${fx.sessionId}/answers/${a.id}`, adminToken, {
+      is_correct: false,
+      points_awarded: 1.5,
+      expected_version: a.grade_version,
+    });
+    assert.equal(g.status, 200);
+    const r = await request(base, 'PUT', `/api/questions/${fx.textQuestionId}`, adminToken, { type: 'text', text: 'Explain gravity.', points: 1 });
+    assert.equal(r.status, 200);
+    const after = answerRow(kid.id, fx.textQuestionId);
+    assert.equal(after.points_awarded, 1);
+    assert.equal(after.is_correct, 0, 'still "incorrect", as the grader decided');
+    const events = db.prepare('SELECT action, old_points, new_points, old_is_correct, is_correct FROM grade_events WHERE answer_id = ? ORDER BY id').all(a.id);
+    assert.deepEqual(events, [
+      { action: 'manual', old_points: null, new_points: 1.5, old_is_correct: null, is_correct: 0 },
+      { action: 'regrade_points', old_points: 1.5, new_points: 1, old_is_correct: 0, is_correct: 0 },
+    ]);
+  });
+
+  test('the audit outlives a deleted question: answer_id becomes NULL, the other ids stay', async () => {
+    const fx = await startedFixture('Audit survives quiz');
+    const kid = await participant(fx, 'Audit Kid', { text: 'gone soon', submit: true });
+    const a = answerRow(kid.id, fx.textQuestionId);
+    assert.equal(
+      (await request(base, 'PUT', `/api/grading/${fx.sessionId}/answers/${a.id}`, adminToken, { is_correct: true, points_awarded: 2, expected_version: a.grade_version })).status,
+      200,
+    );
+    assert.equal((await request(base, 'DELETE', `/api/questions/${fx.textQuestionId}`, adminToken)).status, 200);
+    assert.equal(db.prepare('SELECT 1 FROM answers WHERE id = ?').get(a.id), undefined);
+    const rows = db.prepare('SELECT answer_id, session_id, question_id, participant_id, new_points FROM grade_events WHERE question_id = ?').all(fx.textQuestionId);
+    assert.deepEqual(rows, [{ answer_id: null, session_id: fx.sessionId, question_id: fx.textQuestionId, participant_id: kid.id, new_points: 2 }]);
   });
 });
 
@@ -478,6 +543,21 @@ describe('model answers in the editor', () => {
       accepted_answers: null,
       grader_notes: null,
     });
+  });
+
+  test('an explicitly empty model answer on a new question is kept empty by the Chidon backfill', async () => {
+    const created = await request(base, 'POST', '/api/quizzes', adminToken, { title: 'Empty key quiz', time_limit_seconds: 600 });
+    const r = await request(base, 'POST', `/api/quizzes/${created.body.quiz.id}/questions`, adminToken, {
+      type: 'text',
+      text: CHIDON_5786_KEY[3].text,
+      points: 1,
+      reference_answer: '',
+    });
+    assert.equal(r.status, 201);
+    const id = r.body.quiz.questions[0].id;
+    assert.equal((db.prepare('SELECT reference_answer FROM questions WHERE id = ?').get(id) as { reference_answer: string | null }).reference_answer, '');
+    backfillAnswerKeys(db);
+    assert.equal((db.prepare('SELECT reference_answer FROM questions WHERE id = ?').get(id) as { reference_answer: string | null }).reference_answer, '');
   });
 
   test('a new text question stores its model answer; quizzes take default_points', async () => {

@@ -374,6 +374,13 @@
   min-height: 44px;
   padding-inline: 4px;
 }
+/* The arrow stays beside its words even when they wrap (375 px). */
+.arrow-link > span[aria-hidden] {
+  flex: none;
+}
+.arrow-link--next {
+  text-align: end;
+}
 .grade-lang {
   margin-block: 12px;
 }
@@ -385,7 +392,6 @@
   border: 1px solid var(--border);
   border-radius: 10px;
   background: var(--surface);
-  scroll-margin-top: 96px;
 }
 .review-card__head {
   display: flex;
@@ -648,6 +654,32 @@
   font-weight: 600;
   margin-inline-end: auto;
 }
+/* "New answers: N — Show": a fixed place in the sticky bar, empty (but kept) while there are none. */
+.quiz-bar__new {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-inline-size: 16em;
+  min-height: 44px;
+  padding-inline: 8px;
+  border-radius: 8px;
+}
+.quiz-bar__new.is-active {
+  background: var(--selected-bg);
+  color: var(--selected-text);
+  font-weight: 600;
+}
+.quiz-bar__new:not(.is-active) .small-button {
+  visibility: hidden;
+}
+/* The bar is sticky: scrolling to a focused control or a #q- link keeps it below the bar
+   (WCAG 2.4.11). The whole-quiz page sets --grade-sticky-offset to the bar's height + 8 px. */
+html:has(.quiz-bar) {
+  scroll-padding-top: var(--grade-sticky-offset, 0px);
+}
+.grade-resort.is-idle {
+  visibility: hidden;
+}
 .grade-empty {
   margin-block: 24px;
   padding: 16px;
@@ -699,6 +731,13 @@
 .grade-error {
   margin: 0;
   color: var(--danger);
+}
+.grade-entry__hint {
+  display: block;
+  margin-top: -8px;
+}
+.grade-entry__submit {
+  min-height: 48px;
 }
 .grade-entry__admin {
   margin-top: 20px;
@@ -777,7 +816,9 @@
 }
 .grader-dialog__code {
   font-family: ui-monospace, Menlo, Consolas, monospace;
-  font-size: 24px;
+  /* One line down to 375 px wide screens. */
+  font-size: min(24px, 5.2vw);
+  white-space: nowrap;
   font-weight: 700;
   letter-spacing: 1px;
   margin-block: 4px 12px;
@@ -801,6 +842,20 @@
 }
 .grader-dialog__list-title {
   margin-block: 20px 8px;
+}
+
+/* Touch screens: small links get a 44 px target (WCAG 2.5.8 and Apple's guideline). */
+@media (pointer: coarse) {
+  .touch-target,
+  .count-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    min-width: 44px;
+  }
+  .count-link {
+    justify-content: flex-end;
+  }
 }
 
 @media (max-width: 640px) {

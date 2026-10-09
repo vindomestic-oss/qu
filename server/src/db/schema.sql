@@ -121,14 +121,20 @@ CREATE INDEX IF NOT EXISTS idx_grader_links_session ON grader_links(session_id);
 
 -- Append-only audit of every grade change (wish 8; wish 7 adds AI actions). One row per change,
 -- written in the same transaction as the change. actions: 'manual' | 'regrade_points'.
+-- Rows outlive their answer: answer_id becomes NULL when the answer (or its question) is deleted,
+-- while session, question and participant ids stay (no foreign keys on those on purpose).
+-- is_correct = the verdict after the change, old_is_correct = before.
 CREATE TABLE IF NOT EXISTS grade_events (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  answer_id INTEGER NOT NULL REFERENCES answers(id) ON DELETE CASCADE,
+  answer_id INTEGER REFERENCES answers(id) ON DELETE SET NULL,
   session_id INTEGER NOT NULL,
+  question_id INTEGER,
+  participant_id INTEGER,
   actor TEXT,
   action TEXT,
   old_points REAL,
   new_points REAL,
+  old_is_correct INTEGER,
   is_correct INTEGER,
   grade_source TEXT,
   ai_run_id INTEGER,

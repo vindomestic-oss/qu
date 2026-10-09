@@ -8,6 +8,7 @@ import { GraderHeader } from '../../components/grader/GraderHeader';
 import { GradingStatsBar } from '../../components/grader/GradingStatsBar';
 import { ParticipantTable } from '../../components/grader/ParticipantTable';
 import { FlagIcon } from '../../components/grader/icons';
+import { formatPercent } from '../../components/grader/format';
 import '../../components/grader/grader.css';
 
 const LIVE_ANNOUNCE_MS = 10_000;
@@ -16,7 +17,7 @@ const LIVE_ANNOUNCE_MS = 10_000;
 export function GradingDashboard() {
   const { sessionId } = useParams();
   const id = Number(sessionId);
-  const { t } = useLanguage();
+  const { t, uiLanguage } = useLanguage();
   const load = useCallback(() => getGradingSummary(id), [id]);
   const { data, error, reload } = useLoader(load);
 
@@ -60,7 +61,7 @@ export function GradingDashboard() {
 
   return (
     <div className="grade-page">
-      <GraderHeader sessionId={id} title={quiz.title} session={session} viewer={data.viewer} />
+      <GraderHeader sessionId={id} title={quiz.title} session={session} viewer={data.viewer} titleIsHeading />
       {error && (
         <p className="grade-banner grade-banner--warning" role="alert">
           {t('grader.error.load')}
@@ -126,10 +127,14 @@ export function GradingDashboard() {
                     {i + 1}
                   </th>
                   <td className="num">{t('grader.tiles.ofTotal', { n: q.answered_count, total: counters.participants_joined })}</td>
-                  <td className="num">{q.correct_rate === null ? '–' : `${Math.round(q.correct_rate * 100)} %`}</td>
+                  <td className="num">{q.correct_rate === null ? '–' : formatPercent(q.correct_rate, uiLanguage)}</td>
                   <td className="num">
                     {q.needs_review_count > 0 ? (
-                      <Link to={`/grade/${id}/quiz?filter=needs_review#q-${q.id}`}>
+                      <Link
+                        to={`/grade/${id}/quiz?filter=needs_review#q-${q.id}`}
+                        className="count-link"
+                        aria-label={`${t('grader.questions.needsReview')}: ${q.needs_review_count} (${t('grader.question.number', { n: i + 1 })})`}
+                      >
                         {q.needs_review_count}
                       </Link>
                     ) : (

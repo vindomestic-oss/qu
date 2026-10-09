@@ -5,6 +5,12 @@
 type Dict = Record<string, string>;
 
 export const GRADER_EN: Dict = {
+  'grader.quiz.allSubmitted': 'All submitted',
+  'grader.table.resort': 'Order changed — re-sort',
+  'grader.error.CODE_INCOMPLETE': 'Enter all 16 characters of the code.',
+  'grader.row.admin': 'admin',
+  'grader.docTitle': 'Grading – {quiz}',
+  'grader.entry.codeHint': '16 letters and digits, e.g. ABCD-EFGH-JKLM-NPQR.',
   'grader.loading': 'Loading…',
   'grader.error.load': 'Could not load. Check the connection; the page retries on its own.',
   'grader.error.generic': 'Something went wrong. Please try again.',
@@ -128,6 +134,12 @@ export const GRADER_EN: Dict = {
 };
 
 export const GRADER_DE: Dict = {
+  'grader.quiz.allSubmitted': 'Alle haben abgegeben',
+  'grader.table.resort': 'Reihenfolge geändert — neu sortieren',
+  'grader.error.CODE_INCOMPLETE': 'Bitte alle 16 Zeichen des Codes eingeben.',
+  'grader.row.admin': 'Admin',
+  'grader.docTitle': 'Bewertung – {quiz}',
+  'grader.entry.codeHint': '16 Buchstaben und Ziffern, z. B. ABCD-EFGH-JKLM-NPQR.',
   'grader.loading': 'Wird geladen…',
   'grader.error.load': 'Laden fehlgeschlagen. Prüfe die Verbindung; die Seite versucht es selbst erneut.',
   'grader.error.generic': 'Etwas ist schiefgelaufen. Bitte versuche es noch einmal.',
@@ -251,6 +263,12 @@ export const GRADER_DE: Dict = {
 };
 
 export const GRADER_RU: Dict = {
+  'grader.quiz.allSubmitted': 'Все сдали',
+  'grader.table.resort': 'Порядок изменился — пересортировать',
+  'grader.error.CODE_INCOMPLETE': 'Введите все 16 символов кода.',
+  'grader.row.admin': 'администратор',
+  'grader.docTitle': 'Проверка – {quiz}',
+  'grader.entry.codeHint': '16 букв и цифр, например ABCD-EFGH-JKLM-NPQR.',
   'grader.loading': 'Загрузка…',
   'grader.error.load': 'Не удалось загрузить. Проверьте подключение; страница повторит попытку сама.',
   'grader.error.generic': 'Что-то пошло не так. Попробуйте ещё раз.',
@@ -374,6 +392,12 @@ export const GRADER_RU: Dict = {
 };
 
 export const GRADER_HE: Dict = {
+  'grader.quiz.allSubmitted': 'כולם הגישו',
+  'grader.table.resort': 'הסדר השתנה — מיון מחדש',
+  'grader.error.CODE_INCOMPLETE': 'נא להזין את כל 16 התווים של הקוד.',
+  'grader.row.admin': 'מנהל/ת',
+  'grader.docTitle': 'בדיקה – {quiz}',
+  'grader.entry.codeHint': '16 אותיות וספרות, למשל ABCD-EFGH-JKLM-NPQR.',
   'grader.loading': 'טוען…',
   'grader.error.load': 'הטעינה נכשלה. בדקו את החיבור; הדף ינסה שוב בעצמו.',
   'grader.error.generic': 'משהו השתבש. נסו שוב.',

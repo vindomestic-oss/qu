@@ -10,10 +10,24 @@ export function formatPoints(n: number | null | undefined, locale: string): stri
   }
 }
 
-/** graded_by as people read it: 'admin:alex' → 'alex (admin)'; graders are stored as 'Name (link #3)'. */
-export function graderDisplayName(gradedBy: string | null | undefined): string {
-  if (!gradedBy) return '';
-  return gradedBy.startsWith('admin:') ? `${gradedBy.slice(6)} (admin)` : gradedBy;
+/**
+ * graded_by as people read it. The server stores 'admin:alex' or 'Rav K. (link #3)': the visible name
+ * is "alex (admin)" (label translated) or "Rav K.", and the stored string goes into a tooltip.
+ */
+export function graderIdentity(gradedBy: string | null | undefined, adminLabel: string): { name: string; title: string } {
+  if (!gradedBy) return { name: '', title: '' };
+  if (gradedBy.startsWith('admin:')) return { name: `${gradedBy.slice(6)} (${adminLabel})`, title: gradedBy };
+  const link = /^(.*) \(link #\d+\)$/.exec(gradedBy);
+  return { name: link ? link[1] : gradedBy, title: gradedBy };
+}
+
+/** A share as a percentage in the interface language ("63 %", "% 63" never). */
+export function formatPercent(rate: number, locale: string): string {
+  try {
+    return new Intl.NumberFormat(locale, { style: 'percent', maximumFractionDigits: 0 }).format(rate);
+  } catch {
+    return `${Math.round(rate * 100)} %`;
+  }
 }
 
 export const AUTO_SOURCES = new Set(['auto_choice', 'auto_blank', 'rule']);

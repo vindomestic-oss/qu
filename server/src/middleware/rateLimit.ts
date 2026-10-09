@@ -1,62 +1,61 @@
-import type { NextFunction, Request, Response } from 'express';
+import type { Request, Response } from 'express';
 
-// A small in-memory fixed-window limiter with the semantics of express-rate-limit's
-// { windowMs, limit, skipSuccessfulRequests: true, standardHeaders: 'draft-8', legacyHeaders: false }.
-// That package is not installed here; this covers the one route that needs it (POST /api/grader/exchange).
-// One process, one counter per client IP. req.ip follows app's 'trust proxy' (TRUST_PROXY_HOPS,
-// default 0), so with 0 a forged X-Forwarded-For header cannot pick a fresh counter.
+// Counts FAILED attempts per client in a fixed window (in memory, one process). Used by the grader
+// code exchange: a valid code is looked up first and always passes, so wrong codes from someone else
+// behind the same address (Render's proxy with TRUST_PROXY_HOPS=0, a venue's NAT) can never lock out a
+// grader who has the right code; only failed lookups are counted and, over the limit, answered with 429.
+// Guessing stays infeasible anyway: codes carry 80 bits. Headers follow express-rate-limit's
+// standardHeaders 'draft-8' (RateLimit-Policy, RateLimit) with Retry-After on a 429. req.ip follows
+// app's 'trust proxy' (TRUST_PROXY_HOPS, default 0), so a forged X-Forwarded-For cannot pick a fresh counter.
 
-interface Options {
-  windowMs: number;
-  limit: number;
-  /** Responses below 400 do not count. */
-  skipSuccessfulRequests?: boolean;
-  /** The JSON body of a 429. */
-  message?: object;
-}
-
-interface Hit {
+interface Window {
   count: number;
   resetAt: number;
 }
 
-export function createRateLimiter({ windowMs, limit, skipSuccessfulRequests = false, message }: Options) {
-  const hits = new Map<string, Hit>();
+export interface FailureLimiter {
+  /** True when this client is over the limit: answer its failed attempt with 429. */
+  blocked(req: Request): boolean;
+  /** Counts one failed attempt. */
+  fail(req: Request): void;
+  /** Sets the RateLimit headers (and Retry-After when blocked). */
+  headers(req: Request, res: Response): void;
+}
+
+export function createFailureLimiter({ windowMs, limit }: { windowMs: number; limit: number }): FailureLimiter {
+  const windows = new Map<string, Window>();
   const policy = `"default";q=${limit};w=${Math.round(windowMs / 1000)}`;
+  const keyOf = (req: Request) => req.ip ?? req.socket.remoteAddress ?? 'unknown';
 
   // Expired windows are dropped now and then, so the map cannot grow without bound.
   const sweep = setInterval(() => {
     const now = Date.now();
-    for (const [key, hit] of hits) if (hit.resetAt <= now) hits.delete(key);
+    for (const [key, w] of windows) if (w.resetAt <= now) windows.delete(key);
   }, windowMs);
   sweep.unref();
 
-  return function rateLimit(req: Request, res: Response, next: NextFunction) {
-    const key = req.ip ?? req.socket.remoteAddress ?? 'unknown';
+  function current(req: Request): Window {
+    const key = keyOf(req);
     const now = Date.now();
-    let hit = hits.get(key);
-    if (!hit || hit.resetAt <= now) {
-      hit = { count: 0, resetAt: now + windowMs };
-      hits.set(key, hit);
+    let w = windows.get(key);
+    if (!w || w.resetAt <= now) {
+      w = { count: 0, resetAt: now + windowMs };
+      windows.set(key, w);
     }
-    const resetSeconds = Math.max(0, Math.ceil((hit.resetAt - now) / 1000));
-    res.setHeader('RateLimit-Policy', policy);
+    return w;
+  }
 
-    if (hit.count >= limit) {
-      res.setHeader('RateLimit', `"default";r=0;t=${resetSeconds}`);
-      res.setHeader('Retry-After', String(resetSeconds));
-      return res.status(429).json(message ?? { error: 'Too many requests', code: 'RATE_LIMITED' });
-    }
-
-    hit.count += 1;
-    const counted = hit;
-    res.setHeader('RateLimit', `"default";r=${Math.max(0, limit - counted.count)};t=${resetSeconds}`);
-    if (skipSuccessfulRequests) {
-      res.on('finish', () => {
-        // Only the window this request was counted in; a new window has its own count.
-        if (res.statusCode < 400 && hits.get(key) === counted && counted.count > 0) counted.count -= 1;
-      });
-    }
-    next();
+  return {
+    blocked: (req) => current(req).count >= limit,
+    fail: (req) => {
+      current(req).count += 1;
+    },
+    headers: (req, res) => {
+      const w = current(req);
+      const reset = Math.max(0, Math.ceil((w.resetAt - Date.now()) / 1000));
+      res.setHeader('RateLimit-Policy', policy);
+      res.setHeader('RateLimit', `"default";r=${Math.max(0, limit - w.count)};t=${reset}`);
+      if (w.count >= limit) res.setHeader('Retry-After', String(reset));
+    },
   };
 }

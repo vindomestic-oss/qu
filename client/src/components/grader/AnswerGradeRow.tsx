@@ -6,7 +6,7 @@ import { useLanguage } from '../../i18n/LanguageContext';
 import { formatServerTime } from '../../lib/parseServerDate';
 import type { AnswerGrade } from '../../types';
 import { CheckIcon, CrossIcon } from './icons';
-import { AUTO_SOURCES, formatPoints, graderDisplayName } from './format';
+import { AUTO_SOURCES, formatPoints, graderIdentity } from './format';
 import { Interpolate } from './Interpolate';
 
 interface Attempt {
@@ -18,7 +18,8 @@ interface Attempt {
 type SaveState =
   | { kind: 'idle' }
   | { kind: 'saving' }
-  | { kind: 'saved' }
+  /** `version`: the grade_version this row saved; a newer grade from someone else hides "Saved". */
+  | { kind: 'saved'; version: number }
   | { kind: 'failed'; attempt: Attempt }
   | { kind: 'invalid' }
   | { kind: 'not_submitted' }
@@ -31,8 +32,10 @@ interface Props {
   maxPoints: number;
   /** Not submitted yet: everything is read-only. */
   disabled?: boolean;
-  /** Row heading, e.g. "Answer 3" in whole-quiz mode. */
+  /** Row heading and group label, e.g. "Answer 3" in whole-quiz mode. */
   heading?: string;
+  /** Only for screen readers (the participant page's card already shows "Question N"). */
+  headingHidden?: boolean;
   /** The answer itself (text or selected options). */
   children: React.ReactNode;
   /** A saved grade, or the other grader's grade from a conflict, for the parent's list. */
@@ -48,9 +51,11 @@ const isHalfStep = (v: number) => Math.abs(v * 2 - Math.round(v * 2)) < 1e-9;
  * grader keep theirs or replace it. A typed value stays until it is saved or discarded (Escape),
  * whatever arrives from the server meanwhile.
  */
-export function AnswerGradeRow({ sessionId, answer, maxPoints, disabled = false, heading, children, onGrade }: Props) {
+export function AnswerGradeRow({ sessionId, answer, maxPoints, disabled = false, heading, headingHidden = false, children, onGrade }: Props) {
   const { t, uiLanguage } = useLanguage();
   const inputRef = useRef<HTMLInputElement>(null);
+  const correctRef = useRef<HTMLButtonElement>(null);
+  const incorrectRef = useRef<HTMLButtonElement>(null);
   const [draft, setDraft] = useState<string | null>(null);
   // The version the grader saw when they started typing: a grade that arrives meanwhile is a conflict.
   const [draftBase, setDraftBase] = useState<number | null>(null);
@@ -72,7 +77,7 @@ export function AnswerGradeRow({ sessionId, answer, maxPoints, disabled = false,
       setDraft(null);
       setDraftBase(null);
       onGrade(saved);
-      setState({ kind: 'saved' });
+      setState({ kind: 'saved', version: saved.grade_version });
     } catch (err) {
       if (err instanceof StaffApiError && err.status === 409 && err.code === 'CONFLICT') {
         const current = err.body.current as AnswerGrade;
@@ -90,6 +95,12 @@ export function AnswerGradeRow({ sessionId, answer, maxPoints, disabled = false,
     } finally {
       inFlight.current = false;
     }
+  }
+
+  /** After Keep theirs / Replace with mine / Retry (whose buttons disappear): focus stays in the row, on
+   *  the toggle of the resulting verdict (not the points field, which would open the iPad keyboard). */
+  function focusVerdict(isCorrect: boolean | null) {
+    (isCorrect === false ? incorrectRef : correctRef).current?.focus();
   }
 
   function verdict(isCorrect: boolean) {
@@ -136,7 +147,7 @@ export function AnswerGradeRow({ sessionId, answer, maxPoints, disabled = false,
       <Interpolate
         template={t('grader.row.gradedBy')}
         values={{
-          name: <bdi>{graderDisplayName(answer.graded_by)}</bdi>,
+          name: <GraderName gradedBy={answer.graded_by} adminLabel={t('grader.row.admin')} />,
           time: <bdi>{formatServerTime(answer.graded_at, uiLanguage)}</bdi>,
         }}
       />
@@ -147,7 +158,7 @@ export function AnswerGradeRow({ sessionId, answer, maxPoints, disabled = false,
     <div className={`answer-row${disabled ? ' is-disabled' : ''}`} role="group" aria-labelledby={heading ? `${id}-h` : undefined}>
       <div className="answer-row__content">
         {heading && (
-          <div id={`${id}-h`} className="answer-row__heading">
+          <div id={`${id}-h`} className={headingHidden ? 'visually-hidden' : 'answer-row__heading'}>
             {heading}
           </div>
         )}
@@ -157,6 +168,7 @@ export function AnswerGradeRow({ sessionId, answer, maxPoints, disabled = false,
       <div className="answer-row__controls">
         <div className="answer-row__actions">
           <button
+            ref={correctRef}
             type="button"
             className="grade-toggle grade-toggle--correct"
             aria-pressed={graded && answer.is_correct === 1}
@@ -166,6 +178,7 @@ export function AnswerGradeRow({ sessionId, answer, maxPoints, disabled = false,
             <CheckIcon /> {t('grader.row.correct')}
           </button>
           <button
+            ref={incorrectRef}
             type="button"
             className="grade-toggle grade-toggle--incorrect"
             aria-pressed={graded && answer.is_correct === 0}
@@ -205,27 +218,39 @@ export function AnswerGradeRow({ sessionId, answer, maxPoints, disabled = false,
                 <Interpolate
                   template={t('grader.row.conflict')}
                   values={{
-                    name: <bdi>{graderDisplayName(state.current.graded_by)}</bdi>,
+                    name: <GraderName gradedBy={state.current.graded_by} adminLabel={t('grader.row.admin')} />,
                     points: <bdi dir="ltr">{`${formatPoints(state.current.points_awarded, uiLanguage)} / ${max}`}</bdi>,
                   }}
                 />
               </span>
             )}
             {state.kind === 'saving' && <span className="save-chip save-chip--saving">{t('grader.row.saving')}</span>}
-            {state.kind === 'saved' && <span className="save-chip save-chip--saved">{t('grader.row.saved')}</span>}
+            {state.kind === 'saved' && state.version === answer.grade_version && (
+              <span className="save-chip save-chip--saved">{t('grader.row.saved')}</span>
+            )}
             {state.kind === 'failed' && <span className="save-chip save-chip--failed">{t('grader.row.failed')}</span>}
             {state.kind === 'invalid' && <span className="save-chip save-chip--failed">{t('grader.row.invalidPoints', { max })}</span>}
             {state.kind === 'not_submitted' && <span className="save-chip save-chip--failed">{t('grader.row.notSubmitted')}</span>}
           </span>
           {state.kind === 'conflict' ? (
             <span className="conflict-prompt">
-              <button type="button" className="small-button" onClick={() => setState({ kind: 'idle' })}>
+              <button
+                type="button"
+                className="small-button"
+                onClick={() => {
+                  focusVerdict(state.current.is_correct === null ? null : state.current.is_correct === 1);
+                  setState({ kind: 'idle' });
+                }}
+              >
                 {t('grader.row.keepTheirs')}
               </button>
               <button
                 type="button"
                 className="small-button"
-                onClick={() => void save({ ...state.attempt, expected_version: state.current.grade_version })}
+                onClick={() => {
+                  focusVerdict(state.attempt.is_correct);
+                  void save({ ...state.attempt, expected_version: state.current.grade_version });
+                }}
               >
                 {t('grader.row.replaceMine')} (<bdi dir="ltr">{formatPoints(state.attempt.points_awarded, uiLanguage)}</bdi>)
               </button>
@@ -236,7 +261,10 @@ export function AnswerGradeRow({ sessionId, answer, maxPoints, disabled = false,
                 <button
                   type="button"
                   className="small-button"
-                  onClick={() => void save({ ...state.attempt, expected_version: answer.grade_version })}
+                  onClick={() => {
+                    focusVerdict(state.attempt.is_correct);
+                    void save({ ...state.attempt, expected_version: answer.grade_version });
+                  }}
                 >
                   {t('grader.row.retry')}
                 </button>
@@ -248,4 +276,10 @@ export function AnswerGradeRow({ sessionId, answer, maxPoints, disabled = false,
       </div>
     </div>
   );
+}
+
+/** The grader's name as people read it; the stored "(link #N)" / "admin:" form is in the tooltip. */
+function GraderName({ gradedBy, adminLabel }: { gradedBy: string | null; adminLabel: string }) {
+  const { name, title } = graderIdentity(gradedBy, adminLabel);
+  return <bdi title={title}>{name}</bdi>;
 }

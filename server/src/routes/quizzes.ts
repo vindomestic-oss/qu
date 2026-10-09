@@ -268,8 +268,9 @@ quizzesRouter.post('/:id/questions', (req, res) => {
         ...translationValues(parsed.translations),
         parsed.points,
         parsed.section_id ?? null,
-        parsed.reference_answer || null,
-        parsed.grader_notes || null,
+        // An explicitly empty model answer stays '' (not NULL), so the Chidon key backfill never fills it.
+        parsed.reference_answer ?? null,
+        parsed.grader_notes ?? null,
       );
     const questionId = Number(result.lastInsertRowid);
 
