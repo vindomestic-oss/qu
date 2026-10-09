@@ -252,7 +252,7 @@ export function HostScreen() {
       {session.status === 'active' && (
         <main className="host-live">
           <p className="host-countdown" aria-label="Time left">
-            {session.ends_at ? formatCountdown(session.ends_at, now) : '--'}
+            {session.ends_at ? formatCountdown(session.ends_at, now, session.started_at) : '--'}
           </p>
           <p className="host-joined" aria-live="polite">
             Joined: {joined}

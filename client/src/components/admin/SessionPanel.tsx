@@ -242,7 +242,7 @@ export function SessionPanel({ quizId, initialSession, onSessionEnded, onSession
         <div>
           {joinBlock(session)}
           <p>
-            Time remaining: <strong>{session.ends_at ? formatCountdown(session.ends_at, now) : '--'}</strong>
+            Time remaining: <strong>{session.ends_at ? formatCountdown(session.ends_at, now, session.started_at) : '--'}</strong>
           </p>
           <button onClick={handleEnd} disabled={busy}>
             End early
