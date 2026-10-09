@@ -3,7 +3,8 @@ import { db } from '../db';
 import { requireParticipant, ParticipantRequest } from '../middleware/jwt';
 import { refreshSessionStatus, SessionRow } from '../lib/sessions';
 import { gradeChoiceAnswer } from '../lib/grading';
-import { broadcastLiveUpdate } from '../socket';
+import { broadcastGradingChanged, broadcastLiveUpdate } from '../socket';
+import { nowIso } from '../lib/time';
 import { translationColumns } from '../lib/sqlTranslations';
 import { getQuizLanguageInfo } from '../lib/quizLanguages';
 import {
@@ -81,18 +82,28 @@ myRouter.get('/session', (req: ParticipantRequest, res) => {
   });
 });
 
+// Finish: idempotent. After the session has ended it reports the stored time (finalizeSession
+// submitted everyone who had not finished).
 myRouter.post('/submit', (req: ParticipantRequest, res) => {
   const session = getSessionForParticipant(req);
   if (!session) return res.status(404).json({ error: 'Session not found' });
+  const participantId = req.participant!.participantId;
+  if (session.status === 'ended') {
+    return res.json({ submitted_at: getSubmittedAt(participantId) });
+  }
   if (session.status !== 'active') {
     return res.status(400).json({ error: `Cannot finish (session status: ${session.status})` });
   }
 
-  const participantId = req.participant!.participantId;
-  db.prepare("UPDATE participants SET submitted_at = COALESCE(submitted_at, datetime('now')) WHERE id = ?").run(
-    participantId,
-  );
-  broadcastLiveUpdate(session.id);
+  const r = db
+    .prepare(
+      "UPDATE participants SET submitted_at = coalesce(submitted_at, ?), submit_source = coalesce(submit_source, 'participant') WHERE id = ? AND submitted_at IS NULL",
+    )
+    .run(nowIso(), participantId);
+  if (r.changes > 0) {
+    broadcastLiveUpdate(session.id);
+    broadcastGradingChanged(session.id, { kind: 'submit', participantId });
+  }
 
   res.json({ submitted_at: getSubmittedAt(participantId) });
 });
@@ -162,7 +173,7 @@ myRouter.post('/answers/:questionId', (req: ParticipantRequest, res) => {
 
   const participantId = req.participant!.participantId;
   if (getSubmittedAt(participantId)) {
-    return res.status(409).json({ error: 'You already finished this quiz; answers can no longer be changed.', code: 'already_submitted' });
+    return res.status(409).json({ error: 'already_submitted', code: 'ALREADY_SUBMITTED' });
   }
 
   const questionId = Number(req.params.questionId);
@@ -178,19 +189,31 @@ myRouter.post('/answers/:questionId', (req: ParticipantRequest, res) => {
       return res.status(400).json({ error: 'text_answer must be a string' });
     }
     const trimmed = text_answer.trim();
-    // A blank answer has nothing to grade manually — score it 0 outright instead of
-    // leaving it pending for the admin to review.
+    // An unchanged re-save (e.g. a blur without edits) writes nothing, so an existing grade survives.
+    const stored = db
+      .prepare('SELECT text_answer FROM answers WHERE participant_id = ? AND question_id = ?')
+      .get(participantId, questionId) as { text_answer: string | null } | undefined;
+    if (stored && (stored.text_answer ?? '').trim() === trimmed) return res.json({ ok: true });
+    // A blank answer has nothing to grade: it scores 0 at once ('auto_blank'). Any other text waits
+    // for a grader, so earlier grading fields are cleared.
     const isCorrect = trimmed ? null : 0;
     const pointsAwarded = trimmed ? null : 0;
+    const gradeSource = trimmed ? null : 'auto_blank';
     db.prepare(
-      `INSERT INTO answers (session_id, question_id, participant_id, text_answer, is_correct, points_awarded, submitted_at)
-       VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
+      `INSERT INTO answers (session_id, question_id, participant_id, text_answer, is_correct, points_awarded,
+         grade_source, submitted_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
        ON CONFLICT(participant_id, question_id) DO UPDATE SET
          text_answer = excluded.text_answer,
          is_correct = excluded.is_correct,
          points_awarded = excluded.points_awarded,
+         grade_source = excluded.grade_source,
+         graded_at = NULL,
+         graded_by = NULL,
+         graded_by_link_id = NULL,
+         grade_version = grade_version + 1,
          submitted_at = excluded.submitted_at`,
-    ).run(session.id, questionId, participantId, trimmed, isCorrect, pointsAwarded);
+    ).run(session.id, questionId, participantId, trimmed, isCorrect, pointsAwarded, gradeSource);
     broadcastLiveUpdate(session.id);
     return res.json({ ok: true });
   }
@@ -212,12 +235,18 @@ myRouter.post('/answers/:questionId', (req: ParticipantRequest, res) => {
   const { isCorrect, pointsAwarded } = gradeChoiceAnswer(choices, selected_choice_ids, question.points);
 
   db.prepare(
-    `INSERT INTO answers (session_id, question_id, participant_id, selected_choice_ids, is_correct, points_awarded, submitted_at)
-     VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
+    `INSERT INTO answers (session_id, question_id, participant_id, selected_choice_ids, is_correct, points_awarded,
+       grade_source, submitted_at)
+     VALUES (?, ?, ?, ?, ?, ?, 'auto_choice', datetime('now'))
      ON CONFLICT(participant_id, question_id) DO UPDATE SET
        selected_choice_ids = excluded.selected_choice_ids,
        is_correct = excluded.is_correct,
        points_awarded = excluded.points_awarded,
+       grade_source = 'auto_choice',
+       graded_at = NULL,
+       graded_by = NULL,
+       graded_by_link_id = NULL,
+       grade_version = grade_version + 1,
        submitted_at = excluded.submitted_at`,
   ).run(session.id, questionId, participantId, JSON.stringify(selected_choice_ids), isCorrect ? 1 : 0, pointsAwarded);
   broadcastLiveUpdate(session.id);

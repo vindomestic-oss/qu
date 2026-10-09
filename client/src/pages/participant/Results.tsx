@@ -29,10 +29,11 @@ export function Results() {
         const data = await getMyResults();
         if (!cancelled) setResults(data);
       } catch (err) {
-        // Session may not have flipped to "ended" server-side yet right at the countdown boundary; retry briefly.
-        if (err instanceof ApiError && err.status === 400 && attempts < 5) {
+        // The session may not have ended on the server yet (device clock ahead, or the server was
+        // restarting at 0:00); the server ends it by its timer, so keep asking for up to a minute.
+        if (err instanceof ApiError && err.status === 400 && attempts < 30) {
           attempts += 1;
-          setTimeout(load, 1000);
+          setTimeout(load, 2000);
         } else if (!cancelled) {
           setError(err instanceof ApiError ? err.message : 'Failed to load results');
         }

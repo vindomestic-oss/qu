@@ -3,7 +3,7 @@ import crypto from 'crypto';
 import { db } from '../db';
 import { refreshSessionStatus, SessionRow } from '../lib/sessions';
 import { signParticipantToken } from '../middleware/jwt';
-import { broadcastLiveUpdate } from '../socket';
+import { broadcastLiveUpdate, revalidateRooms } from '../socket';
 import { nameKey, normalizeDisplayName } from '../lib/names';
 
 export const joinRouter = Router();
@@ -98,6 +98,8 @@ joinRouter.post('/join', (req, res) => {
       .run(hashSecret(secret), existing.id);
     if (claimed.changes === 0) return res.status(409).json(NAME_TAKEN);
     participantId = existing.id;
+    // The previous holder of this row is signed out (token_version); take its socket out of the room too.
+    revalidateRooms(session.id);
     broadcastLiveUpdate(session.id);
   } else if (secretMatches(rejoinSecret, existing.rejoin_hash)) {
     secret = rejoinSecret as string;

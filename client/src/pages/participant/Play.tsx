@@ -5,7 +5,7 @@ import type { QuizMeta } from '../../api/participant';
 import type { ParticipantQuestion, QuizSession } from '../../types';
 import { ApiError } from '../../api/client';
 import { useParticipant } from '../../auth/ParticipantContext';
-import { getSocket, joinSessionRoom } from '../../lib/socket';
+import { getSocket, joinRoom, leaveRoom } from '../../lib/socket';
 import { useLanguage } from '../../i18n/LanguageContext';
 import { useContentLanguage } from '../../i18n/useContentLanguage';
 import { sanitizeOffered, type QuizLang } from '../../i18n/contentLanguages';
@@ -69,6 +69,11 @@ export function Play() {
   const [submitted, setSubmitted] = useState(false);
   const [finishing, setFinishing] = useState(false);
   const finishedRef = useRef(false);
+  // Read by socket handlers registered once per session; a closure would see a stale value.
+  const questionsRef = useRef<ParticipantQuestion[] | null>(null);
+  useEffect(() => {
+    questionsRef.current = questions;
+  }, [questions]);
   const currentQuestion = questions?.[index] ?? null;
   const imageReady = useImageReady(currentQuestion?.image_path ?? null);
 
@@ -152,16 +157,33 @@ export function Play() {
   useEffect(() => {
     if (!session) return;
     const socket = getSocket();
-    joinSessionRoom(session.id, 'participant');
+    const sessionId = session.id;
+    joinRoom('session', sessionId);
     const handler = async (updated: QuizSession) => {
-      if (updated.id !== session.id) return;
+      if (updated.id !== sessionId) return;
       setSession(updated);
-      if (updated.status === 'active' && !questions) await loadQuiz();
+      if (updated.status === 'active' && !questionsRef.current) await loadQuiz();
       if (updated.status === 'ended') goToResults();
     };
+    // After a reconnect, events sent while offline are lost: ask for the current state. Only the
+    // session and the submitted flag are refreshed; loaded questions (with unsaved typing) stay.
+    const onReconnect = async () => {
+      try {
+        const { session: fresh, participant } = await getMySession();
+        setSession(fresh);
+        setSubmitted(Boolean(participant.submitted_at));
+        if (fresh.status === 'active' && !questionsRef.current) await loadQuiz();
+        if (fresh.status === 'ended') goToResults();
+      } catch {
+        // the countdown and the polls are further safety nets
+      }
+    };
     socket.on('session:update', handler);
+    socket.on('connect', onReconnect);
     return () => {
       socket.off('session:update', handler);
+      socket.off('connect', onReconnect);
+      leaveRoom('session', sessionId);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.id]);
@@ -184,7 +206,9 @@ export function Play() {
     try {
       await submitChoiceAnswer(question.id, next);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to save answer');
+      // 409: this participant already finished (e.g. in another tab): show the submitted screen.
+      if (err instanceof ApiError && err.status === 409) setSubmitted(true);
+      else setError(err instanceof ApiError ? err.message : 'Failed to save answer');
     }
   }
 
@@ -201,7 +225,8 @@ export function Play() {
       await submitTextAnswer(question.id, text);
       setTextSaveStatus({ questionId: question.id, state: 'saved' });
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to save answer');
+      if (err instanceof ApiError && err.status === 409) setSubmitted(true);
+      else setError(err instanceof ApiError ? err.message : 'Failed to save answer');
       setTextSaveStatus(null);
     }
   }

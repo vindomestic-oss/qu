@@ -1,14 +1,15 @@
-import { useEffect, useRef, useState } from 'react';
-import { allowRejoin, getLiveStatus } from '../../api/sessions';
+import { useRef, useState } from 'react';
+import { allowRejoin } from '../../api/sessions';
 import type { LiveStatusResponse } from '../../types';
-import { getSocket, joinSessionRoom } from '../../lib/socket';
 
 interface Props {
   sessionId: number;
+  /** Owned by the screen (useLiveStatus), so one event triggers one request per screen. */
+  data: LiveStatusResponse | null;
+  onRefresh: () => void;
 }
 
-export function LiveMonitor({ sessionId }: Props) {
-  const [data, setData] = useState<LiveStatusResponse | null>(null);
+export function LiveMonitor({ sessionId, data, onRefresh }: Props) {
   const [rejoinMessage, setRejoinMessage] = useState('');
   const [rejoinError, setRejoinError] = useState<string | null>(null);
   const statusRef = useRef<HTMLParagraphElement>(null);
@@ -20,32 +21,11 @@ export function LiveMonitor({ sessionId }: Props) {
       setRejoinMessage(`Rejoin allowed for ${name}. The next device that joins with this name gets this place.`);
       // The clicked button disappears; keep keyboard focus on the confirmation instead of the page body.
       statusRef.current?.focus();
-      await refresh();
+      onRefresh();
     } catch (err) {
       setRejoinError(err instanceof Error ? err.message : 'Failed to allow rejoin');
     }
   }
-
-  async function refresh() {
-    try {
-      const result = await getLiveStatus(sessionId);
-      setData(result);
-    } catch {
-      // non-critical live view; ignore transient errors
-    }
-  }
-
-  useEffect(() => {
-    refresh();
-    const socket = getSocket();
-    joinSessionRoom(sessionId, 'admin');
-    const handler = () => refresh();
-    socket.on('session:live', handler);
-    return () => {
-      socket.off('session:live', handler);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sessionId]);
 
   if (!data) return null;
 

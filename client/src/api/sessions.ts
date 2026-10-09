@@ -9,8 +9,8 @@ export function listSessions(quizId: number) {
   return api<{ sessions: QuizSession[] }>(`/quizzes/${quizId}/sessions`);
 }
 
-export function getSession(sessionId: number) {
-  return api<{ session: QuizSession }>(`/sessions/${sessionId}`);
+export function getSession(sessionId: number, { background = false }: { background?: boolean } = {}) {
+  return api<{ session: QuizSession }>(`/sessions/${sessionId}`, { background });
 }
 
 export function startSession(sessionId: number) {

@@ -9,6 +9,8 @@ import { CONTENT_LANGS, isQuizLang } from '../lib/languages';
 import { invalidateQuizLanguages } from '../lib/quizLanguages';
 
 export const quizzesRouter = Router();
+
+const MAX_TIME_LIMIT_SECONDS = 7 * 24 * 60 * 60;
 quizzesRouter.use(requireAdmin);
 
 // Rows selected with `SELECT *` also carry title_de/text_ru/etc. translation
@@ -75,8 +77,8 @@ quizzesRouter.post('/', (req: AuthedRequest, res) => {
     return res.status(400).json({ error: 'title is required' });
   }
   const timeLimit = Number(time_limit_seconds);
-  if (!Number.isFinite(timeLimit) || timeLimit <= 0) {
-    return res.status(400).json({ error: 'time_limit_seconds must be a positive number' });
+  if (!Number.isFinite(timeLimit) || timeLimit <= 0 || timeLimit > MAX_TIME_LIMIT_SECONDS) {
+    return res.status(400).json({ error: 'time_limit_seconds must be between 1 second and 7 days' });
   }
   const baseLanguage = base_language === undefined || base_language === null ? 'en' : base_language;
   if (!isQuizLang(baseLanguage)) {
@@ -130,8 +132,8 @@ quizzesRouter.put('/:id', (req, res) => {
     return res.status(400).json({ error: 'title is required' });
   }
   const timeLimit = Number(time_limit_seconds);
-  if (!Number.isFinite(timeLimit) || timeLimit <= 0) {
-    return res.status(400).json({ error: 'time_limit_seconds must be a positive number' });
+  if (!Number.isFinite(timeLimit) || timeLimit <= 0 || timeLimit > MAX_TIME_LIMIT_SECONDS) {
+    return res.status(400).json({ error: 'time_limit_seconds must be between 1 second and 7 days' });
   }
   const baseLanguage = base_language === undefined || base_language === null ? existing.base_language : base_language;
   if (!isQuizLang(baseLanguage)) {
@@ -250,7 +252,7 @@ quizzesRouter.get('/:id/sessions', (req, res) => {
   if (!quiz) return res.status(404).json({ error: 'Quiz not found' });
 
   const rows = db
-    .prepare('SELECT * FROM sessions WHERE quiz_id = ? ORDER BY created_at DESC')
+    .prepare('SELECT * FROM sessions WHERE quiz_id = ? ORDER BY id DESC')
     .all(quizId) as SessionRow[];
   const sessions = rows.map(refreshSessionStatus);
   res.json({ sessions });
@@ -261,11 +263,14 @@ quizzesRouter.post('/:id/sessions', (req, res) => {
   const quiz = db.prepare('SELECT id FROM quizzes WHERE id = ?').get(quizId);
   if (!quiz) return res.status(404).json({ error: 'Quiz not found' });
 
+  // One open run per quiz (decision Q-parallel-runs). Ordered by id: created_at has 1 s resolution.
+  // A run whose time is up is ended here and a new one is created instead of returning it.
   const existing = db
-    .prepare("SELECT * FROM sessions WHERE quiz_id = ? AND status IN ('pending', 'active') ORDER BY created_at DESC LIMIT 1")
+    .prepare("SELECT * FROM sessions WHERE quiz_id = ? AND status IN ('pending', 'active') ORDER BY id DESC LIMIT 1")
     .get(quizId) as SessionRow | undefined;
   if (existing) {
-    return res.json({ session: refreshSessionStatus(existing) });
+    const current = refreshSessionStatus(existing);
+    if (current.status !== 'ended') return res.json({ session: current });
   }
 
   const joinCode = createUniqueJoinCode();

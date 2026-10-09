@@ -1,7 +1,10 @@
 import { Router } from 'express';
 import { db } from '../db';
-import { requireAdmin } from '../middleware/jwt';
-import { getSession, SessionRow } from '../lib/sessions';
+import { requireAdmin, AuthedRequest } from '../middleware/jwt';
+import { finalizeSession, getSession, SessionRow } from '../lib/sessions';
+import { clearSessionTimer, scheduleSessionEnd } from '../lib/sessionTimers';
+import { ANSWERED_SQL } from '../lib/grading';
+import { nowIso } from '../lib/time';
 import { broadcastLiveUpdate, broadcastSessionUpdate } from '../socket';
 
 export const sessionsRouter = Router();
@@ -71,6 +74,7 @@ sessionsRouter.put('/:id/start', (req, res) => {
 
   const startedAt = new Date();
   const endsAt = new Date(startedAt.getTime() + quiz.time_limit_seconds * 1000);
+  if (!Number.isFinite(endsAt.getTime())) return res.status(400).json({ error: 'The quiz has an invalid time limit' });
 
   db.prepare("UPDATE sessions SET status = 'active', started_at = ?, ends_at = ? WHERE id = ?").run(
     startedAt.toISOString(),
@@ -80,6 +84,8 @@ sessionsRouter.put('/:id/start', (req, res) => {
 
   const updated: SessionRow = { ...session, status: 'active', started_at: startedAt.toISOString(), ends_at: endsAt.toISOString() };
   broadcastSessionUpdate(session.id, updated);
+  // The server ends the session on time even if no screen is open (participants are submitted then).
+  scheduleSessionEnd(session.id, updated.ends_at!);
   res.json({ session: updated });
 });
 
@@ -90,11 +96,9 @@ sessionsRouter.put('/:id/end', (req, res) => {
     return res.json({ session });
   }
 
-  const endsAt = new Date();
-  db.prepare("UPDATE sessions SET status = 'ended', ends_at = ? WHERE id = ?").run(endsAt.toISOString(), session.id);
-
-  const updated: SessionRow = { ...session, status: 'ended', ends_at: endsAt.toISOString() };
-  broadcastSessionUpdate(session.id, updated);
+  // Also cancels a lobby that never started ("Cancel run"); finalizeSession broadcasts the change.
+  clearSessionTimer(session.id);
+  const updated = finalizeSession(session.id, nowIso());
   res.json({ session: updated });
 });
 
@@ -102,24 +106,38 @@ sessionsRouter.get('/:id/live', (req, res) => {
   const session = getSession(Number(req.params.id));
   if (!session) return res.status(404).json({ error: 'Session not found' });
 
+  // Counts only this run's answers (a.session_id), and only real answers (ANSWERED): a quiz that was
+  // run before must not show "Answered 8 / 1".
   const participants = db
     .prepare(
-      `SELECT p.id, p.display_name, p.joined_at, p.submitted_at, (p.rejoin_hash IS NULL) AS rejoin_open,
-         COUNT(a.id) as answered_count
-       FROM participants p LEFT JOIN answers a ON a.participant_id = p.id
+      `SELECT p.id, p.display_name, p.joined_at, p.submitted_at, p.submit_source, (p.rejoin_hash IS NULL) AS rejoin_open,
+         coalesce(SUM(CASE WHEN ${ANSWERED_SQL} THEN 1 ELSE 0 END), 0) AS answered_count
+       FROM participants p
+       LEFT JOIN answers a ON a.participant_id = p.id AND a.session_id = p.session_id
+       LEFT JOIN questions q ON q.id = a.question_id
        WHERE p.session_id = ?
        GROUP BY p.id
-       ORDER BY p.joined_at`,
+       ORDER BY p.joined_at, p.id`,
     )
     .all(session.id);
 
-  const questions = db
-    .prepare(
-      `SELECT q.id, q.sort_order, q.text, q.type,
-         (SELECT COUNT(*) FROM answers a WHERE a.question_id = q.id) as answered_count
-       FROM questions q WHERE q.quiz_id = ? ORDER BY q.sort_order`,
-    )
-    .all(session.quiz_id);
+  const answeredByQuestion = new Map(
+    (
+      db
+        .prepare(
+          `SELECT a.question_id AS id, SUM(CASE WHEN ${ANSWERED_SQL} THEN 1 ELSE 0 END) AS n
+           FROM answers a JOIN questions q ON q.id = a.question_id
+           WHERE a.session_id = ?
+           GROUP BY a.question_id`,
+        )
+        .all(session.id) as { id: number; n: number }[]
+    ).map((r) => [r.id, r.n]),
+  );
+  const questions = (
+    db
+      .prepare('SELECT id, sort_order, text, type FROM questions WHERE quiz_id = ? ORDER BY sort_order')
+      .all(session.quiz_id) as { id: number }[]
+  ).map((q) => ({ ...q, answered_count: answeredByQuestion.get(q.id) ?? 0 }));
 
   res.json({ session, participants, questions });
 });
@@ -160,7 +178,8 @@ sessionsRouter.get('/:id/results', (req, res) => {
   res.json({ session, quiz, questions: questionsOut, participants, answers });
 });
 
-sessionsRouter.put('/:id/answers/:answerId/grade', (req, res) => {
+// Replaced by the grading panel's API in S12.
+sessionsRouter.put('/:id/answers/:answerId/grade', (req: AuthedRequest, res) => {
   const session = getSession(Number(req.params.id));
   if (!session) return res.status(404).json({ error: 'Session not found' });
 
@@ -183,11 +202,11 @@ sessionsRouter.put('/:id/answers/:answerId/grade', (req, res) => {
   }
 
   const isCorrect = pointsAwarded >= question.points ? 1 : 0;
-  db.prepare("UPDATE answers SET points_awarded = ?, is_correct = ?, graded_at = datetime('now') WHERE id = ?").run(
-    pointsAwarded,
-    isCorrect,
-    answer.id,
-  );
+  db.prepare(
+    `UPDATE answers SET points_awarded = ?, is_correct = ?, graded_at = ?, graded_by = ?, grade_source = 'human',
+       grade_version = grade_version + 1
+     WHERE id = ?`,
+  ).run(pointsAwarded, isCorrect, nowIso(), `admin:${req.admin!.username}`, answer.id);
 
   res.json({ answer: { ...answer, points_awarded: pointsAwarded, is_correct: isCorrect } });
 });
