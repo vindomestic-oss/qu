@@ -1,7 +1,8 @@
 import type { Request, Response } from 'express';
 
-// Counts FAILED attempts per client in a fixed window (in memory, one process). Used by the grader
-// code exchange: a valid code is looked up first and always passes, so wrong codes from someone else
+// Counts FAILED attempts per client in a fixed window (in memory, one process). Also used by the join
+// limiter (routes/join.ts, S15), which refuses every join of a client over the limit. The grader
+// code exchange looks a valid code up first and always lets it pass, so wrong codes from someone else
 // behind the same address (Render's proxy with TRUST_PROXY_HOPS=0, a venue's NAT) can never lock out a
 // grader who has the right code; only failed lookups are counted and, over the limit, answered with 429.
 // Guessing stays infeasible anyway: codes carry 80 bits. Headers follow express-rate-limit's

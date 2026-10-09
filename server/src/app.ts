@@ -12,6 +12,7 @@ import { adminRouter } from './routes/admin';
 import { sectionsRouter } from './routes/sections';
 import { graderRouter } from './routes/grader';
 import { gradingRouter } from './routes/grading';
+import { debugRouter } from './routes/debug';
 import { requireStaffForSession } from './middleware/staffAuth';
 import { UPLOAD_DIR } from './middleware/upload';
 import { registerAutoCheck } from './lib/autoCheck';
@@ -23,8 +24,9 @@ export function createApp(): express.Express {
   // Wish 7 (S13): answers matching the model answer are credited when a session ends.
   registerAutoCheck();
   const app = express();
-  // Proxy hops in front of the app (Render: set after checking the real client IP). 0 = req.ip is the
-  // socket address, so a forged X-Forwarded-For cannot dodge the grader-code rate limit.
+  // Proxy hops in front of the app (Render: set after checking the real client IP with /api/debug/ip).
+  // 0 = req.ip is the socket address, so a forged X-Forwarded-For cannot dodge the grader-code rate
+  // limit; the join limiter runs only with 1 or more (routes/join.ts).
   const hops = Number(process.env.TRUST_PROXY_HOPS ?? 0);
   app.set('trust proxy', Number.isInteger(hops) && hops >= 0 ? hops : 0);
 
@@ -60,6 +62,7 @@ export function createApp(): express.Express {
   app.use('/api/admin', adminRouter);
   app.use('/api/grader', graderRouter);
   app.use('/api/grading/:sessionId', requireStaffForSession, gradingRouter);
+  app.use('/api/debug', debugRouter);
 
   app.use('/api', (_req, res) => {
     res.status(404).json({ error: 'Not found' });
