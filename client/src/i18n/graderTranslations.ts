@@ -182,7 +182,8 @@ export const GRADER_EN: Dict = {
   // "Difficult" questions (wish 8, S15).
   'grader.difficult.badge': 'Difficult',
   'grader.difficult.title': 'Fewer than {pct} of the graded answers are correct ({correct} of {graded})',
-  'grader.difficult.legend': '= fewer than {pct} of the graded answers correct, counted from {n} graded answers.',
+  'grader.difficult.legend':
+    '= fewer than {pct} of the graded answers correct, counted from {n} graded answers. "Correct" counts the answers of participants who have submitted.',
 
   // Answer language (wish 8, S15).
   'grader.lang.tag': 'Answer language: {lang}',
@@ -193,6 +194,7 @@ export const GRADER_EN: Dict = {
   'grader.languages.rule': 'Automatic credit kept',
   'grader.languages.share': '{pct} ({n} of {total})',
   'grader.languages.unknown': 'Unknown',
+  'grader.languages.noData': 'no data',
   'grader.languages.note':
     'Language: the one the question was shown in; an answer written in another script counts under that script’s language. Answers of participants who have submitted.',
 };
@@ -375,7 +377,8 @@ export const GRADER_DE: Dict = {
   // "Difficult" questions (wish 8, S15).
   'grader.difficult.badge': 'Schwierig',
   'grader.difficult.title': 'Weniger als {pct} der bewerteten Antworten sind richtig ({correct} von {graded})',
-  'grader.difficult.legend': '= weniger als {pct} der bewerteten Antworten richtig, gezählt ab {n} bewerteten Antworten.',
+  'grader.difficult.legend':
+    '= weniger als {pct} der bewerteten Antworten richtig, gezählt ab {n} bewerteten Antworten. „Richtig“ zählt die Antworten von Teilnehmenden, die abgegeben haben.',
 
   // Answer language (wish 8, S15).
   'grader.lang.tag': 'Sprache der Antwort: {lang}',
@@ -386,6 +389,7 @@ export const GRADER_DE: Dict = {
   'grader.languages.rule': 'Automatische Wertung beibehalten',
   'grader.languages.share': '{pct} ({n} von {total})',
   'grader.languages.unknown': 'Unbekannt',
+  'grader.languages.noData': 'keine Daten',
   'grader.languages.note':
     'Sprache: in der die Frage angezeigt wurde; eine Antwort in einer anderen Schrift zählt zur Sprache dieser Schrift. Antworten von Teilnehmenden, die abgegeben haben.',
 };
@@ -572,7 +576,8 @@ export const GRADER_RU: Dict = {
   // "Difficult" questions (wish 8, S15).
   'grader.difficult.badge': 'Сложный',
   'grader.difficult.title': 'Верно меньше {pct} проверенных ответов ({correct} из {graded})',
-  'grader.difficult.legend': '= верно меньше {pct} проверенных ответов; считается, когда проверено не меньше {n}.',
+  'grader.difficult.legend':
+    '= верно меньше {pct} проверенных ответов; считается, когда проверено не меньше {n}. «Верно» считает ответы сдавших участников.',
 
   // Answer language (wish 8, S15).
   'grader.lang.tag': 'Язык ответа: {lang}',
@@ -583,6 +588,7 @@ export const GRADER_RU: Dict = {
   'grader.languages.rule': 'Автозачёт сохранён',
   'grader.languages.share': '{pct} ({n} из {total})',
   'grader.languages.unknown': 'Неизвестно',
+  'grader.languages.noData': 'нет данных',
   'grader.languages.note':
     'Язык: тот, на котором был показан вопрос; ответ, написанный другим алфавитом, считается по языку этого алфавита. Учтены ответы сдавших участников.',
 };
@@ -767,7 +773,8 @@ export const GRADER_HE: Dict = {
   // "Difficult" questions (wish 8, S15).
   'grader.difficult.badge': 'קשה',
   'grader.difficult.title': 'פחות מ־{pct} מהתשובות שנבדקו נכונות ({correct} מתוך {graded})',
-  'grader.difficult.legend': '= פחות מ־{pct} מהתשובות שנבדקו נכונות; נספר החל מ־{n} תשובות שנבדקו.',
+  'grader.difficult.legend':
+    '= פחות מ־{pct} מהתשובות שנבדקו נכונות; נספר החל מ־{n} תשובות שנבדקו. ״נכון״ סופר את התשובות של משתתפים שהגישו.',
 
   // Answer language (wish 8, S15).
   'grader.lang.tag': 'שפת התשובה: {lang}',
@@ -778,6 +785,7 @@ export const GRADER_HE: Dict = {
   'grader.languages.rule': 'הניקוד האוטומטי נשמר',
   'grader.languages.share': '{pct} ({n} מתוך {total})',
   'grader.languages.unknown': 'לא ידוע',
+  'grader.languages.noData': 'אין נתונים',
   'grader.languages.note':
     'השפה: השפה שבה הוצגה השאלה; תשובה שנכתבה בכתב אחר נספרת בשפה של אותו כתב. נספרות תשובות של משתתפים שהגישו.',
 };

@@ -68,7 +68,8 @@ const en: Dict = {
 
   'results.title': 'Quiz Results',
   'results.score': 'Score:',
-  'results.pendingSuffix': '({count} text answer(s) still awaiting manual grading)',
+  'results.pendingSuffix.one': '({n} text answer still awaiting manual grading)',
+  'results.pendingSuffix.other': '({n} text answers still awaiting manual grading)',
   'results.yourAnswer': '(your answer)',
   'results.correct': '✓ correct',
   'results.yourAnswerLabel': 'Your answer:',
@@ -170,7 +171,8 @@ const de: Dict = {
 
   'results.title': 'Quiz-Ergebnisse',
   'results.score': 'Punktzahl:',
-  'results.pendingSuffix': '({count} Textantwort(en) warten noch auf manuelle Bewertung)',
+  'results.pendingSuffix.one': '({n} Textantwort wartet noch auf manuelle Bewertung)',
+  'results.pendingSuffix.other': '({n} Textantworten warten noch auf manuelle Bewertung)',
   'results.yourAnswer': '(deine Antwort)',
   'results.correct': '✓ richtig',
   'results.yourAnswerLabel': 'Deine Antwort:',
@@ -272,7 +274,10 @@ const ru: Dict = {
 
   'results.title': 'Результаты викторины',
   'results.score': 'Результат:',
-  'results.pendingSuffix': '({count} текстовых ответов ожидают ручной проверки)',
+  'results.pendingSuffix.one': '({n} текстовый ответ ожидает ручной проверки)',
+  'results.pendingSuffix.few': '({n} текстовых ответа ожидают ручной проверки)',
+  'results.pendingSuffix.many': '({n} текстовых ответов ожидают ручной проверки)',
+  'results.pendingSuffix.other': '({n} текстового ответа ожидают ручной проверки)',
   'results.yourAnswer': '(ваш ответ)',
   'results.correct': '✓ верно',
   'results.yourAnswerLabel': 'Ваш ответ:',
@@ -349,7 +354,7 @@ const fr: Dict = {
 
   'results.title': 'Résultats du quiz',
   'results.score': 'Score :',
-  'results.pendingSuffix': '({count} réponse(s) texte en attente de correction manuelle)',
+  'results.pendingSuffix.other': '({n} réponse(s) texte en attente de correction manuelle)',
   'results.yourAnswer': '(votre réponse)',
   'results.correct': '✓ correct',
   'results.yourAnswerLabel': 'Votre réponse :',
@@ -386,7 +391,7 @@ const pl: Dict = {
 
   'results.title': 'Wyniki quizu',
   'results.score': 'Wynik:',
-  'results.pendingSuffix': '({count} odpowiedzi tekstowych czeka na ręczną ocenę)',
+  'results.pendingSuffix.other': '({n} odpowiedzi tekstowych czeka na ręczną ocenę)',
   'results.yourAnswer': '(twoja odpowiedź)',
   'results.correct': '✓ poprawnie',
   'results.yourAnswerLabel': 'Twoja odpowiedź:',
@@ -423,7 +428,7 @@ const lt: Dict = {
 
   'results.title': 'Testo rezultatai',
   'results.score': 'Rezultatas:',
-  'results.pendingSuffix': '({count} teksto atsakymų laukia rankinio įvertinimo)',
+  'results.pendingSuffix.other': '({n} teksto atsakymų laukia rankinio įvertinimo)',
   'results.yourAnswer': '(jūsų atsakymas)',
   'results.correct': '✓ teisingai',
   'results.yourAnswerLabel': 'Jūsų atsakymas:',
@@ -491,7 +496,9 @@ const he: Dict = {
 
   'results.title': 'תוצאות השאלון',
   'results.score': 'ניקוד:',
-  'results.pendingSuffix': '({count} תשובות טקסט מחכות לבדיקה ידנית)',
+  'results.pendingSuffix.one': '(תשובת טקסט אחת מחכה לבדיקה ידנית)',
+  'results.pendingSuffix.two': '(שתי תשובות טקסט מחכות לבדיקה ידנית)',
+  'results.pendingSuffix.other': '({n} תשובות טקסט מחכות לבדיקה ידנית)',
   'results.yourAnswer': '(התשובה שלך)',
   'results.correct': '✓ נכון',
   'results.yourAnswerLabel': 'התשובה שלך:',
@@ -565,7 +572,7 @@ const bg: Dict = {
 
   'results.title': 'Резултати от куиза',
   'results.score': 'Резултат:',
-  'results.pendingSuffix': '({count} текстов(и) отговор(и) все още чакат ръчна оценка)',
+  'results.pendingSuffix.other': '({n} текстов(и) отговор(и) все още чакат ръчна оценка)',
   'results.yourAnswer': '(вашият отговор)',
   'results.correct': '✓ правилно',
   'results.yourAnswerLabel': 'Вашият отговор:',
@@ -602,7 +609,7 @@ const cs: Dict = {
 
   'results.title': 'Výsledky kvízu',
   'results.score': 'Skóre:',
-  'results.pendingSuffix': '({count} textových odpovědí stále čeká na manuální hodnocení)',
+  'results.pendingSuffix.other': '({n} textových odpovědí stále čeká na manuální hodnocení)',
   'results.yourAnswer': '(vaše odpověď)',
   'results.correct': '✓ správně',
   'results.yourAnswerLabel': 'Vaše odpověď:',
@@ -639,7 +646,7 @@ const es: Dict = {
 
   'results.title': 'Resultados del cuestionario',
   'results.score': 'Puntuación:',
-  'results.pendingSuffix': '({count} respuesta(s) de texto aún esperando calificación manual)',
+  'results.pendingSuffix.other': '({n} respuesta(s) de texto aún esperando calificación manual)',
   'results.yourAnswer': '(tu respuesta)',
   'results.correct': '✓ correcto',
   'results.yourAnswerLabel': 'Tu respuesta:',
@@ -676,7 +683,7 @@ const fi: Dict = {
 
   'results.title': 'Tietokilpailun tulokset',
   'results.score': 'Tulos:',
-  'results.pendingSuffix': '({count} tekstivastausta odottaa vielä manuaalista arviointia)',
+  'results.pendingSuffix.other': '({n} tekstivastausta odottaa vielä manuaalista arviointia)',
   'results.yourAnswer': '(vastauksesi)',
   'results.correct': '✓ oikein',
   'results.yourAnswerLabel': 'Vastauksesi:',
@@ -713,7 +720,7 @@ const hu: Dict = {
 
   'results.title': 'Kvíz eredményei',
   'results.score': 'Eredmény:',
-  'results.pendingSuffix': '({count} szöveges válasz még kézi értékelésre vár)',
+  'results.pendingSuffix.other': '({n} szöveges válasz még kézi értékelésre vár)',
   'results.yourAnswer': '(a te válaszod)',
   'results.correct': '✓ helyes',
   'results.yourAnswerLabel': 'A te válaszod:',
@@ -750,7 +757,7 @@ const it: Dict = {
 
   'results.title': 'Risultati del quiz',
   'results.score': 'Punteggio:',
-  'results.pendingSuffix': '({count} risposta/e testuale/i ancora in attesa di valutazione manuale)',
+  'results.pendingSuffix.other': '({n} risposta/e testuale/i ancora in attesa di valutazione manuale)',
   'results.yourAnswer': '(la tua risposta)',
   'results.correct': '✓ corretto',
   'results.yourAnswerLabel': 'La tua risposta:',
@@ -787,7 +794,7 @@ const lv: Dict = {
 
   'results.title': 'Viktorīnas rezultāti',
   'results.score': 'Rezultāts:',
-  'results.pendingSuffix': '({count} teksta atbilde(s) vēl gaida manuālu vērtēšanu)',
+  'results.pendingSuffix.other': '({n} teksta atbilde(s) vēl gaida manuālu vērtēšanu)',
   'results.yourAnswer': '(jūsu atbilde)',
   'results.correct': '✓ pareizi',
   'results.yourAnswerLabel': 'Jūsu atbilde:',
@@ -826,7 +833,7 @@ const uk: Dict = {
 
   'results.title': 'Результати квізу',
   'results.score': 'Результат:',
-  'results.pendingSuffix': '({count} текстова(і) відповідь(і) ще очікує(ють) ручної перевірки)',
+  'results.pendingSuffix.other': '({n} текстова(і) відповідь(і) ще очікує(ють) ручної перевірки)',
   'results.yourAnswer': '(ваша відповідь)',
   'results.correct': '✓ правильно',
   'results.yourAnswerLabel': 'Ваша відповідь:',

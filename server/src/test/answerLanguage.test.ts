@@ -61,6 +61,8 @@ describe('the language of an answer', () => {
     assert.equal(detectScript('Ägypten'), 'latin');
     assert.equal(detectScript('דוד (David)'), 'latin');
     assert.equal(detectScript('דוד המלך (David)'), 'hebrew');
+    // Letters only: the niqqud of five Hebrew letters does not outweigh six Latin ones.
+    assert.equal(detectScript('יְהוֹשֻׁעַ Joshua'), 'latin');
     assert.equal(detectScript('40'), null);
     assert.equal(detectScript('?!'), null);
   });
@@ -124,12 +126,17 @@ describe('answer_lang on saves', () => {
     assert.equal(langOf(k.id, fx.textQuestionId), 'ru');
   });
 
-  test('choice answers: the shown language; unknown without one', async () => {
+  test('choice answers: the shown language; a save without one keeps it; unknown at first', async () => {
     const k = await kid(fx, 'Choice kid');
     await request(base, 'POST', `/api/my/answers/${fx.singleQuestionId}`, k.token, { selected_choice_ids: [fx.correctChoiceId], lang: 'he' });
     assert.equal(langOf(k.id, fx.singleQuestionId), 'he');
     await request(base, 'POST', `/api/my/answers/${fx.singleQuestionId}`, k.token, { selected_choice_ids: [fx.wrongChoiceId] });
-    assert.equal(langOf(k.id, fx.singleQuestionId), null);
+    assert.equal(langOf(k.id, fx.singleQuestionId), 'he', 'a save without lang keeps the stored language');
+    await request(base, 'POST', `/api/my/answers/${fx.singleQuestionId}`, k.token, { selected_choice_ids: [fx.correctChoiceId], lang: 'ru' });
+    assert.equal(langOf(k.id, fx.singleQuestionId), 'ru');
+    const fresh = await kid(fx, 'Choice kid 2');
+    await request(base, 'POST', `/api/my/answers/${fx.singleQuestionId}`, fresh.token, { selected_choice_ids: [fx.correctChoiceId] });
+    assert.equal(langOf(fresh.id, fx.singleQuestionId), null);
   });
 
   test('participants never get answer_lang back', async () => {

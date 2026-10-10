@@ -18,7 +18,7 @@ export function DifficultBadge({ correct, graded }: { correct: number; graded: n
       title={on ? t('grader.difficult.title', { pct: formatPercent(DIFFICULT_BELOW, uiLanguage), correct, graded }) : undefined}
       data-testid={on ? 'difficult-badge' : undefined}
     >
-      <TrendDownIcon size={14} /> {t('grader.difficult.badge')}
+      <TrendDownIcon size={14} /> <span className="difficult-badge__word">{t('grader.difficult.badge')}</span>
     </span>
   );
 }

@@ -42,7 +42,12 @@ function firstOnScreen(rows: HTMLElement[]): number {
   return i < 0 ? 0 : i;
 }
 
-const isOpen = (el: HTMLElement) => el.dataset.graded === 'false' && el.dataset.gradable === 'true';
+/** Ungraded, gradable and not being saved right now (N right after a grade key moves on). */
+const isOpen = (el: HTMLElement) => el.dataset.graded === 'false' && el.dataset.gradable === 'true' && el.dataset.saving !== 'true';
+
+/** Fields that take typed text; checkboxes, radios and buttons do not block the shortcuts. */
+const TEXT_ENTRY =
+  'input:not([type="checkbox"]):not([type="radio"]):not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="range"]):not([type="color"]):not([type="file"]):not([type="image"]), textarea, select, [contenteditable]:not([contenteditable="false"])';
 
 function focusRow(el: HTMLElement) {
   el.focus({ preventScroll: true });
@@ -64,6 +69,7 @@ export function GraderShortcuts({ aiAccept }: { aiAccept: boolean }) {
   const on = useShortcutsEnabled();
   const id = useId();
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const titleRef = useRef<HTMLHeadingElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const returnFocus = useRef<HTMLElement | null>(null);
   const [message, setMessage] = useState('');
@@ -87,6 +93,9 @@ export function GraderShortcuts({ aiAccept }: { aiAccept: boolean }) {
     if (!d || d.open) return;
     returnFocus.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     d.showModal();
+    // The title, not the first control (Space on the switch would turn the shortcuts off), and the
+    // list opens at its top on a small screen.
+    titleRef.current?.focus();
   }, []);
 
   function onClose() {
@@ -120,7 +129,8 @@ export function GraderShortcuts({ aiAccept }: { aiAccept: boolean }) {
         if (isOpen(el)) return focusRow(el);
       }
       // Ungraded rows that cannot be graded yet (the participant is still answering).
-      say(t(rows.some((el) => el.dataset.graded === 'false') ? 'grader.keys.notGradable' : 'grader.keys.allGraded'));
+      const waiting = rows.some((el) => el.dataset.graded === 'false' && el.dataset.gradable === 'false');
+      say(t(waiting ? 'grader.keys.notGradable' : 'grader.keys.allGraded'));
     }
 
     function grade(action: GradeShortcutAction) {
@@ -146,7 +156,7 @@ export function GraderShortcuts({ aiAccept }: { aiAccept: boolean }) {
         }
         return;
       }
-      if (e.defaultPrevented || !target || target.closest('input, textarea, select, [contenteditable]:not([contenteditable="false"])')) return;
+      if (e.defaultPrevented || !target || target.closest(TEXT_ENTRY)) return;
       const key = shortcutKey(e);
       if (key === null) return;
       const inList = target.closest(GRADE_ROW_SELECTOR) !== null;
@@ -205,7 +215,9 @@ export function GraderShortcuts({ aiAccept }: { aiAccept: boolean }) {
         {message}
       </span>
       <dialog ref={dialogRef} className="ai-dialog shortcut-dialog" aria-labelledby={`${id}-title`} onClose={onClose}>
-        <h2 id={`${id}-title`}>{t('grader.keys.title')}</h2>
+        <h2 id={`${id}-title`} ref={titleRef} tabIndex={-1}>
+          {t('grader.keys.title')}
+        </h2>
         <p className="grade-muted">{t('grader.keys.intro')}</p>
         <table className="shortcut-table">
           <tbody>

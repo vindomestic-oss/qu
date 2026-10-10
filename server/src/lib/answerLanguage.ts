@@ -20,10 +20,11 @@ import { parseStoredLanguages } from './quizLanguages';
 
 export type Script = 'hebrew' | 'cyrillic' | 'latin';
 
+// Letters only (\p{L}): niqqud and other combining marks never outweigh the letters of another script.
 const SCRIPTS: { script: Script; re: RegExp }[] = [
-  { script: 'hebrew', re: /\p{Script=Hebrew}/gu },
-  { script: 'cyrillic', re: /\p{Script=Cyrillic}/gu },
-  { script: 'latin', re: /\p{Script=Latin}/gu },
+  { script: 'hebrew', re: /(?=\p{L})\p{Script=Hebrew}/gu },
+  { script: 'cyrillic', re: /(?=\p{L})\p{Script=Cyrillic}/gu },
+  { script: 'latin', re: /(?=\p{L})\p{Script=Latin}/gu },
 ];
 
 /** The script most of the text's letters are written in; null without Hebrew, Cyrillic or Latin letters. */

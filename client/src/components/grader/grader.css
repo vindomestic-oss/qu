@@ -1078,6 +1078,18 @@ html:has(.quiz-bar) {
 .difficult-badge .grade-icon:dir(rtl) {
   transform: scaleX(-1);
 }
+/* Phones: in a card head the icon alone (the word stays for screen readers), so the reserved place
+   does not push "Max. 1" to a second line. */
+@media (max-width: 480px) {
+  .review-card__head .difficult-badge__word {
+    position: absolute;
+    inline-size: 1px;
+    block-size: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
 .rate-cell {
   display: inline-flex;
   align-items: center;

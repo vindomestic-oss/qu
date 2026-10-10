@@ -10,6 +10,7 @@ import { AUTO_SOURCES, formatPoints, graderIdentity } from './format';
 import { Interpolate } from './Interpolate';
 import { RuleMatchedLabel } from './AnswerHints';
 import { useGradeShortcut, useShortcutsEnabled } from '../../lib/graderShortcuts';
+import { AnswerTextIdContext } from './answerTextId';
 
 interface Attempt {
   is_correct: boolean;
@@ -217,11 +218,14 @@ export function AnswerGradeRow({
       className={`answer-row${disabled ? ' is-disabled' : ''}${tools ? ' answer-row--tools' : ''}`}
       role="group"
       aria-labelledby={heading ? `${id}-h` : undefined}
-      // Wish 8 (S15): J/K/N move the focus here (programmatic only, never a Tab stop).
+      // Wish 8 (S15): J/K/N move the focus here (programmatic only, never a Tab stop); the answer
+      // (AnswerText) and its grade line describe the row, so moving there reads more than "Answer 3".
       tabIndex={-1}
+      aria-describedby={`${id}-text ${id}-status`}
       data-grade-row=""
       data-graded={graded ? 'true' : 'false'}
       data-gradable={disabled ? 'false' : 'true'}
+      data-saving={state.kind === 'saving' ? 'true' : undefined}
     >
       <div className="answer-row__content">
         {tag ? (
@@ -232,7 +236,7 @@ export function AnswerGradeRow({
         ) : (
           headingEl
         )}
-        {children}
+        <AnswerTextIdContext.Provider value={`${id}-text`}>{children}</AnswerTextIdContext.Provider>
       </div>
 
       <div className="answer-row__controls">

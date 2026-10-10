@@ -303,7 +303,7 @@ myRouter.post('/answers/:questionId', (req: ParticipantRequest, res) => {
      VALUES (?, ?, ?, ?, ?, ?, ?, 'auto_choice', datetime('now'))
      ON CONFLICT(participant_id, question_id) DO UPDATE SET
        selected_choice_ids = excluded.selected_choice_ids,
-       answer_lang = excluded.answer_lang,
+       answer_lang = coalesce(excluded.answer_lang, answers.answer_lang),
        is_correct = excluded.is_correct,
        points_awarded = excluded.points_awarded,
        grade_source = 'auto_choice',

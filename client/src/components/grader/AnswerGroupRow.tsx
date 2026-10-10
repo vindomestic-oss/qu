@@ -10,6 +10,7 @@ import { AUTO_SOURCES, formatPoints, graderIdentity, groupGrade } from './format
 import { Interpolate } from './Interpolate';
 import { RuleMatchedLabel } from './AnswerHints';
 import { useGradeShortcut, useShortcutsEnabled } from '../../lib/graderShortcuts';
+import { AnswerTextIdContext } from './answerTextId';
 
 type Member = GradingAnswer & { label: number };
 type Item = { answer_id: number; expected_version: number };
@@ -223,11 +224,14 @@ export function AnswerGroupRow({ sessionId, members, maxPoints, text, label, hin
         className="answer-row answer-row--group answer-row--tools"
         role="group"
         aria-labelledby={`${id}-name`}
-        // Wish 8 (S15): J/K/N move the focus here (programmatic only, never a Tab stop).
+        // Wish 8 (S15): J/K/N move the focus here (programmatic only, never a Tab stop); the answer
+        // and the group's grade line describe it.
         tabIndex={-1}
+        aria-describedby={`${id}-text ${id}-status`}
         data-grade-row=""
         data-graded={agg.graded === n ? 'true' : 'false'}
         data-gradable="true"
+        data-saving={state.kind === 'saving' ? 'true' : undefined}
       >
         <div className="answer-row__content">
           {/* The group's name for screen readers: the count in words and the answer (not "×"). */}
@@ -242,7 +246,7 @@ export function AnswerGroupRow({ sessionId, members, maxPoints, text, label, hin
             </div>
             {tag}
           </div>
-          {text}
+          <AnswerTextIdContext.Provider value={`${id}-text`}>{text}</AnswerTextIdContext.Provider>
           {hints}
           {ai}
         </div>

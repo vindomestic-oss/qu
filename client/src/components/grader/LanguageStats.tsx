@@ -29,14 +29,22 @@ export function LanguageStats({
   const showAi = aiEnabled || stats.some((s) => s.ai.total > 0);
   const showRule = stats.some((s) => s.rule.total > 0);
   const share = (n: number, total: number) =>
-    total > 0 ? t('grader.languages.share', { pct: formatPercent(n / total, uiLanguage), n, total }) : '–';
+    total > 0 ? (
+      t('grader.languages.share', { pct: formatPercent(n / total, uiLanguage), n, total })
+    ) : (
+      <>
+        <span aria-hidden="true">–</span>
+        <span className="visually-hidden">{t('grader.languages.noData')}</span>
+      </>
+    );
 
   return (
     <section className="grade-section" aria-labelledby="grade-languages-title" data-testid="language-stats">
       <h2 id="grade-languages-title" className="grade-section-title">
         {t('grader.languages.title')}
       </h2>
-      <div className="table-scroll">
+      {/* Focusable, so the table can be scrolled sideways with the keyboard on a phone. */}
+      <div className="table-scroll" tabIndex={0} role="region" aria-labelledby="grade-languages-title">
         <table className="grade-table grade-table--languages">
           <thead>
             <tr>

@@ -22,6 +22,7 @@ import { useAiBlindMode } from '../../lib/useAiBlindMode';
 import { useShortcutsEnabled } from '../../lib/graderShortcuts';
 import { GraderShortcuts } from '../../components/grader/GraderShortcuts';
 import { LangTag } from '../../components/grader/LangTag';
+import { AnswerText } from '../../components/grader/AnswerText';
 import { runAi } from '../../api/aiGrading';
 import type { AnswerGrade, ParticipantReviewResponse } from '../../types';
 import '../../components/grader/grader.css';
@@ -193,9 +194,7 @@ export function ParticipantReview() {
             >
               {q.type === 'text' ? (
                 <>
-                  <p className="answer-row__text" dir="auto">
-                    {answer.text_answer}
-                  </p>
+                  <AnswerText dir="auto">{answer.text_answer}</AnswerText>
                   {/* Wish 7: earlier grades of the same answer in other runs. */}
                   <PrecedentHint precedent={answer.answer_norm ? q.precedents?.[answer.answer_norm] : undefined} />
                   {ai && data.gradable && (
@@ -222,14 +221,14 @@ export function ParticipantReview() {
                   )}
                 </>
               ) : (
-                <p className="answer-row__text">
+                <AnswerText>
                   {(answer.selected_choice_ids ?? [])
                     .map((cid) => {
                       const c = q.choices.find((x) => x.id === cid);
                       return c ? resolveFieldWithLang(c, 'text', contentLanguage, base).text : t('grader.row.optionDeleted');
                     })
                     .join(', ') || t('grader.row.nothingSelected')}
-                </p>
+                </AnswerText>
               )}
             </AnswerGradeRow>
           ) : (

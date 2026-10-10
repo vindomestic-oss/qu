@@ -22,6 +22,7 @@ import { useShortcutsEnabled } from '../../lib/graderShortcuts';
 import { GraderShortcuts } from '../../components/grader/GraderShortcuts';
 import { DifficultBadge } from '../../components/grader/DifficultBadge';
 import { LangTag } from '../../components/grader/LangTag';
+import { AnswerText } from '../../components/grader/AnswerText';
 import { runAi } from '../../api/aiGrading';
 import { QuestionLanguageBar } from '../../components/participant/QuestionLanguageBar';
 import type { AiGradingStatus, AnswerGrade, GradingAnswer, GradingQuestion, WholeQuizQuestion, WholeQuizResponse } from '../../types';
@@ -541,9 +542,7 @@ export function WholeQuizReview() {
             onGrade={(g) => mergeGrades([g])}
             tools={withHints ? acceptFor([row]) : undefined}
           >
-            <p className="answer-row__text" dir="auto">
-              {row.text_answer}
-            </p>
+            <AnswerText dir="auto">{row.text_answer}</AnswerText>
             {withHints && hintFor([row])}
             {withHints && aiFor([row])}
             {withHints && ai && <div className="answer-row__tools">{aiAcceptFor([row])}</div>}
@@ -632,11 +631,7 @@ export function WholeQuizReview() {
                     sessionId={id}
                     members={members}
                     maxPoints={q.points}
-                    text={
-                      <p className="answer-row__text" dir="auto">
-                        {members[0].text_answer}
-                      </p>
-                    }
+                    text={<AnswerText dir="auto">{members[0].text_answer}</AnswerText>}
                     label={members[0].text_answer ?? ''}
                     hints={hintFor(members)}
                     tag={langTag(members)}
@@ -666,14 +661,14 @@ export function WholeQuizReview() {
                   tag={langTag([row])}
                   onGrade={(g) => mergeGrades([g])}
                 >
-                  <p className="answer-row__text">
+                  <AnswerText>
                     {(row.selected_choice_ids ?? [])
                       .map((cid) => {
                         const c = q.choices.find((x) => x.id === cid);
                         return c ? resolveFieldWithLang(c, 'text', contentLanguage, base).text : t('grader.row.optionDeleted');
                       })
                       .join(', ') || t('grader.row.nothingSelected')}
-                  </p>
+                  </AnswerText>
                 </AnswerGradeRow>
               ))}
           </QuestionReviewCard>

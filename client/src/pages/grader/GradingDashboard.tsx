@@ -135,35 +135,41 @@ export function GradingDashboard() {
               </tr>
             </thead>
             <tbody>
-              {data.questions.map((q, i) => (
-                <tr key={q.id}>
-                  <th scope="row" className="num" title={q.text}>
-                    {i + 1}
-                  </th>
-                  <td className="num">{t('grader.tiles.ofTotal', { n: q.answered_count, total: counters.participants_joined })}</td>
-                  <td className="num">
-                    <span className="rate-cell">
-                      {q.correct_rate === null ? '–' : formatPercent(q.correct_rate, uiLanguage)}
-                      {/* Wish 8 (S15): under 35 % correct of at least 5 graded answers of submitted
-                          participants (as on the whole-quiz page); its place is kept. */}
-                      <DifficultBadge correct={q.submitted_correct_count ?? 0} graded={q.submitted_graded_count ?? 0} />
-                    </span>
-                  </td>
-                  <td className="num">
-                    {q.needs_review_count > 0 ? (
-                      <Link
-                        to={`/grade/${id}/quiz?filter=needs_review#q-${q.id}`}
-                        className="count-link"
-                        aria-label={`${t('grader.questions.needsReview')}: ${q.needs_review_count} (${t('grader.question.number', { n: i + 1 })})`}
-                      >
-                        {q.needs_review_count}
-                      </Link>
-                    ) : (
-                      '–'
-                    )}
-                  </td>
-                </tr>
-              ))}
+              {data.questions.map((q, i) => {
+                // Wish 8 (S15): one population per row: the share and the "difficult" badge both
+                // count the graded answers of participants who have submitted (as on the whole-quiz
+                // page); an older server without those counts falls back to every graded answer.
+                const graded = q.submitted_graded_count ?? q.graded_count;
+                const correct = q.submitted_correct_count ?? q.correct_count;
+                return (
+                  <tr key={q.id}>
+                    <th scope="row" className="num" title={q.text}>
+                      {i + 1}
+                    </th>
+                    <td className="num">{t('grader.tiles.ofTotal', { n: q.answered_count, total: counters.participants_joined })}</td>
+                    <td className="num">
+                      <span className="rate-cell">
+                        {/* Before the number, so the numbers stay flush under the header; its place is kept. */}
+                        <DifficultBadge correct={correct} graded={graded} />
+                        {graded > 0 ? formatPercent(correct / graded, uiLanguage) : '–'}
+                      </span>
+                    </td>
+                    <td className="num">
+                      {q.needs_review_count > 0 ? (
+                        <Link
+                          to={`/grade/${id}/quiz?filter=needs_review#q-${q.id}`}
+                          className="count-link"
+                          aria-label={`${t('grader.questions.needsReview')}: ${q.needs_review_count} (${t('grader.question.number', { n: i + 1 })})`}
+                        >
+                          {q.needs_review_count}
+                        </Link>
+                      ) : (
+                        '–'
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
