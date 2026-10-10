@@ -7,15 +7,16 @@ import { useStaffLive } from './useStaffLive';
  * Live participants and per-question counts of one session, refreshed from the staff room. Owns the
  * data so each screen makes one request per event; responses that arrive out of order are dropped.
  */
-export function useLiveStatus(sessionId: number | null): { data: LiveStatusResponse | null; refresh: () => void } {
+export function useLiveStatus(sessionId: number | null): { data: LiveStatusResponse | null; refresh: () => Promise<void> } {
   // Tagged with its session, so a switch to another session never shows the previous one's data.
   const [state, setState] = useState<{ sessionId: number; data: LiveStatusResponse } | null>(null);
   const seq = useRef(0);
 
-  const refresh = useCallback(() => {
-    if (sessionId === null) return;
+  // Returns the request, so the staff-room refetches never overlap (useStaffLive).
+  const refresh = useCallback((): Promise<void> => {
+    if (sessionId === null) return Promise.resolve();
     const mine = ++seq.current;
-    getLiveStatus(sessionId)
+    return getLiveStatus(sessionId)
       .then((result) => {
         if (mine === seq.current) setState({ sessionId, data: result });
       })

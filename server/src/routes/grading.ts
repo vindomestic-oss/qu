@@ -2,7 +2,8 @@ import { createHash } from 'crypto';
 import { Router, type Response } from 'express';
 import { db } from '../db';
 import { staffLabel, type StaffRequest } from '../middleware/staffAuth';
-import { getSession } from '../lib/sessions';
+import { getSession, type SessionRow } from '../lib/sessions';
+import { cachedForSession } from '../lib/gradingCache';
 import { translationColumns } from '../lib/sqlTranslations';
 import { getQuizLanguageInfo } from '../lib/quizLanguages';
 import {
@@ -44,6 +45,10 @@ import { LANGUAGE_DISPLAY_ORDER, isQuizLang } from '../lib/languages';
  * Answer language (wish 8, S15): every answer carries answer_lang (the language the question was
  * shown in, corrected by a text answer's script; lib/answerLanguage.ts) for a tag on the rows; the
  * summary carries `languages`, counts per answer language of the submitted free-text answers.
+ *
+ * Shared reads (load test 2026-10-10): the summary and the whole-quiz list are the same for every
+ * viewer of a session except `viewer`, so their session-wide part is computed once and kept for about
+ * a second (lib/gradingCache.ts, per session id); every grading write invalidates it at once.
  */
 export const gradingRouter = Router({ mergeParams: true });
 
@@ -315,11 +320,10 @@ interface ParticipantAggregate {
 
 const sum = (fragment: string) => `coalesce(SUM(CASE WHEN ${fragment} THEN 1 ELSE 0 END), 0)`;
 
-gradingRouter.get('/summary', (req: StaffRequest, res) => {
-  const session = getSession(req.sessionId!)!;
+/** Everything in the summary except `viewer`: the same for every viewer of the session. */
+function computeSummary(session: SessionRow) {
   const quiz = loadQuiz(session.quiz_id);
-  if (!quiz) return res.status(404).json({ error: 'Quiz not found' });
-  const staff = req.staff!;
+  if (!quiz) return null;
 
   const rows = db
     .prepare(
@@ -403,15 +407,23 @@ gradingRouter.get('/summary', (req: StaffRequest, res) => {
     return { ...q, graded_count: graded, correct_rate: graded > 0 ? q.correct_count / graded : null };
   });
 
-  res.json({
+  return {
     session: { id: session.id, status: session.status, started_at: session.started_at, ends_at: session.ends_at },
     quiz,
-    viewer: { kind: staff.kind, name: staff.name },
     counters,
     participants,
     questions,
     languages: languageStats(session.id, session.quiz_id),
-  });
+  };
+}
+
+gradingRouter.get('/summary', (req: StaffRequest, res) => {
+  // getSession first: a session whose time is up ends here, which invalidates its cached data.
+  const session = getSession(req.sessionId!)!;
+  const shared = cachedForSession(session.id, 'summary', () => computeSummary(session));
+  if (!shared) return res.status(404).json({ error: 'Quiz not found' });
+  const staff = req.staff!;
+  res.json({ ...shared, viewer: { kind: staff.kind, name: staff.name } });
 });
 
 // --- One participant --------------------------------------------------------------------------
@@ -477,11 +489,10 @@ function anonKey(sessionId: number, questionId: number, answerId: number): strin
   return createHash('sha256').update(`${sessionId}:${questionId}:${answerId}`).digest('hex');
 }
 
-gradingRouter.get('/quiz', (req: StaffRequest, res) => {
-  const session = getSession(req.sessionId!)!;
+/** Everything in the whole-quiz list except `viewer`: the same for every viewer of the session. */
+function computeWholeQuiz(session: SessionRow, filter: 'needs_review' | 'all') {
   const quiz = loadQuiz(session.quiz_id);
-  if (!quiz) return res.status(404).json({ error: 'Quiz not found' });
-  const filter = req.query.filter === 'needs_review' ? 'needs_review' : 'all';
+  if (!quiz) return null;
 
   const questions = loadQuestions(session.quiz_id);
   const precedents = loadPrecedents(db, session.id);
@@ -551,14 +562,21 @@ gradingRouter.get('/quiz', (req: StaffRequest, res) => {
     });
   }
 
-  res.json({
+  return {
     session: { id: session.id, status: session.status, started_at: session.started_at, ends_at: session.ends_at },
     quiz,
-    viewer: { kind: req.staff!.kind, name: req.staff!.name },
     filter,
     progress: { graded, total },
     questions: out,
-  });
+  };
+}
+
+gradingRouter.get('/quiz', (req: StaffRequest, res) => {
+  const session = getSession(req.sessionId!)!;
+  const filter = req.query.filter === 'needs_review' ? 'needs_review' : 'all';
+  const shared = cachedForSession(session.id, `quiz:${filter}`, () => computeWholeQuiz(session, filter));
+  if (!shared) return res.status(404).json({ error: 'Quiz not found' });
+  res.json({ ...shared, viewer: { kind: req.staff!.kind, name: req.staff!.name } });
 });
 
 const IDS_MAX = 200;

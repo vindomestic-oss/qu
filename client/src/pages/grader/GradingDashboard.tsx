@@ -16,6 +16,7 @@ import { useAiBlindMode } from '../../lib/useAiBlindMode';
 import '../../components/grader/grader.css';
 
 const LIVE_ANNOUNCE_MS = 10_000;
+const LIVE_REFETCH_MS = 5000;
 
 /** /grade/:sessionId — the live overview of one session for admins and graders (wish 8, mockup 08-a). */
 export function GradingDashboard() {
@@ -29,7 +30,12 @@ export function GradingDashboard() {
   useEffect(() => {
     reload();
   }, [reload, id]);
-  useStaffLive(id, reload, { events: ['session:live', 'grading:changed', 'session:update'] });
+  // Grades and session changes within a second; joins and answers (session:live, every 500 ms during a
+  // quiz) at most every 5 s: the tiles may lag that much, the server stays light (load test 2026-10-10).
+  useStaffLive(id, reload, {
+    events: ['session:live', 'grading:changed', 'session:update'],
+    intervals: { 'session:live': LIVE_REFETCH_MS },
+  });
 
   // One polite sentence for screen readers, at most every 10 s (not on every live update).
   const needsReview = data?.counters.needs_review ?? null;

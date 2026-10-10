@@ -7,7 +7,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 export function useLoader<T>(load: (() => Promise<T>) | null): {
   data: T | null;
   error: boolean;
-  reload: () => void;
+  /** Resolves when the request is done (staff screens use it to avoid overlapping requests). */
+  reload: () => Promise<void>;
   setData: (update: (prev: T | null) => T | null) => void;
 } {
   const [data, setDataState] = useState<T | null>(null);
@@ -18,11 +19,11 @@ export function useLoader<T>(load: (() => Promise<T>) | null): {
     loadRef.current = load;
   });
 
-  const reload = useCallback(() => {
+  const reload = useCallback((): Promise<void> => {
     const fn = loadRef.current;
-    if (!fn) return;
+    if (!fn) return Promise.resolve();
     const mine = ++seq.current;
-    fn()
+    return fn()
       .then((result) => {
         if (mine !== seq.current) return;
         setDataState(result);

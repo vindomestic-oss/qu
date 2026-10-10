@@ -79,7 +79,8 @@ export function SessionResults() {
   useEffect(() => {
     reload();
   }, [reload, id]);
-  useStaffLive(id, reload, { events: ['grading:changed', 'session:update', 'session:live'] });
+  // Like the grading dashboard: answers and joins (session:live) at most every 5 s.
+  useStaffLive(id, reload, { events: ['grading:changed', 'session:update', 'session:live'], intervals: { 'session:live': 5000 } });
 
   // The join code, quiz id and answers come from the admin results endpoint (also used for the CSV).
   const [quizId, setQuizId] = useState<number | null>(null);

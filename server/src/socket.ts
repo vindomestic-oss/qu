@@ -3,6 +3,7 @@ import { Server } from 'socket.io';
 import { authenticate } from './middleware/jwt';
 import { db } from './db';
 import { nowIso } from './lib/time';
+import { invalidateSessionCache } from './lib/gradingCache';
 
 // Rooms: `session:<id>` (participants and staff) carries only session:update. `staff:<id>` (admins, and
 // graders with a valid link for that one session) carries session:update, session:live and
@@ -142,6 +143,8 @@ export async function disconnectGraderLink(sessionId: number, linkId: number): P
  * their countdowns for a device clock that is off (S15; display only, the server ends the session).
  */
 export function broadcastSessionUpdate(sessionId: number, payload: unknown) {
+  // The grading panel's cached session data is stale from here on (lib/gradingCache.ts).
+  invalidateSessionCache(sessionId);
   if (!io) return;
   const stamped = typeof payload === 'object' && payload !== null ? { ...payload, server_now: nowIso() } : payload;
   io.to(`session:${sessionId}`).to(`staff:${sessionId}`).except(`graders:${sessionId}`).emit('session:update', stamped);
@@ -209,7 +212,12 @@ export function emitToParticipant(sessionId: number, participantId: number, even
   return sent;
 }
 
-/** Grading-relevant changes (submit, session end, grades) for the grading panel (S12). */
+/**
+ * Grading-relevant changes (submit, reopen, session end, grades, regrades, rule/key/AI checks) for the
+ * grading panel (S12). Every caller has just committed the change, so the session's cached grading
+ * data (lib/gradingCache.ts) is dropped first: the next read, including the writer's own, is fresh.
+ */
 export function broadcastGradingChanged(sessionId: number, payload: object) {
+  invalidateSessionCache(sessionId);
   io?.to(`staff:${sessionId}`).emit('grading:changed', payload);
 }
