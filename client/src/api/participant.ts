@@ -43,18 +43,19 @@ export function submitQuiz() {
 }
 
 // keepalive lets a save started on pagehide (tab closed, iPad locked) still reach the server.
-export function submitChoiceAnswer(questionId: number, selectedChoiceIds: number[], { keepalive = false } = {}) {
+// lang (wish 8, S15): the language the question is shown in, for the graders' language tag.
+export function submitChoiceAnswer(questionId: number, selectedChoiceIds: number[], { keepalive = false, lang }: { keepalive?: boolean; lang?: string } = {}) {
   return participantApi<{ ok: true }>(`/my/answers/${questionId}`, {
     method: 'POST',
-    body: JSON.stringify({ selected_choice_ids: selectedChoiceIds }),
+    body: JSON.stringify({ selected_choice_ids: selectedChoiceIds, lang }),
     keepalive,
   });
 }
 
-export function submitTextAnswer(questionId: number, textAnswer: string, { keepalive = false } = {}) {
+export function submitTextAnswer(questionId: number, textAnswer: string, { keepalive = false, lang }: { keepalive?: boolean; lang?: string } = {}) {
   return participantApi<{ ok: true }>(`/my/answers/${questionId}`, {
     method: 'POST',
-    body: JSON.stringify({ text_answer: textAnswer }),
+    body: JSON.stringify({ text_answer: textAnswer, lang }),
     keepalive,
   });
 }

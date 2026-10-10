@@ -19,6 +19,10 @@ import { isAiAcceptable } from '../../components/grader/aiSuggestion';
 import { AiAcceptButton } from '../../components/grader/AiAccept';
 import { useAiAcceptKey } from '../../lib/useAiAcceptKey';
 import { useAiBlindMode } from '../../lib/useAiBlindMode';
+import { useShortcutsEnabled } from '../../lib/graderShortcuts';
+import { GraderShortcuts } from '../../components/grader/GraderShortcuts';
+import { LangTag } from '../../components/grader/LangTag';
+import { AnswerText } from '../../components/grader/AnswerText';
 import { runAi } from '../../api/aiGrading';
 import type { AnswerGrade, ParticipantReviewResponse } from '../../types';
 import '../../components/grader/grader.css';
@@ -38,7 +42,9 @@ export function ParticipantReview() {
   // Wish 7 (S14): the same AI suggestion per answer as in the whole-quiz review.
   const [blind] = useAiBlindMode();
   const ai = data?.quiz.ai_grading_enabled === true;
-  useAiAcceptKey(ai && !blind);
+  // Wish 8 (S15): the keyboard shortcuts' switch covers A too (WCAG 2.1.4).
+  const keysOn = useShortcutsEnabled();
+  useAiAcceptKey(ai && !blind && keysOn);
 
   useEffect(() => {
     reload();
@@ -104,6 +110,9 @@ export function ParticipantReview() {
             <bdi>{name}</bdi>
           </h1>
           <StatusTag status={p.status} />
+          <span className="participant-head__tools">
+            <GraderShortcuts aiAccept={ai && data.gradable && !blind} />
+          </span>
         </div>
         <p className="participant-head__facts">
           <span>{t('grader.participant.answered', { n: data.totals.answered, total: data.items.length })}</span>
@@ -166,6 +175,8 @@ export function ParticipantReview() {
               disabled={!data.gradable}
               heading={t('grader.question.number', { n: i + 1 })}
               headingHidden
+              // Wish 8 (S15): the language the participant saw this question in.
+              tag={<LangTag langs={[answer.answer_lang]} base={data.quiz.base_language} offered={languages} />}
               onGrade={mergeGrade}
               tools={
                 // Admins: "Add to accepted answers" once a person credited the answer (wish 7).
@@ -183,9 +194,7 @@ export function ParticipantReview() {
             >
               {q.type === 'text' ? (
                 <>
-                  <p className="answer-row__text" dir="auto">
-                    {answer.text_answer}
-                  </p>
+                  <AnswerText dir="auto">{answer.text_answer}</AnswerText>
                   {/* Wish 7: earlier grades of the same answer in other runs. */}
                   <PrecedentHint precedent={answer.answer_norm ? q.precedents?.[answer.answer_norm] : undefined} />
                   {ai && data.gradable && (
@@ -212,14 +221,14 @@ export function ParticipantReview() {
                   )}
                 </>
               ) : (
-                <p className="answer-row__text">
+                <AnswerText>
                   {(answer.selected_choice_ids ?? [])
                     .map((cid) => {
                       const c = q.choices.find((x) => x.id === cid);
                       return c ? resolveFieldWithLang(c, 'text', contentLanguage, base).text : t('grader.row.optionDeleted');
                     })
                     .join(', ') || t('grader.row.nothingSelected')}
-                </p>
+                </AnswerText>
               )}
             </AnswerGradeRow>
           ) : (

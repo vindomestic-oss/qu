@@ -61,7 +61,7 @@ export function Results() {
       <h1>{t('results.title')}</h1>
       <p style={{ fontSize: 20 }}>
         {t('results.score')} <strong>{results.scoredPoints}</strong> / {results.maxPoints}
-        {results.pendingGrading > 0 && <span> {t('results.pendingSuffix', { count: results.pendingGrading })}</span>}
+        {results.pendingGrading > 0 && <span> {tCount('results.pendingSuffix', results.pendingGrading)}</span>}
       </p>
       <div style={{ marginBottom: 12 }}>
         <QuestionLanguageBar idPrefix="qlang-results" languages={offered} value={contentLanguage} onChange={setContentLanguage} />

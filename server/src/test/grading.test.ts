@@ -629,6 +629,12 @@ describe('reading the panel', () => {
     const textRow = asAdmin.body.questions.find((q: { id: number }) => q.id === fx.textQuestionId);
     assert.equal(textRow.answered_count, 7);
     assert.equal(textRow.needs_review_count, 6);
+    // Wish 8 (S15): graded_count is the denominator of correct_rate (the "difficult" badge).
+    assert.equal(textRow.graded_count, 0);
+    assert.equal(textRow.correct_rate, null);
+    const choiceRow = asAdmin.body.questions.find((q: { id: number }) => q.id === fx.singleQuestionId);
+    assert.equal(choiceRow.graded_count, 6);
+    assert.equal(choiceRow.correct_rate, 0.5);
   });
 
   test('participant page: the name, gradable after submission, prev/next by join order', async () => {
@@ -666,6 +672,8 @@ describe('reading the panel', () => {
       assert.equal(text.stats.no_answer, 1);
       const choice = r.body.questions.find((q: { question: { id: number } }) => q.question.id === fx.singleQuestionId);
       assert.deepEqual(choice.stats.choice_counts, { [fx.correctChoiceId]: 3, [fx.wrongChoiceId]: 3 });
+      // Graded answers and the correct ones among them (wish 8: the "difficult" badge).
+      assert.deepEqual([text.stats.graded, text.stats.correct, choice.stats.graded, choice.stats.correct], [0, 0, 6, 3]);
       assert.deepEqual(r.body.progress, { graded: 0, total: 6 });
     }
   });
@@ -695,6 +703,24 @@ describe('reading the panel', () => {
     assert.equal(r.body.questions[0].answers.length, 5);
     assert.ok(r.body.questions[0].answers.every((x: { points_awarded: number | null }) => x.points_awarded === null));
     assert.deepEqual(r.body.progress, { graded: 1, total: 6 });
+  });
+});
+
+describe('"difficult" counts (wish 8, S15)', () => {
+  test('the badge counts submitted participants only; correct_rate counts everyone', async () => {
+    const fx = await startedFixture('Difficult counts quiz');
+    await participant(fx, 'Done right', { choice: fx.correctChoiceId, submit: true });
+    await participant(fx, 'Done wrong', { choice: fx.wrongChoiceId, submit: true });
+    await participant(fx, 'Still busy', { choice: fx.wrongChoiceId });
+    const r = await request(base, 'GET', `/api/grading/${fx.sessionId}/summary`, adminToken);
+    const choice = r.body.questions.find((q: { id: number }) => q.id === fx.singleQuestionId);
+    assert.deepEqual(
+      [choice.graded_count, choice.correct_count, choice.submitted_graded_count, choice.submitted_correct_count],
+      [3, 1, 2, 1],
+    );
+    const whole = await request(base, 'GET', `/api/grading/${fx.sessionId}/quiz?filter=all`, adminToken);
+    const stats = whole.body.questions.find((q: { question: { id: number } }) => q.question.id === fx.singleQuestionId).stats;
+    assert.deepEqual([stats.graded, stats.correct], [2, 1], 'both pages count the same answers');
   });
 });
 

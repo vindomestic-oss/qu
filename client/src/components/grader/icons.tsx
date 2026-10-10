@@ -68,3 +68,22 @@ export function HistoryIcon(p: IconProps) {
     </Svg>
   );
 }
+
+/** Keyboard shortcuts (wish 8, S15). */
+export function KeyboardIcon(p: IconProps) {
+  return (
+    <Svg {...p}>
+      <rect x="2.5" y="6" width="19" height="12" rx="2" />
+      <path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10" />
+    </Svg>
+  );
+}
+
+/** A difficult question (wish 8, S15): a falling line. */
+export function TrendDownIcon(p: IconProps) {
+  return (
+    <Svg {...p}>
+      <path d="M3 7l6 6 4-4 8 8M21 11v6h-6" />
+    </Svg>
+  );
+}

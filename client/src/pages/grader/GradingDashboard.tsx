@@ -10,6 +10,8 @@ import { ParticipantTable } from '../../components/grader/ParticipantTable';
 import { FlagIcon } from '../../components/grader/icons';
 import { formatPercent } from '../../components/grader/format';
 import { AiGradingBar } from '../../components/grader/AiGradingBar';
+import { DifficultBadge, DifficultLegend } from '../../components/grader/DifficultBadge';
+import { LanguageStats } from '../../components/grader/LanguageStats';
 import { useAiBlindMode } from '../../lib/useAiBlindMode';
 import '../../components/grader/grader.css';
 
@@ -133,32 +135,54 @@ export function GradingDashboard() {
               </tr>
             </thead>
             <tbody>
-              {data.questions.map((q, i) => (
-                <tr key={q.id}>
-                  <th scope="row" className="num" title={q.text}>
-                    {i + 1}
-                  </th>
-                  <td className="num">{t('grader.tiles.ofTotal', { n: q.answered_count, total: counters.participants_joined })}</td>
-                  <td className="num">{q.correct_rate === null ? '–' : formatPercent(q.correct_rate, uiLanguage)}</td>
-                  <td className="num">
-                    {q.needs_review_count > 0 ? (
-                      <Link
-                        to={`/grade/${id}/quiz?filter=needs_review#q-${q.id}`}
-                        className="count-link"
-                        aria-label={`${t('grader.questions.needsReview')}: ${q.needs_review_count} (${t('grader.question.number', { n: i + 1 })})`}
-                      >
-                        {q.needs_review_count}
-                      </Link>
-                    ) : (
-                      '–'
-                    )}
-                  </td>
-                </tr>
-              ))}
+              {data.questions.map((q, i) => {
+                // Wish 8 (S15): one population per row: the share and the "difficult" badge both
+                // count the graded answers of participants who have submitted (as on the whole-quiz
+                // page); an older server without those counts falls back to every graded answer.
+                const graded = q.submitted_graded_count ?? q.graded_count;
+                const correct = q.submitted_correct_count ?? q.correct_count;
+                return (
+                  <tr key={q.id}>
+                    <th scope="row" className="num" title={q.text}>
+                      {i + 1}
+                    </th>
+                    <td className="num">{t('grader.tiles.ofTotal', { n: q.answered_count, total: counters.participants_joined })}</td>
+                    <td className="num">
+                      <span className="rate-cell">
+                        {/* Before the number, so the numbers stay flush under the header; its place is kept. */}
+                        <DifficultBadge correct={correct} graded={graded} />
+                        {graded > 0 ? formatPercent(correct / graded, uiLanguage) : '–'}
+                      </span>
+                    </td>
+                    <td className="num">
+                      {q.needs_review_count > 0 ? (
+                        <Link
+                          to={`/grade/${id}/quiz?filter=needs_review#q-${q.id}`}
+                          className="count-link"
+                          aria-label={`${t('grader.questions.needsReview')}: ${q.needs_review_count} (${t('grader.question.number', { n: i + 1 })})`}
+                        >
+                          {q.needs_review_count}
+                        </Link>
+                      ) : (
+                        '–'
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
+        <DifficultLegend />
       </section>
+
+      {/* Wish 8 (S15): free-text answers per answer language, with the AI's and the reference check's agreement. */}
+      <LanguageStats
+        stats={data.languages ?? []}
+        aiEnabled={quiz.ai_grading_enabled === true}
+        base={quiz.base_language}
+        offered={quiz.offered_languages}
+      />
     </div>
   );
 }

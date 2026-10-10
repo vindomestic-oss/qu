@@ -18,6 +18,11 @@ import { groupSuggestion, isAiAcceptable } from '../../components/grader/aiSugge
 import { AiAcceptAll, AiAcceptButton } from '../../components/grader/AiAccept';
 import { useAiAcceptKey } from '../../lib/useAiAcceptKey';
 import { useAiBlindMode } from '../../lib/useAiBlindMode';
+import { useShortcutsEnabled } from '../../lib/graderShortcuts';
+import { GraderShortcuts } from '../../components/grader/GraderShortcuts';
+import { DifficultBadge } from '../../components/grader/DifficultBadge';
+import { LangTag } from '../../components/grader/LangTag';
+import { AnswerText } from '../../components/grader/AnswerText';
 import { runAi } from '../../api/aiGrading';
 import { QuestionLanguageBar } from '../../components/participant/QuestionLanguageBar';
 import type { AiGradingStatus, AnswerGrade, GradingAnswer, GradingQuestion, WholeQuizQuestion, WholeQuizResponse } from '../../types';
@@ -40,6 +45,9 @@ interface Snapshot {
     groups: number[][];
     /** The server's rule_matched minus the shown rows' share, so the count follows rows updated in place. */
     ruleBase: number;
+    /** The same for the graded and correct answers ("difficult" badge, wish 8). */
+    gradedBase: number;
+    correctBase: number;
   }[];
 }
 
@@ -68,6 +76,25 @@ function countRule(ids: number[], rows: Map<number, Row>): number {
   let n = 0;
   for (const id of ids) if (rows.get(id)?.grade_source === 'rule') n += 1;
   return n;
+}
+
+/** Shown rows with a grade, and those graded correct (the "difficult" badge, wish 8). */
+function countGrades(ids: number[], rows: Map<number, Row>): { graded: number; correct: number } {
+  let graded = 0;
+  let correct = 0;
+  for (const id of ids) {
+    const r = rows.get(id);
+    if (r?.points_awarded == null) continue;
+    graded += 1;
+    if (r.is_correct === 1) correct += 1;
+  }
+  return { graded, correct };
+}
+
+/** The server's graded / correct counts minus the shown rows' share (see Snapshot). */
+function gradeBases(stats: WholeQuizQuestion['stats'], ids: number[], rows: Map<number, Row>) {
+  const shown = countGrades(ids, rows);
+  return { gradedBase: (stats.graded ?? 0) - shown.graded, correctBase: stats.correct - shown.correct };
 }
 
 /** The fields of a question's answer key (wish 7: they can change while the list is open). */
@@ -127,7 +154,9 @@ export function WholeQuizReview() {
   // Wish 7 (S14): AI suggestions, the blind mode and the per-question "check the key" hints.
   const [blind, setBlind] = useAiBlindMode();
   const [aiStatus, setAiStatus] = useState<AiGradingStatus | null>(null);
-  useAiAcceptKey(snapshot?.quiz.ai_grading_enabled === true && !blind);
+  // Wish 8 (S15): the keyboard shortcuts' switch covers A too (WCAG 2.1.4).
+  const keysOn = useShortcutsEnabled();
+  useAiAcceptKey(snapshot?.quiz.ai_grading_enabled === true && !blind && keysOn);
 
   const snapshotRef = useRef<Snapshot | null>(null);
   const rowsRef = useRef(rows);
@@ -173,6 +202,7 @@ export function WholeQuizReview() {
             ids,
             groups: q.question.type === 'text' ? groupIdentical(q.answers) : [],
             ruleBase: (q.stats.rule_matched ?? 0) - countRule(ids, map),
+            ...gradeBases(q.stats, ids, map),
           };
         });
         rowsRef.current = map;
@@ -231,7 +261,13 @@ export function WholeQuizReview() {
                   const question = fresh
                     ? { ...q.question, reference_answer: fresh.reference_answer, accepted_answers: fresh.accepted_answers, grader_notes: fresh.grader_notes }
                     : q.question;
-                  return { ...q, question, stats, ruleBase: (stats.rule_matched ?? 0) - countRule(q.ids, merged) };
+                  return {
+                    ...q,
+                    question,
+                    stats,
+                    ruleBase: (stats.rule_matched ?? 0) - countRule(q.ids, merged),
+                    ...gradeBases(stats, q.ids, merged),
+                  };
                 }),
               }
             : prev,
@@ -358,6 +394,10 @@ export function WholeQuizReview() {
   };
   const pct = progress.total > 0 ? Math.round((progress.graded / progress.total) * 100) : 100;
   const languages = snapshot.quiz.offered_languages;
+  /** Wish 8 (S15): the language of an answer or group, when it says something. */
+  const langTag = (members: Row[]) => (
+    <LangTag langs={members.map((m) => m.answer_lang)} base={snapshot.quiz.base_language} offered={languages} />
+  );
   const ai = snapshot.quiz.ai_grading_enabled === true;
   const retryAi = (questionId: number) => void runAi(id, { questionId, includeFailed: true }).catch(() => {});
   const questionNumber = new Map<number, number>();
@@ -412,6 +452,7 @@ export function WholeQuizReview() {
         <button type="button" className="small-button" onClick={loadSnapshot}>
           {t('grader.quiz.refresh')}
         </button>
+        <GraderShortcuts aiAccept={ai && !blind} />
       </div>
 
       {error && (
@@ -447,7 +488,7 @@ export function WholeQuizReview() {
         </div>
       )}
 
-      {snapshot.questions.map(({ question: q, stats, ids, groups, ruleBase }) => {
+      {snapshot.questions.map(({ question: q, stats, ids, groups, ruleBase, gradedBase, correctBase }) => {
         const isText = q.type === 'text';
         const open = isText || openChoices.has(q.id);
         const rowList = ids.map((x) => rows.get(x)).filter((r): r is Row => Boolean(r));
@@ -497,12 +538,11 @@ export function WholeQuizReview() {
             answer={row}
             maxPoints={q.points}
             heading={t('grader.row.answerOf', { n: row.label })}
+            tag={langTag([row])}
             onGrade={(g) => mergeGrades([g])}
             tools={withHints ? acceptFor([row]) : undefined}
           >
-            <p className="answer-row__text" dir="auto">
-              {row.text_answer}
-            </p>
+            <AnswerText dir="auto">{row.text_answer}</AnswerText>
             {withHints && hintFor([row])}
             {withHints && aiFor([row])}
             {withHints && ai && <div className="answer-row__tools">{aiAcceptFor([row])}</div>}
@@ -514,6 +554,8 @@ export function WholeQuizReview() {
           .filter((members) => members.length > 0)
           .map((members) => ({ text: members[0].text_answer ?? '', members }));
         const ruleMatched = Math.max(0, ruleBase + countRule(ids, rows));
+        // Live: the shown rows as they are now plus the rest of the question as last loaded.
+        const shownGrades = countGrades(ids, rows);
         return (
           <QuestionReviewCard
             key={q.id}
@@ -522,6 +564,7 @@ export function WholeQuizReview() {
             lang={contentLanguage}
             base={base}
             choiceCounts={isText ? undefined : stats.choice_counts}
+            badge={<DifficultBadge correct={correctBase + shownGrades.correct} graded={gradedBase + shownGrades.graded} />}
           >
             {/* Always one line, so the card keeps its height when the last participant submits. */}
             <p className="grade-muted review-card__pending">
@@ -588,13 +631,10 @@ export function WholeQuizReview() {
                     sessionId={id}
                     members={members}
                     maxPoints={q.points}
-                    text={
-                      <p className="answer-row__text" dir="auto">
-                        {members[0].text_answer}
-                      </p>
-                    }
+                    text={<AnswerText dir="auto">{members[0].text_answer}</AnswerText>}
                     label={members[0].text_answer ?? ''}
                     hints={hintFor(members)}
+                    tag={langTag(members)}
                     actions={acceptFor(members)}
                     ai={
                       ai ? (
@@ -618,16 +658,17 @@ export function WholeQuizReview() {
                   answer={row}
                   maxPoints={q.points}
                   heading={t('grader.row.answerOf', { n: row.label })}
+                  tag={langTag([row])}
                   onGrade={(g) => mergeGrades([g])}
                 >
-                  <p className="answer-row__text">
+                  <AnswerText>
                     {(row.selected_choice_ids ?? [])
                       .map((cid) => {
                         const c = q.choices.find((x) => x.id === cid);
                         return c ? resolveFieldWithLang(c, 'text', contentLanguage, base).text : t('grader.row.optionDeleted');
                       })
                       .join(', ') || t('grader.row.nothingSelected')}
-                  </p>
+                  </AnswerText>
                 </AnswerGradeRow>
               ))}
           </QuestionReviewCard>

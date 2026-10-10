@@ -9,6 +9,8 @@ import { CheckIcon, CrossIcon } from './icons';
 import { AUTO_SOURCES, formatPoints, graderIdentity } from './format';
 import { Interpolate } from './Interpolate';
 import { RuleMatchedLabel } from './AnswerHints';
+import { useGradeShortcut, useShortcutsEnabled } from '../../lib/graderShortcuts';
+import { AnswerTextIdContext } from './answerTextId';
 
 interface Attempt {
   is_correct: boolean;
@@ -39,6 +41,8 @@ interface Props {
   headingHidden?: boolean;
   /** The answer itself (text or selected options). */
   children: React.ReactNode;
+  /** Beside the heading (wish 8: the answer's language tag). */
+  tag?: React.ReactNode;
   /** Secondary actions (wish 7: "Add to accepted answers"): under the answer beside the grading
    *  controls, below them on narrow screens, so they never push the grading buttons. */
   tools?: React.ReactNode;
@@ -63,6 +67,7 @@ export function AnswerGradeRow({
   heading,
   headingHidden = false,
   children,
+  tag,
   tools,
   onGrade,
 }: Props) {
@@ -78,6 +83,8 @@ export function AnswerGradeRow({
   // save a second time); actions during a save are ignored instead.
   const inFlight = useRef(false);
   const id = useId();
+  const rowRef = useRef<HTMLDivElement>(null);
+  const keysOn = useShortcutsEnabled();
 
   const graded = answer.points_awarded !== null;
   const max = formatPoints(maxPoints, uiLanguage);
@@ -153,6 +160,35 @@ export function AnswerGradeRow({
     }
   }
 
+  // Wish 8 (S15): grade keys aimed at this row (GraderShortcuts). A digit is that many points: 0 and
+  // the maximum are "Incorrect" and "Correct"; other points follow the field's rule (an existing
+  // verdict stays, otherwise points > 0 count as correct).
+  useGradeShortcut(rowRef, (action) => {
+    if (disabled) return 'not_gradable';
+    if (inFlight.current) return 'busy';
+    if (action.kind === 'correct' || action.kind === 'incorrect') {
+      verdict(action.kind === 'correct');
+      return 'ok';
+    }
+    if (action.kind === 'editPoints') {
+      inputRef.current?.focus();
+      inputRef.current?.select();
+      return 'ok';
+    }
+    const value = action.points;
+    if (value > maxPoints + 1e-9) return { result: 'too_high', max: maxPoints };
+    if (value === 0 || Math.abs(value - maxPoints) < 1e-9) {
+      verdict(value > 0);
+      return 'ok';
+    }
+    setDraft(null);
+    setDraftBase(null);
+    const isCorrect = graded && answer.is_correct !== null ? answer.is_correct === 1 : value > 0;
+    if (graded && Math.abs((answer.points_awarded ?? 0) - value) < 1e-9 && (answer.is_correct === 1) === isCorrect) return 'ok';
+    void save({ is_correct: isCorrect, points_awarded: value, expected_version: answer.grade_version });
+    return 'ok';
+  });
+
   const pointsValue = draft ?? (graded ? String(answer.points_awarded) : '');
   const meta = (() => {
     if (!graded) return t('grader.row.notGraded');
@@ -170,19 +206,37 @@ export function AnswerGradeRow({
     );
   })();
 
+  const headingEl = heading && (
+    <div id={`${id}-h`} className={headingHidden ? 'visually-hidden' : 'answer-row__heading'}>
+      {heading}
+    </div>
+  );
+
   return (
     <div
+      ref={rowRef}
       className={`answer-row${disabled ? ' is-disabled' : ''}${tools ? ' answer-row--tools' : ''}`}
       role="group"
       aria-labelledby={heading ? `${id}-h` : undefined}
+      // Wish 8 (S15): J/K/N move the focus here (programmatic only, never a Tab stop); the answer
+      // (AnswerText) and its grade line describe the row, so moving there reads more than "Answer 3".
+      tabIndex={-1}
+      aria-describedby={`${id}-text ${id}-status`}
+      data-grade-row=""
+      data-graded={graded ? 'true' : 'false'}
+      data-gradable={disabled ? 'false' : 'true'}
+      data-saving={state.kind === 'saving' ? 'true' : undefined}
     >
       <div className="answer-row__content">
-        {heading && (
-          <div id={`${id}-h`} className={headingHidden ? 'visually-hidden' : 'answer-row__heading'}>
-            {heading}
+        {tag ? (
+          <div className="answer-row__headline">
+            {headingEl}
+            {tag}
           </div>
+        ) : (
+          headingEl
         )}
-        {children}
+        <AnswerTextIdContext.Provider value={`${id}-text`}>{children}</AnswerTextIdContext.Provider>
       </div>
 
       <div className="answer-row__controls">
@@ -193,6 +247,8 @@ export function AnswerGradeRow({
             className="grade-toggle grade-toggle--correct"
             aria-pressed={graded && answer.is_correct === 1}
             disabled={disabled}
+            aria-keyshortcuts={keysOn ? 'C' : undefined}
+            title={keysOn ? t('grader.keys.tooltip', { key: 'C' }) : undefined}
             onClick={() => verdict(true)}
           >
             <CheckIcon /> {t('grader.row.correct')}
@@ -203,6 +259,8 @@ export function AnswerGradeRow({
             className="grade-toggle grade-toggle--incorrect"
             aria-pressed={graded && answer.is_correct === 0}
             disabled={disabled}
+            aria-keyshortcuts={keysOn ? 'X' : undefined}
+            title={keysOn ? t('grader.keys.tooltip', { key: 'X' }) : undefined}
             onClick={() => verdict(false)}
           >
             <CrossIcon /> {t('grader.row.incorrect')}

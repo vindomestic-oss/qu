@@ -22,6 +22,8 @@ interface Props {
   selectedIds?: number[];
   /** Whole-quiz page: how many submitted answers chose each option. */
   choiceCounts?: Record<string, number>;
+  /** In the head, before the points (wish 8: the "difficult" badge). */
+  badge?: React.ReactNode;
   children?: React.ReactNode;
 }
 
@@ -30,7 +32,7 @@ interface Props {
  * fallback), max points, and the answer key: correct options, or the model answer, the accepted
  * answers (wish 7) and the notes of a text question. Grading rows go in `children`.
  */
-export function QuestionReviewCard({ question: q, number, lang, base, selectedIds, choiceCounts, children }: Props) {
+export function QuestionReviewCard({ question: q, number, lang, base, selectedIds, choiceCounts, badge, children }: Props) {
   const { t, uiLanguage } = useLanguage();
   const text = resolveFieldWithLang(q, 'text', lang, base);
   const known = new Set(q.choices.map((c) => c.id));
@@ -46,6 +48,7 @@ export function QuestionReviewCard({ question: q, number, lang, base, selectedId
           {t('grader.question.number', { n: number })}
         </span>
         <span>{t(`grader.question.type.${q.type}`)}</span>
+        {badge}
         <span className="review-card__points">{t('grader.question.maxPoints', { points: formatPoints(q.points, uiLanguage) })}</span>
       </header>
 

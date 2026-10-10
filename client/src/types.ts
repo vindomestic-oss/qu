@@ -279,8 +279,28 @@ export interface GradingSummary {
     answered_count: number;
     correct_count: number;
     needs_review_count: number;
+    /** Graded answers (correct + incorrect): the denominator of correct_rate. */
+    graded_count: number;
+    /** The same of submitted participants only, and the correct ones among them (the "difficult" badge). */
+    submitted_graded_count?: number;
+    submitted_correct_count?: number;
     correct_rate: number | null;
   }[];
+  /** Wish 8 (S15): submitted free-text answers per answer language (empty without any). */
+  languages?: GradingLanguageStat[];
+}
+
+/** One answer language on the overview (wish 8, S15): counts only. */
+export interface GradingLanguageStat {
+  /** answers.answer_lang; null = unknown. */
+  lang: QuizLang | null;
+  answers: number;
+  graded: number;
+  correct: number;
+  /** AI suggestion vs the person's final grade (S14's rule). */
+  ai: { agreed: number; total: number };
+  /** Graded answers the reference check matches, and those that kept full points. */
+  rule: { agreed: number; total: number };
 }
 
 export interface GradingChoice extends WithTranslations<'text'> {
@@ -341,6 +361,8 @@ export interface GradingAnswer extends AnswerGrade, Partial<AiSuggestionFields> 
   answer_norm?: string | null;
   /** Text answers: the model answer or an accepted answer matches it (wish 7). */
   matches_reference?: boolean;
+  /** Wish 8 (S15): the language the question was shown in (a text answer's script corrects it); null = unknown. */
+  answer_lang?: QuizLang | null;
 }
 
 export type StaffViewer = { kind: 'admin' | 'grader'; name: string };
@@ -369,6 +391,8 @@ export interface WholeQuizQuestion {
   question: GradingQuestion;
   stats: {
     answered: number;
+    /** Answers with a grade (wish 8: the "difficult" badge counts correct among these). */
+    graded: number;
     correct: number;
     needs_review: number;
     awaiting_submission: number;

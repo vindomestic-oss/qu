@@ -5,6 +5,7 @@ import { CHIDON_5787_ANFAENGER_TITLE, CHIDON_5787_FORTGESCHRITTENE_TITLE } from 
 import { backfillSeededSections } from './chidonSections';
 import { CHIDON_ANSWER_KEYS, s12OriginalOf } from './chidonAnswerKey';
 import { normalizeForMatch } from '../lib/aiGrading/normalize';
+import { backfillAnswerLanguages } from '../lib/answerLanguage';
 
 const ADDED_COLUMNS: Record<string, { name: string; type: string }[]> = {
   // ISO time; admin tokens issued before it are rejected (set on creation and on every password change).
@@ -80,6 +81,10 @@ const ADDED_COLUMNS: Record<string, { name: string; type: string }[]> = {
     { name: 'ai_claim', type: 'TEXT' },
     // At most 200 characters, e.g. 'no_reference', 'daily_cap', 'timeout'.
     { name: 'ai_error', type: 'TEXT' },
+    // Wish 8 (S15): the answer's language for graders (a QUIZ_LANGS code, validated in TypeScript):
+    // the language the question was shown in, corrected by the script of a text answer
+    // (lib/answerLanguage.ts). NULL = unknown. Never sent to participants.
+    { name: 'answer_lang', type: 'TEXT' },
   ],
 };
 
@@ -178,6 +183,8 @@ export function runMigrations(db: Database.Database) {
   }
 
   backfillAnswerNorms(db);
+  // Text answers saved before S15: their language from the script alone (guarded by IS NULL).
+  backfillAnswerLanguages(db);
 
   // Indexes on new columns of existing tables come last (the columns exist by now).
   db.exec('CREATE INDEX IF NOT EXISTS idx_answers_q_norm ON answers(question_id, answer_norm)');

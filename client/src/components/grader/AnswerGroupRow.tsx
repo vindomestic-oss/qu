@@ -9,6 +9,8 @@ import { CheckIcon, CrossIcon } from './icons';
 import { AUTO_SOURCES, formatPoints, graderIdentity, groupGrade } from './format';
 import { Interpolate } from './Interpolate';
 import { RuleMatchedLabel } from './AnswerHints';
+import { useGradeShortcut, useShortcutsEnabled } from '../../lib/graderShortcuts';
+import { AnswerTextIdContext } from './answerTextId';
 
 type Member = GradingAnswer & { label: number };
 type Item = { answer_id: number; expected_version: number };
@@ -39,6 +41,8 @@ interface Props {
   label: string;
   /** The precedent hint, under the text. */
   hints?: ReactNode;
+  /** Beside the "×N" heading (wish 8: the answers' language tag). */
+  tag?: ReactNode;
   /** The admin's "Add to accepted answers", next to "Show the N answers" (below the controls on
    *  narrow screens, so it never pushes the grading buttons). */
   actions?: ReactNode;
@@ -61,7 +65,7 @@ const isHalfStep = (v: number) => Math.abs(v * 2 - Math.round(v * 2)) < 1e-9;
  * The group can be opened to grade its answers one by one. Its layout does not change when grades
  * arrive (fixed status line), so nothing moves under the grader's finger.
  */
-export function AnswerGroupRow({ sessionId, members, maxPoints, text, label, hints, actions, ai, onGrade, renderMember }: Props) {
+export function AnswerGroupRow({ sessionId, members, maxPoints, text, label, hints, tag, actions, ai, onGrade, renderMember }: Props) {
   const { t, tCount, uiLanguage } = useLanguage();
   const id = useId();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -73,6 +77,8 @@ export function AnswerGroupRow({ sessionId, members, maxPoints, text, label, hin
   const [draftBase, setDraftBase] = useState<Record<number, number> | null>(null);
   const [state, setState] = useState<SaveState>({ kind: 'idle' });
   const inFlight = useRef(false);
+  const rowRef = useRef<HTMLDivElement>(null);
+  const keysOn = useShortcutsEnabled();
 
   const n = members.length;
   const agg = groupGrade(members);
@@ -163,6 +169,33 @@ export function AnswerGroupRow({ sessionId, members, maxPoints, text, label, hin
     }
   }
 
+  // Wish 8 (S15): grade keys aimed at the group's row grade every answer of the group, like its
+  // buttons and points field (0 and the maximum are "Incorrect" and "Correct").
+  useGradeShortcut(rowRef, (action) => {
+    if (inFlight.current) return 'busy';
+    if (action.kind === 'correct' || action.kind === 'incorrect') {
+      verdict(action.kind === 'correct');
+      return 'ok';
+    }
+    if (action.kind === 'editPoints') {
+      inputRef.current?.focus();
+      inputRef.current?.select();
+      return 'ok';
+    }
+    const value = action.points;
+    if (value > maxPoints + 1e-9) return { result: 'too_high', max: maxPoints };
+    if (value === 0 || Math.abs(value - maxPoints) < 1e-9) {
+      verdict(value > 0);
+      return 'ok';
+    }
+    setDraft(null);
+    setDraftBase(null);
+    const isCorrect = agg.uniform && agg.uniform.is_correct !== null ? agg.uniform.is_correct === 1 : value > 0;
+    const attempt = { is_correct: isCorrect, points_awarded: value };
+    void save(attempt, itemsFor(attempt));
+    return 'ok';
+  });
+
   const pointsValue = draft ?? (agg.uniform ? String(agg.uniform.points_awarded) : '');
   const savedShown =
     state.kind === 'saved' && members.every((m) => state.versions[m.id] === undefined || state.versions[m.id] === m.grade_version);
@@ -186,18 +219,34 @@ export function AnswerGroupRow({ sessionId, members, maxPoints, text, label, hin
 
   return (
     <div className="answer-group">
-      <div className="answer-row answer-row--group answer-row--tools" role="group" aria-labelledby={`${id}-name`}>
+      <div
+        ref={rowRef}
+        className="answer-row answer-row--group answer-row--tools"
+        role="group"
+        aria-labelledby={`${id}-name`}
+        // Wish 8 (S15): J/K/N move the focus here (programmatic only, never a Tab stop); the answer
+        // and the group's grade line describe it.
+        tabIndex={-1}
+        aria-describedby={`${id}-text ${id}-status`}
+        data-grade-row=""
+        data-graded={agg.graded === n ? 'true' : 'false'}
+        data-gradable="true"
+        data-saving={state.kind === 'saving' ? 'true' : undefined}
+      >
         <div className="answer-row__content">
           {/* The group's name for screen readers: the count in words and the answer (not "×"). */}
           <span id={`${id}-name`} className="visually-hidden">
             {tCount('grader.group.label', n)}: <bdi>{label}</bdi>
           </span>
-          <div className="answer-row__heading" aria-hidden="true">
-            <span className="group-count">
-              <Interpolate template={t('grader.group.heading')} values={{ count: <bdi dir="ltr">{`×${n}`}</bdi> }} />
-            </span>
+          <div className="answer-row__headline">
+            <div className="answer-row__heading" aria-hidden="true">
+              <span className="group-count">
+                <Interpolate template={t('grader.group.heading')} values={{ count: <bdi dir="ltr">{`×${n}`}</bdi> }} />
+              </span>
+            </div>
+            {tag}
           </div>
-          {text}
+          <AnswerTextIdContext.Provider value={`${id}-text`}>{text}</AnswerTextIdContext.Provider>
           {hints}
           {ai}
         </div>
@@ -209,6 +258,8 @@ export function AnswerGroupRow({ sessionId, members, maxPoints, text, label, hin
               type="button"
               className="grade-toggle grade-toggle--correct"
               aria-pressed={agg.uniform?.is_correct === 1}
+              aria-keyshortcuts={keysOn ? 'C' : undefined}
+              title={keysOn ? t('grader.keys.tooltip', { key: 'C' }) : undefined}
               onClick={() => verdict(true)}
             >
               <CheckIcon /> {t('grader.row.correct')}
@@ -218,6 +269,8 @@ export function AnswerGroupRow({ sessionId, members, maxPoints, text, label, hin
               type="button"
               className="grade-toggle grade-toggle--incorrect"
               aria-pressed={agg.uniform?.is_correct === 0}
+              aria-keyshortcuts={keysOn ? 'X' : undefined}
+              title={keysOn ? t('grader.keys.tooltip', { key: 'X' }) : undefined}
               onClick={() => verdict(false)}
             >
               <CrossIcon /> {t('grader.row.incorrect')}

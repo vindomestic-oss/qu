@@ -154,6 +154,49 @@ export const GRADER_EN: Dict = {
   'grader.accept.added': 'Added to accepted answers ✓',
   'grader.accept.addedMore': 'Added ✓ · also credited automatically now: {n}',
   'grader.accept.failed': 'Could not add. Please try again.',
+  // Keyboard shortcuts (wish 8, S15).
+  'grader.keys.button': 'Shortcuts',
+  'grader.keys.title': 'Keyboard shortcuts',
+  'grader.keys.intro': 'They work while the cursor is not in a text field. Grades go to the answer with the focus frame.',
+  'grader.keys.next': 'Next answer',
+  'grader.keys.prev': 'Previous answer',
+  'grader.keys.nextUngraded': 'Next ungraded answer',
+  'grader.keys.correct': 'Correct (full points)',
+  'grader.keys.incorrect': 'Incorrect (0 points)',
+  'grader.keys.points': 'This many points (1 = correct on a 1-point question)',
+  'grader.keys.editPoints': 'Type points, e.g. 0.5: Enter saves, Esc goes back',
+  'grader.keys.help': 'Show this list',
+  'grader.keys.closeKey': 'Close this list',
+  'grader.keys.enabled': 'Use keyboard shortcuts',
+  'grader.keys.close': 'Close',
+  'grader.keys.tooltip': 'Shortcut: {key}',
+  'grader.keys.or': 'or',
+  'grader.keys.noRow': 'First move to an answer: J or N.',
+  'grader.keys.noRows': 'No answers to grade here.',
+  'grader.keys.first': 'This is the first answer.',
+  'grader.keys.last': 'This is the last answer.',
+  'grader.keys.allGraded': 'Every answer here is graded.',
+  'grader.keys.tooHigh': 'Too many points: the maximum is {max}.',
+  'grader.keys.notGradable': 'Not gradable yet: the participant has not submitted.',
+
+  // "Difficult" questions (wish 8, S15).
+  'grader.difficult.badge': 'Difficult',
+  'grader.difficult.title': 'Fewer than {pct} of the graded answers are correct ({correct} of {graded})',
+  'grader.difficult.legend':
+    '= fewer than {pct} of the graded answers correct, counted from {n} graded answers. "Correct" counts the answers of participants who have submitted.',
+
+  // Answer language (wish 8, S15).
+  'grader.lang.tag': 'Answer language: {lang}',
+  'grader.languages.title': 'Free-text answers by language',
+  'grader.languages.lang': 'Language',
+  'grader.languages.answers': 'Answers',
+  'grader.languages.correct': 'Correct (of graded)',
+  'grader.languages.rule': 'Automatic credit kept',
+  'grader.languages.share': '{pct} ({n} of {total})',
+  'grader.languages.unknown': 'Unknown',
+  'grader.languages.noData': 'no data',
+  'grader.languages.note':
+    'Language: the one the question was shown in; an answer written in another script counts under that script’s language. Answers of participants who have submitted.',
 };
 
 export const GRADER_DE: Dict = {
@@ -306,6 +349,49 @@ export const GRADER_DE: Dict = {
   'grader.accept.added': 'Zu den akzeptierten Antworten hinzugefügt ✓',
   'grader.accept.addedMore': 'Hinzugefügt ✓ · dadurch automatisch gewertet: {n}',
   'grader.accept.failed': 'Hinzufügen fehlgeschlagen. Bitte erneut versuchen.',
+  // Keyboard shortcuts (wish 8, S15).
+  'grader.keys.button': 'Tastenkürzel',
+  'grader.keys.title': 'Tastenkürzel',
+  'grader.keys.intro': 'Sie wirken, solange der Cursor nicht in einem Textfeld steht. Bewertet wird die Antwort mit dem Fokusrahmen.',
+  'grader.keys.next': 'Nächste Antwort',
+  'grader.keys.prev': 'Vorherige Antwort',
+  'grader.keys.nextUngraded': 'Nächste unbewertete Antwort',
+  'grader.keys.correct': 'Richtig (volle Punktzahl)',
+  'grader.keys.incorrect': 'Falsch (0 Punkte)',
+  'grader.keys.points': 'So viele Punkte (1 = richtig bei einer 1-Punkt-Frage)',
+  'grader.keys.editPoints': 'Punkte eintippen, z. B. 0,5: Enter speichert, Esc geht zurück',
+  'grader.keys.help': 'Diese Liste anzeigen',
+  'grader.keys.closeKey': 'Liste schließen',
+  'grader.keys.enabled': 'Tastenkürzel verwenden',
+  'grader.keys.close': 'Schließen',
+  'grader.keys.tooltip': 'Taste: {key}',
+  'grader.keys.or': 'oder',
+  'grader.keys.noRow': 'Zuerst zu einer Antwort gehen: J oder N.',
+  'grader.keys.noRows': 'Hier gibt es keine Antworten zu bewerten.',
+  'grader.keys.first': 'Das ist die erste Antwort.',
+  'grader.keys.last': 'Das ist die letzte Antwort.',
+  'grader.keys.allGraded': 'Alle Antworten hier sind bewertet.',
+  'grader.keys.tooHigh': 'Zu viele Punkte: höchstens {max}.',
+  'grader.keys.notGradable': 'Noch nicht bewertbar: noch nicht abgegeben.',
+
+  // "Difficult" questions (wish 8, S15).
+  'grader.difficult.badge': 'Schwierig',
+  'grader.difficult.title': 'Weniger als {pct} der bewerteten Antworten sind richtig ({correct} von {graded})',
+  'grader.difficult.legend':
+    '= weniger als {pct} der bewerteten Antworten richtig, gezählt ab {n} bewerteten Antworten. „Richtig“ zählt die Antworten von Teilnehmenden, die abgegeben haben.',
+
+  // Answer language (wish 8, S15).
+  'grader.lang.tag': 'Sprache der Antwort: {lang}',
+  'grader.languages.title': 'Freitextantworten nach Sprache',
+  'grader.languages.lang': 'Sprache',
+  'grader.languages.answers': 'Antworten',
+  'grader.languages.correct': 'Richtig (von bewerteten)',
+  'grader.languages.rule': 'Automatische Wertung beibehalten',
+  'grader.languages.share': '{pct} ({n} von {total})',
+  'grader.languages.unknown': 'Unbekannt',
+  'grader.languages.noData': 'keine Daten',
+  'grader.languages.note':
+    'Sprache: in der die Frage angezeigt wurde; eine Antwort in einer anderen Schrift zählt zur Sprache dieser Schrift. Antworten von Teilnehmenden, die abgegeben haben.',
 };
 
 export const GRADER_RU: Dict = {
@@ -462,6 +548,49 @@ export const GRADER_RU: Dict = {
   'grader.accept.added': 'Добавлено в допустимые ответы ✓',
   'grader.accept.addedMore': 'Добавлено ✓ · ещё засчитано автоматически: {n}',
   'grader.accept.failed': 'Не удалось добавить. Попробуйте ещё раз.',
+  // Keyboard shortcuts (wish 8, S15).
+  'grader.keys.button': 'Горячие клавиши',
+  'grader.keys.title': 'Горячие клавиши',
+  'grader.keys.intro': 'Работают, когда курсор не стоит в текстовом поле. Оценка ставится ответу в рамке фокуса.',
+  'grader.keys.next': 'Следующий ответ',
+  'grader.keys.prev': 'Предыдущий ответ',
+  'grader.keys.nextUngraded': 'Следующий непроверенный ответ',
+  'grader.keys.correct': 'Верно (полный балл)',
+  'grader.keys.incorrect': 'Неверно (0 баллов)',
+  'grader.keys.points': 'Столько баллов (1 = верно в вопросе на 1 балл)',
+  'grader.keys.editPoints': 'Ввести баллы, например 0,5: Enter сохраняет, Esc возвращает',
+  'grader.keys.help': 'Показать этот список',
+  'grader.keys.closeKey': 'Закрыть список',
+  'grader.keys.enabled': 'Использовать горячие клавиши',
+  'grader.keys.close': 'Закрыть',
+  'grader.keys.tooltip': 'Клавиша: {key}',
+  'grader.keys.or': 'или',
+  'grader.keys.noRow': 'Сначала перейдите к ответу: J или N.',
+  'grader.keys.noRows': 'Здесь нет ответов для оценки.',
+  'grader.keys.first': 'Это первый ответ.',
+  'grader.keys.last': 'Это последний ответ.',
+  'grader.keys.allGraded': 'Все ответы здесь оценены.',
+  'grader.keys.tooHigh': 'Слишком много баллов: максимум {max}.',
+  'grader.keys.notGradable': 'Пока нельзя оценить: работа ещё не сдана.',
+
+  // "Difficult" questions (wish 8, S15).
+  'grader.difficult.badge': 'Сложный',
+  'grader.difficult.title': 'Верно меньше {pct} проверенных ответов ({correct} из {graded})',
+  'grader.difficult.legend':
+    '= верно меньше {pct} проверенных ответов; считается, когда проверено не меньше {n}. «Верно» считает ответы сдавших участников.',
+
+  // Answer language (wish 8, S15).
+  'grader.lang.tag': 'Язык ответа: {lang}',
+  'grader.languages.title': 'Открытые ответы по языкам',
+  'grader.languages.lang': 'Язык',
+  'grader.languages.answers': 'Ответы',
+  'grader.languages.correct': 'Верно (из оценённых)',
+  'grader.languages.rule': 'Автозачёт сохранён',
+  'grader.languages.share': '{pct} ({n} из {total})',
+  'grader.languages.unknown': 'Неизвестно',
+  'grader.languages.noData': 'нет данных',
+  'grader.languages.note':
+    'Язык: тот, на котором был показан вопрос; ответ, написанный другим алфавитом, считается по языку этого алфавита. Учтены ответы сдавших участников.',
 };
 
 export const GRADER_HE: Dict = {
@@ -616,4 +745,47 @@ export const GRADER_HE: Dict = {
   'grader.accept.added': 'נוסף לתשובות המתקבלות ✓',
   'grader.accept.addedMore': 'נוסף ✓ · נבדקו אוטומטית בעקבות זאת: {n}',
   'grader.accept.failed': 'ההוספה נכשלה. נסו שוב.',
+  // Keyboard shortcuts (wish 8, S15).
+  'grader.keys.button': 'קיצורי מקלדת',
+  'grader.keys.title': 'קיצורי מקלדת',
+  'grader.keys.intro': 'הקיצורים פועלים כשהסמן אינו בשדה טקסט. הציון ניתן לתשובה שבמסגרת המיקוד.',
+  'grader.keys.next': 'התשובה הבאה',
+  'grader.keys.prev': 'התשובה הקודמת',
+  'grader.keys.nextUngraded': 'התשובה הבאה שעוד לא נבדקה',
+  'grader.keys.correct': 'נכון (ניקוד מלא)',
+  'grader.keys.incorrect': 'שגוי (0 נקודות)',
+  'grader.keys.points': 'מספר נקודות כזה (1 = נכון בשאלה של נקודה אחת)',
+  'grader.keys.editPoints': 'הקלדת נקודות, למשל 0.5: Enter שומר, Esc חוזר',
+  'grader.keys.help': 'הצגת הרשימה הזו',
+  'grader.keys.closeKey': 'סגירת הרשימה',
+  'grader.keys.enabled': 'שימוש בקיצורי מקלדת',
+  'grader.keys.close': 'סגירה',
+  'grader.keys.tooltip': 'מקש: {key}',
+  'grader.keys.or': 'או',
+  'grader.keys.noRow': 'קודם עברו לתשובה: J או N.',
+  'grader.keys.noRows': 'אין כאן תשובות לבדיקה.',
+  'grader.keys.first': 'זו התשובה הראשונה.',
+  'grader.keys.last': 'זו התשובה האחרונה.',
+  'grader.keys.allGraded': 'כל התשובות כאן נבדקו.',
+  'grader.keys.tooHigh': 'יותר מדי נקודות: המקסימום הוא {max}.',
+  'grader.keys.notGradable': 'עדיין אי אפשר לבדוק: התשובות עוד לא הוגשו.',
+
+  // "Difficult" questions (wish 8, S15).
+  'grader.difficult.badge': 'קשה',
+  'grader.difficult.title': 'פחות מ־{pct} מהתשובות שנבדקו נכונות ({correct} מתוך {graded})',
+  'grader.difficult.legend':
+    '= פחות מ־{pct} מהתשובות שנבדקו נכונות; נספר החל מ־{n} תשובות שנבדקו. ״נכון״ סופר את התשובות של משתתפים שהגישו.',
+
+  // Answer language (wish 8, S15).
+  'grader.lang.tag': 'שפת התשובה: {lang}',
+  'grader.languages.title': 'תשובות פתוחות לפי שפה',
+  'grader.languages.lang': 'שפה',
+  'grader.languages.answers': 'תשובות',
+  'grader.languages.correct': 'נכונות (מתוך שנבדקו)',
+  'grader.languages.rule': 'הניקוד האוטומטי נשמר',
+  'grader.languages.share': '{pct} ({n} מתוך {total})',
+  'grader.languages.unknown': 'לא ידוע',
+  'grader.languages.noData': 'אין נתונים',
+  'grader.languages.note':
+    'השפה: השפה שבה הוצגה השאלה; תשובה שנכתבה בכתב אחר נספרת בשפה של אותו כתב. נספרות תשובות של משתתפים שהגישו.',
 };
