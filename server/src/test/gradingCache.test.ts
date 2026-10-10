@@ -9,6 +9,7 @@ import {
   GRADING_CACHE_MAX_ENTRIES,
   GRADING_CACHE_TTL_MS,
 } from '../lib/gradingCache';
+import { io as connect } from 'socket.io-client';
 import { createAdmin, createQuizFixture, findKeys, join, login, request, startServer, type QuizFixture } from './helpers';
 
 // The grading panel's shared, per-session cache (lib/gradingCache.ts): one computation of the
@@ -94,15 +95,70 @@ describe('sharing', () => {
     assert.equal(q1.body.filter, 'all');
   });
 
-  test('a change without a grading write (an answer save) shows up after the TTL at the latest', async () => {
+  test('a change that sends no event (a question text) shows up after the TTL at the latest', async () => {
     const fx = await startedFixture('Cache TTL quiz');
-    const ada = await kid(fx, 'Ada');
     const first = await summary(fx.sessionId);
-    assert.equal(first.body.counters.answers_given, 0);
-    await request(base, 'POST', `/api/my/answers/${fx.textQuestionId}`, ada.token, { text_answer: 'typing' });
-    assert.equal((await summary(fx.sessionId)).body.counters.answers_given, 0, 'within the TTL the shared copy is used');
+    const q = first.body.questions.find((x: { id: number }) => x.id === fx.textQuestionId);
+    db.prepare('UPDATE questions SET text = ? WHERE id = ?').run('Edited text', fx.textQuestionId);
+    const within = (await summary(fx.sessionId)).body.questions.find((x: { id: number }) => x.id === fx.textQuestionId);
+    assert.equal(within.text, q.text, 'within the TTL the shared copy is used');
     await new Promise((r) => setTimeout(r, GRADING_CACHE_TTL_MS + 50));
-    assert.equal((await summary(fx.sessionId)).body.counters.answers_given, 1);
+    const later = (await summary(fx.sessionId)).body.questions.find((x: { id: number }) => x.id === fx.textQuestionId);
+    assert.equal(later.text, 'Edited text');
+  });
+
+  test('an answer save or a join (session:live) invalidates too, so refetches on that event are fresh', async () => {
+    const fx = await startedFixture('Cache live quiz');
+    const staff = connect(base, { transports: ['websocket'], forceNew: true, reconnection: false });
+    try {
+      await new Promise<void>((resolve) => staff.once('connect', () => resolve()));
+      assert.equal((await staff.timeout(2000).emitWithAck('staff:join', { sessionId: fx.sessionId, token: adminToken })).ok, true);
+      const nextLive = () =>
+        new Promise<void>((resolve, reject) => {
+          const timer = setTimeout(() => reject(new Error('no session:live within 2 s')), 2000);
+          staff.once('session:live', () => {
+            clearTimeout(timer);
+            resolve();
+          });
+        });
+      // Each time: another viewer reads (caching the state before the change), the change happens,
+      // and the dashboard refetches on the session:live that follows: it must see the change.
+      await new Promise((r) => setTimeout(r, 600)); // no coalescing window left from the start
+      assert.equal((await summary(fx.sessionId)).body.counters.participants_joined, 0);
+      let live = nextLive();
+      const ada = await kid(fx, 'Ada');
+      await live;
+      assert.equal((await summary(fx.sessionId)).body.counters.participants_joined, 1, 'the join');
+
+      // The save falls into the 500 ms window the join opened: its trailing session:live invalidates.
+      assert.equal((await summary(fx.sessionId)).body.counters.answers_given, 0);
+      live = nextLive();
+      await request(base, 'POST', `/api/my/answers/${fx.textQuestionId}`, ada.token, { text_answer: 'typing' });
+      await live;
+      assert.equal((await summary(fx.sessionId)).body.counters.answers_given, 1, 'the save');
+
+      // The whole-quiz list is not refetched on session:live and shows submitted answers only: its
+      // entry stays shared across a live event (only the summary is dropped).
+      await request(base, 'GET', `/api/grading/${fx.sessionId}/quiz?filter=all`, adminToken);
+      live = nextLive();
+      await request(base, 'POST', `/api/my/answers/${fx.textQuestionId}`, ada.token, { text_answer: 'typing more' });
+      await live;
+      const hits = gradingCacheStats().hits;
+      await request(base, 'GET', `/api/grading/${fx.sessionId}/quiz?filter=all`, adminToken);
+      assert.equal(gradingCacheStats().hits, hits + 1, 'the whole-quiz entry survived the live event');
+    } finally {
+      staff.disconnect();
+    }
+  });
+
+  test('expired entries are swept on every insert', async () => {
+    clearGradingCache();
+    cachedForSession(200_001, 'summary', () => 1);
+    cachedForSession(200_002, 'summary', () => 2);
+    assert.equal(gradingCacheStats().size, 2);
+    await new Promise((r) => setTimeout(r, GRADING_CACHE_TTL_MS + 20));
+    cachedForSession(200_003, 'summary', () => 3);
+    assert.equal(gradingCacheStats().size, 1, 'the two expired entries are gone');
   });
 
   test('no data crosses sessions', async () => {

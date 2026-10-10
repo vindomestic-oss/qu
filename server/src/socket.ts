@@ -3,7 +3,7 @@ import { Server } from 'socket.io';
 import { authenticate } from './middleware/jwt';
 import { db } from './db';
 import { nowIso } from './lib/time';
-import { invalidateSessionCache } from './lib/gradingCache';
+import { invalidateSessionCache, invalidateSessionPart } from './lib/gradingCache';
 
 // Rooms: `session:<id>` (participants and staff) carries only session:update. `staff:<id>` (admins, and
 // graders with a valid link for that one session) carries session:update, session:live and
@@ -159,6 +159,10 @@ const LIVE_WINDOW_MS = 500;
 const liveWindows = new Map<number, { timer: NodeJS.Timeout; dirty: boolean }>();
 
 function emitLive(sessionId: number) {
+  // Staff screens refetch the summary on this event; an entry computed before the answer save or join
+  // that caused it must not answer those refetches (lib/gradingCache.ts). Covers the immediate and the
+  // trailing (coalesced) emit. The whole-quiz list does not refetch on session:live.
+  invalidateSessionPart(sessionId, 'summary');
   io?.to(`staff:${sessionId}`).emit('session:live');
 }
 

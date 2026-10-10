@@ -98,3 +98,51 @@ test('stop cancels a pending refetch', async () => {
   await c.advance(10_000);
   assert.equal(runs, 1);
 });
+
+test('a request that never settles stops blocking after the flight timeout', async () => {
+  const c = fakeClock();
+  const starts: number[] = [];
+  const s = createRefetchScheduler(
+    () => {
+      starts.push(c.now);
+      return new Promise<void>(() => {}); // a hung connection
+    },
+    { clock: c.clock, afterFlightGapMs: 1000, flightTimeoutMs: 15_000 },
+  );
+  s.request(1000);
+  await c.advance(0);
+  // Events keep arriving (live every 5 s, a grade now and then) for 40 s.
+  for (let i = 0; i < 40; i++) {
+    s.request(i % 7 === 0 ? 1000 : 5000);
+    await c.advance(1000);
+  }
+  assert.deepEqual(starts, [0, 15_000, 30_000], 'one new request per flight timeout, never more');
+  s.stop();
+});
+
+test('a late result of an abandoned request does not disturb the newer one', async () => {
+  const c = fakeClock();
+  const pending: (() => void)[] = [];
+  const starts: number[] = [];
+  const s = createRefetchScheduler(
+    () => {
+      starts.push(c.now);
+      return new Promise<void>((resolve) => pending.push(resolve));
+    },
+    { clock: c.clock, afterFlightGapMs: 1000, flightTimeoutMs: 15_000 },
+  );
+  s.request(1000);
+  await c.advance(0);
+  s.request(1000);
+  await c.advance(15_000); // the first one times out, the second starts
+  assert.deepEqual(starts, [0, 15_000]);
+  s.request(1000); // falls due while the second is in flight
+  pending[0](); // the abandoned first one settles late
+  await c.advance(2000);
+  assert.deepEqual(starts, [0, 15_000], 'still waiting for the second one');
+  pending[1]();
+  await c.advance(0);
+  await c.advance(1000);
+  assert.deepEqual(starts, [0, 15_000, 17_000], 'then exactly one more');
+  s.stop();
+});
