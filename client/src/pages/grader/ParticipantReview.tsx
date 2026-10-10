@@ -49,9 +49,11 @@ export function ParticipantReview() {
   useEffect(() => {
     reload();
   }, [reload, id, pid]);
-  // While answering, answers change live; after submission only grades and the session state do.
+  // While answering, answers change live (session:live, at most every 5 s like the dashboard); after
+  // submission only grades and the session state do.
   useStaffLive(id, reload, {
     events: data?.gradable ? ['grading:changed', 'session:update'] : ['session:live', 'grading:changed', 'session:update'],
+    intervals: { 'session:live': 5000 },
   });
 
   function mergeGrade(grade: AnswerGrade) {
